@@ -1,5 +1,6 @@
 import Image from "next/image";
-import { Palette, Sparkles, Moon, Layers } from "lucide-react";
+import Link from "next/link";
+import { Palette, Sparkles, Moon, Layers, SunMoon, Layers3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from "@/components/ui/card";
 
@@ -112,7 +113,10 @@ function WispBorderExample() {
 function MoonlightContrastExample() {
   return (
     <div className="flex flex-col gap-6 w-full max-w-xl">
-      <h2 className="text-xl font-medium silver-text">🌙 Surfaces & Contrast</h2>
+      <div className="flex items-center gap-2">
+        <SunMoon size={18} className="text-ethereal-teal" />
+        <h2 className="text-xl font-medium silver-text">Surfaces & Contrast</h2>
+      </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         {/* Card vs Background contrast */}
         <div className="p-6 rounded-lg bg-card">
@@ -167,7 +171,10 @@ function MoonlightContrastExample() {
 function SurfaceLayersExample() {
   return (
     <div className="flex flex-col gap-6 w-full max-w-xl">
-      <h2 className="text-xl font-medium silver-text">🔳 Surface Layers</h2>
+       <div className="flex items-center gap-2">
+        <Layers3 size={18} className="text-ethereal-teal" />
+        <h2 className="text-xl font-medium silver-text">Surface Layers</h2>
+      </div>
       <div className="bg-black p-6 rounded-lg">
         <h3 className="text-moonlight-silver-bright mb-4">Background Layer (Black)</h3>
         
@@ -202,6 +209,13 @@ export default function Home() {
           <p className="text-lg wispy-text-ethereal text-center max-w-md mb-8 opacity-90 text-moonlight-silver">
             A sleek, high-contrast interface with the shimmering elegance of Moonlight Silver against deep black
           </p>
+          
+          {/* Call to Action */}
+            <Link href="/login">
+              <Button size="lg" className="wispy-text-glow">
+                Login
+              </Button>
+            </Link>
         </div>
         
         {/* Add the Wisp Color Palette showcase */}

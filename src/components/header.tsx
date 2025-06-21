@@ -1,9 +1,14 @@
+'use client';
+
 import Image from 'next/image'
 import Link from 'next/link'
-import { HomeIcon, BookOpenText, Layers, Menu, PlusCircle } from 'lucide-react'
+import { HomeIcon, BookOpenText, Layers, Menu, PlusCircle, LogOut, User } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { useAuth } from '@/context/AuthContext'
 
 export function Header() {
+  const { user, isAuthenticated, logout } = useAuth();
+
   return (
     <header className="w-full py-4 px-6 border-b border-moonlight-silver/20">
       <div className="max-w-7xl mx-auto flex justify-between items-center">
@@ -34,10 +39,40 @@ export function Header() {
         </nav>
         
         <div className="flex items-center gap-2">
-          <Button className="gap-2 hidden sm:inline-flex" variant="default" size="default">
-            <PlusCircle size={16} />
-            <span>Get Started</span>
-          </Button>
+          {isAuthenticated && user ? (
+            <>
+              <div className="hidden sm:flex items-center gap-2 text-moonlight-silver">
+                <User size={16} />
+                <span className="text-sm">
+                  {user.username}
+                </span>
+              </div>
+              <Button 
+                onClick={logout}
+                variant="outline" 
+                size="default"
+                className="gap-2"
+              >
+                <LogOut size={16} />
+                <span className="hidden sm:inline">Logout</span>
+              </Button>
+            </>
+          ) : (
+            <>
+              <Link href="/login">
+                <Button variant="outline" size="default">
+                  Login
+                </Button>
+              </Link>
+              <Link href="/signup">
+                <Button className="gap-2 hidden sm:inline-flex" variant="default" size="default">
+                  <PlusCircle size={16} />
+                  <span>Get Started</span>
+                </Button>
+              </Link>
+              
+            </>
+          )}
           <Button variant="ghost" size="icon" className="md:hidden">
             <Menu size={18} />
           </Button>
