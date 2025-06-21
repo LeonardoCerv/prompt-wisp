@@ -2,12 +2,13 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
-import { HomeIcon, BookOpenText, Layers, Menu, PlusCircle, LogOut, User } from 'lucide-react'
+import { HomeIcon, BookOpenText, Layers, Menu, PlusCircle, LogOut, User2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { useAuth } from '@/context/AuthContext'
+import {signout} from '../app/layout'
 
-export function Header() {
-  const { user, isAuthenticated, logout } = useAuth();
+import { type User } from '@supabase/supabase-js'
+
+export default function Header( { user }: { user: User | null }) {
 
   return (
     <header className="w-full py-4 px-6 border-b border-moonlight-silver/20">
@@ -39,16 +40,16 @@ export function Header() {
         </nav>
         
         <div className="flex items-center gap-2">
-          {isAuthenticated && user ? (
+            { user ? (
             <>
               <div className="hidden sm:flex items-center gap-2 text-moonlight-silver">
-                <User size={16} />
+                <User2 size={16} />
                 <span className="text-sm">
-                  {user.username}
+                  {user.user_metadata.username}
                 </span>
               </div>
               <Button 
-                onClick={logout}
+                onClick={signout}
                 variant="outline" 
                 size="default"
                 className="gap-2"

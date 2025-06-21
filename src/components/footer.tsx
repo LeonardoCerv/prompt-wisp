@@ -2,7 +2,7 @@ import { ExternalLink, GraduationCap, Code } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
-export function Footer() {
+export default function Footer() {
   return (
     <footer className="border-t border-moonlight-silver/10 py-8 px-6">
       <div className="max-w-7xl mx-auto">
