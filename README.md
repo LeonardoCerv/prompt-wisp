@@ -1,36 +1,29 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Prompt Wisp
+![Prompt Wisp](/public/wisplogo.svg)
 
-## Getting Started
+## prompt organizing tool
+Prompt Wisp is a specialized tool for managing, organizing, and sharing AI prompts. Born out of the need to organize and share my own scattered prompts, prompt wisp aims to be the go to solution for prompt engineers, content creators, and AI users overall.
 
-First, run the development server:
+## main features (in progress)
+- **Centralized prompt database**: Store all your prompts in one organized location
+- **Custom collections and tags**: Organize prompts your way
+- **Seamless sharing**: Share your best prompts with the community, easier than never
+- **Browser extension**: Access all your prompts without having to switch tabs
+- **Version control**: Track changes to your prompts over time
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## vision
+Prompt Wisp is being developed as a complete app split in 3:
+1. **Core Backend**: Robust API and database for managing prompts
+2. **Web Application**: User-friendly interface for organizing and discovering prompts
+3. **Browser Extension**: Quick access to your prompts directly in AI tools and platforms
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## more about this project
+Prompt Wisp is being developed as part of my journey in [Hack Club's Neighbourhood](https://neighborhood.hackclub.com/) program. The project emerged from my personal struggle with managing specialized prompts across various platforms and wanting to create a solution that would benefit both myself and the community of AI prompt engineers and users.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## current status
+currently building: backend and db connection
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+This project is under active development. Follow along as i finish the backend and expand the features!
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+*this project is being created with ❤️ as part of Hack Club's Neighbourhood*
