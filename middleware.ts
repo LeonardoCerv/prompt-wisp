@@ -1,27 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { User } from './src/context/AuthContext';
+import { createClient } from '@supabase/supabase-js';
 
-export function middleware(request: NextRequest) {
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+
+// Create Supabase client for server-side operations
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+export async function middleware(request: NextRequest) {
   // Get the current path
   const path = request.nextUrl.pathname;
   
   // Check if the path is an API route that should be protected
-  const isApiRoute = path.startsWith('/api/') && 
-                     !path.startsWith('/api/auth') && 
-                     path !== '/api/auth/session';  // Allow session check API
+  const isApiRoute = path.startsWith('/api/')
   
-  // Check if path is a protected client route (none for now since dashboard is integrated into home)
-  const isProtectedClientRoute = false;
+  // Check if path is a protected client route
+  const isProtectedClientRoute = path.startsWith('/home') || 
+                                path.startsWith('/profile') ||
+                                path.startsWith('/settings');
 
   // If it's not a protected route, continue
   if (!isApiRoute && !isProtectedClientRoute) {
     return NextResponse.next();
   }
 
-  // Check for user session
-  const userSession = request.cookies.get('user')?.value;
-  
-  if (!userSession) {
+  // Get the session from Supabase
+  const { data: { session } } = await supabase.auth.getSession();
+
+  if (!session) {
     // For API routes, return unauthorized
     if (isApiRoute) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -32,20 +38,13 @@ export function middleware(request: NextRequest) {
   }
 
   try {
-    // Parse user data
-    const user = JSON.parse(userSession) as User;
-    
-    // Validate user object structure
-    if (!user.id || !user.username || !user.email) {
-      throw new Error('Invalid user session');
-    }
+    const user = session.user;
     
     // For API routes, attach user info to the request headers for later use
     if (isApiRoute) {
       const requestHeaders = new Headers(request.headers);
-      requestHeaders.set('x-user-id', user.id.toString());
-      requestHeaders.set('x-user-username', user.username);
-      requestHeaders.set('x-user-email', user.email);
+      requestHeaders.set('x-user-id', user.id);
+      requestHeaders.set('x-user-email', user.email || '');
       
       // Continue with modified request
       return NextResponse.next({
@@ -57,17 +56,18 @@ export function middleware(request: NextRequest) {
     
     // If all checks pass for client routes, allow the request
     return NextResponse.next();
+    
   } catch (error) {
-    // Handle parsing errors
-    console.error('Session parsing error:', error);
+    // Handle verification errors
+    console.error('Session verification error:', error);
     
-    // Clear invalid session
-    const response = isApiRoute 
-      ? NextResponse.json({ error: 'Invalid session' }, { status: 401 })
-      : NextResponse.redirect(new URL('/login', request.url));
+    // For API routes, return unauthorized
+    if (isApiRoute) {
+      return NextResponse.json({ error: 'Invalid session' }, { status: 401 });
+    }
     
-    response.cookies.delete('user');
-    return response;
+    // For protected client routes, redirect to login
+    return NextResponse.redirect(new URL('/login', request.url));
   }
 }
 

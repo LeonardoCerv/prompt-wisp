@@ -3,13 +3,16 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import Cookies from 'js-cookie';
+import { supabase } from '@/lib/supabase';
+import SupabaseUser from '@/lib/models/supabase-user';
 
-// Define simplified user interface
+// Define user interface
 export interface User {
-  id: number;
+  id: string;
   username: string;
   email: string;
+  created_at: string;
+  updated_at: string;
 }
 
 interface AuthContextType {
@@ -30,42 +33,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
-  // Check for existing session on initial load
+  // Check for existing session on initial load and set up auth listener
   useEffect(() => {
     const checkAuth = async () => {
       try {
         setIsLoading(true);
         
-        // Try to get user from cookie first
-        const storedUser = Cookies.get('user');
+        // Get current user from Supabase
+        const currentUser = await SupabaseUser.getCurrentUser();
         
-        if (storedUser) {
-          // If user exists in cookies, parse it
-          const parsedUser = JSON.parse(storedUser);
-          setUser(parsedUser);
-        } else {
-          // If no user in cookies, check with the server for a valid session
-          const response = await fetch('/api/auth/session', {
-            method: 'GET',
-            credentials: 'include',
-          });
-          
-          if (response.ok) {
-            const data = await response.json();
-            if (data.user) {
-              setUser(data.user);
-              
-              // Set client-side cookie with explicit expiration
-              const expiryDate = new Date();
-              expiryDate.setDate(expiryDate.getDate() + 7); // 7 days from now
-              
-              Cookies.set('user', JSON.stringify(data.user), { 
-                expires: expiryDate,
-                path: '/',
-                secure: window.location.protocol === 'https:'
-              });
-            }
-          }
+        if (currentUser) {
+          setUser(currentUser);
         }
       } catch (err) {
         console.error('Error checking authentication:', err);
@@ -75,6 +53,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     checkAuth();
+
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (event === 'SIGNED_IN' && session?.user) {
+          try {
+            const currentUser = await SupabaseUser.getCurrentUser();
+            if (currentUser) {
+              setUser(currentUser);
+            }
+          } catch (err) {
+            console.error('Error getting user after sign in:', err);
+          }
+        } else if (event === 'SIGNED_OUT') {
+          setUser(null);
+        }
+      }
+    );
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const login = async (identifier: string, password: string) => {
@@ -82,50 +82,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setError(null);
     
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          identifier, 
-          password 
-        }),
-        credentials: 'include',
-      });
+      let userData: User;
       
-      const data = await response.json();
+      // Try to determine if identifier is email or username
+      const isEmail = identifier.includes('@');
       
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to authenticate');
+      if (isEmail) {
+        userData = await SupabaseUser.signInWithEmail(identifier, password);
+      } else {
+        userData = await SupabaseUser.signInWithUsername(identifier, password);
       }
       
-      const { user: userData } = data;
-      
-      if (!userData) {
-        throw new Error('User not found');
-      }
-      
-      // Store the user in state and cookies
       setUser(userData);
       
-      // Set client-side cookie with explicit expiration
-      const expiryDate = new Date();
-      expiryDate.setDate(expiryDate.getDate() + 7); // 7 days from now
-      
-      const userJson = JSON.stringify(userData);
-      
-      Cookies.set('user', userJson, { 
-        expires: expiryDate,
-        path: '/',
-        secure: window.location.protocol === 'https:'
-      });
-      
-      // Also store in localStorage as backup
-      localStorage.setItem('wisp_user', userJson);
-      
       // Redirect to home page
-      router.push('/');
+      router.push('/home');
       
     } catch (err) {
       console.error('Login error:', err);
@@ -142,51 +113,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setError(null);
     
     try {
-      const response = await fetch('/api/auth/signup', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          username, 
-          email, 
-          password 
-        }),
-        credentials: 'include',
-      });
+      const userData = await SupabaseUser.create(username, email, password);
       
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to create account');
-      }
-      
-      const { user: userData } = data;
-      
-      if (!userData) {
-        throw new Error('Failed to create user');
-      }
-      
-      // Store the user in state and cookies
       setUser(userData);
       
-      // Set client-side cookie with explicit expiration
-      const expiryDate = new Date();
-      expiryDate.setDate(expiryDate.getDate() + 7); // 7 days from now
-      
-      const userJson = JSON.stringify(userData);
-      
-      Cookies.set('user', userJson, { 
-        expires: expiryDate,
-        path: '/',
-        secure: window.location.protocol === 'https:'
-      });
-      
-      // Also store in localStorage as backup
-      localStorage.setItem('wisp_user', userJson);
-      
       // Redirect to home page
-      router.push('/');
+      router.push('/home');
       
     } catch (err) {
       console.error('Signup error:', err);
@@ -202,17 +134,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       setIsLoading(true);
       
-      // Call the API to remove the HTTP-only cookie
-      await fetch('/api/auth/logout', {
-        method: 'POST',
-        credentials: 'include',
-      });
-      
-      // Remove client-side cookie
-      Cookies.remove('user');
-      
-      // Remove from localStorage too
-      localStorage.removeItem('wisp_user');
+      // Sign out from Supabase
+      await SupabaseUser.signOut();
       
       // Clear user state
       setUser(null);
@@ -225,6 +148,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
     } catch (err) {
       console.error('Logout error:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to log out';
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }

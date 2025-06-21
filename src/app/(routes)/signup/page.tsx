@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2, Mail, Lock, User, AlertCircle, Eye, EyeOff, CheckCircle2 } from 'lucide-react';
+import { toast } from 'sonner';
 import Image from 'next/image';
 import Link from 'next/link';
 
@@ -24,23 +25,54 @@ export default function SignupPage() {
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
-      router.push('/dashboard');
+      router.push('/');
     }
   }, [isAuthenticated, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!username.trim() || !email.trim() || !password.trim()) {
+    // Validate inputs
+    if (!username.trim()) {
+      toast.error('Please enter a username');
+      return;
+    }
+    
+    if (username.trim().length < 3) {
+      toast.error('Username must be at least 3 characters long');
+      return;
+    }
+    
+    if (!email.trim()) {
+      toast.error('Please enter your email address');
+      return;
+    }
+    
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      toast.error('Please enter a valid email address');
+      return;
+    }
+    
+    if (!password.trim()) {
+      toast.error('Please enter a password');
+      return;
+    }
+    
+    if (password.length < 8) {
+      toast.error('Password must be at least 8 characters long');
       return;
     }
     
     if (password !== confirmPassword) {
+      toast.error('Passwords do not match');
       return;
     }
     
     try {
       await signup(username.trim(), email.trim(), password);
+      toast.success('Account created successfully! Welcome to Wisp!');
     } catch (err) {
       // Error is handled by the AuthContext
       console.error('Signup failed:', err);
