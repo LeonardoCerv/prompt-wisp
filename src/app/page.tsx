@@ -2,7 +2,7 @@
 
 import AppPage from "@/components/pages/app";
 
-export default function App() {
+export default async function App() {
   return (
     <AppPage />
   );

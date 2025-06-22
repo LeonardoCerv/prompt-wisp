@@ -24,7 +24,7 @@ export async function signup(formData: FormData) {
   revalidatePath('/', 'layout')
   redirect('/')
 }
-export default function Signup() {
+export default async function Signup() {
   return (
     <SignupPage />
   );

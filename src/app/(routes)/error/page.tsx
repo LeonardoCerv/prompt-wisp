@@ -2,7 +2,7 @@
 
 import ErrorPage from '@/components/pages/error'
 
-export default function Signup() {
+export default async function Signup() {
   return (
     <ErrorPage />
   );

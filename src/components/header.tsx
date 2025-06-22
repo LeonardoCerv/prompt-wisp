@@ -4,7 +4,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { HomeIcon, BookOpenText, Layers, Menu, PlusCircle, LogOut, User2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import {signout} from '../app/layout'
+import {signout} from './actions'
 
 import { type User } from '@supabase/supabase-js'
 

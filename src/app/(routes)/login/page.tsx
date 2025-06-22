@@ -25,7 +25,7 @@ export async function login(formData: FormData) {
   redirect('/')
 }
 
-export default function Login() {
+export default async function Login() {
   return (
     <LoginPage />
   );
