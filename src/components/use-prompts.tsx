@@ -182,7 +182,23 @@ const mockPrompts: PromptData[] = [
     title: 'Language Tutor',
     description: 'Interactive language learning and practice sessions',
     category: 'Education',
-    tags: ['language', 'learning', 'tutor'],
+    tags: ['language', 'learning', 'tutor', 'idjoewkeodkeodkeodkeokdokdeo'],
+    isFavorite: false,
+    isDeleted: false,
+    isSaved: false,
+    isOwner: true,
+    isPublic: true,
+    createdAt: '2025-01-04',
+    lastUsed: '2025-01-12',
+    usage: 267,
+    content: 'You are a multilingual language tutor. Help users learn new languages through conversation practice, grammar explanations, vocabulary building, and cultural insights.'
+  },
+    {
+    id: '13',
+    title: 'Language Tutor',
+    description: 'Interactive language learning and practice sessions',
+    category: 'Education',
+    tags: ['language', 'learning', 'tutor', 'idjoewkeodkeodkeodkeokdokdeo'],
     isFavorite: false,
     isDeleted: false,
     isSaved: false,
@@ -335,6 +351,16 @@ export function usePrompts() {
     toast.success('Prompt created successfully!')
   }
 
+  const updatePrompt = (id: string, updates: Partial<PromptData>) => {
+    setPrompts(prompts.map(prompt => 
+      prompt.id === id ? { ...prompt, ...updates } : prompt
+    ))
+    if (selectedPrompt?.id === id) {
+      setSelectedPrompt({...selectedPrompt, ...updates})
+    }
+    toast.success('Prompt updated successfully!')
+  }
+
   const toggleTag = (tag: string) => {
     setSelectedTags(prev => 
       prev.includes(tag) 
@@ -343,7 +369,7 @@ export function usePrompts() {
     )
   }
 
-  const selectPrompt = (prompt: PromptData) => {
+  const selectPrompt = (prompt: PromptData | null) => {
     setSelectedPrompt(prompt)
   }
 
@@ -368,6 +394,7 @@ export function usePrompts() {
     restorePrompt,
     savePrompt,
     createNewPrompt,
+    updatePrompt,
     
     // Helpers
     isOwner,

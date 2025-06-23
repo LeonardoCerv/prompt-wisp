@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
-import { HomeIcon, BookOpenText, Layers, Menu, PlusCircle, LogOut, User2 } from 'lucide-react'
+import { HomeIcon, BookOpenText, Layers, Menu, PlusCircle, LogOut, User2, ShoppingBag } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {signout} from './actions'
 
@@ -28,6 +28,10 @@ export default function Header( { user }: { user: User | null }) {
           <Link href="/" className="flex items-center gap-2 text-moonlight-silver hover:text-moonlight-silver-bright transition-colors">
             <HomeIcon size={16} />
             <span>Home</span>
+          </Link>
+          <Link href="/marketplace" className="flex items-center gap-2 text-moonlight-silver hover:text-moonlight-silver-bright transition-colors">
+            <ShoppingBag size={16} />
+            <span>Marketplace</span>
           </Link>
           <Link href="#features" className="flex items-center gap-2 text-moonlight-silver hover:text-moonlight-silver-bright transition-colors">
             <Layers size={16} />

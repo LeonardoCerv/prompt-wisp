@@ -2,7 +2,11 @@
 
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { 
-  Star
+  Star,
+  Lock,
+  Globe,
+  Bookmark,
+  Trash2
 } from 'lucide-react'
 
 export interface PromptData {
@@ -47,13 +51,33 @@ export default function PromptListCard({
 }: PromptListCardProps) {
   const getBorderClass = () => {
     if (isSelected) {
-      return 'bg-[var(--flare-cyan)]/50 border-transparent shadow-sm shadow-[var(--glow-ember)]/5 rounded-sm'
+      return 'bg-[var(--flare-cyan)]/30 border-transparent shadow-sm rounded-sm px-3'
     }
     
     const shouldHideBorder = isLast || isBeforeSelected
     return shouldHideBorder 
-      ? 'bg-transparent border-transparent rounded-none'
-      : 'bg-transparent border-b-[var(--flare-cyan)] border-x-transparent border-t-transparent rounded-none'
+      ? 'bg-transparent border-transparent rounded-none mx-4 px-0'
+      : 'bg-transparent border-b-[var(--ash-grey)] border-x-transparent border-t-transparent rounded-none mx-4 px-0'
+  }
+
+  const getStatusIcon = () => {
+    if (prompt.isDeleted) {
+      return <Trash2 size={14} className="text-[var(--ash-grey)]" />
+    }
+    
+    if (prompt.isSaved && !isOwner) {
+      return <Bookmark size={14} className="text-[var(--ash-grey)]" />
+    }
+    
+    if (isOwner && prompt.isPublic) {
+      return <Globe size={14} className="text-[var(--ash-grey)]" />
+    }
+    
+    if (isOwner) {
+      return <Lock size={14} className="text-[var(--ash-grey)]" />
+    }
+    
+    return <Globe size={14} className="text-[var(--ash-grey)]" />
   }
 
   return (
@@ -62,59 +86,42 @@ export default function PromptListCard({
       onClick={onSelect}
     >
       <CardHeader className="pb-0 pt-0">
-        <div className="flex items-start justify-between">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between mb-0.5">
-              <CardTitle className="text-sm text-[var(--moonlight-silver-bright)] truncate">
-                {prompt.title}
-              </CardTitle>
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onToggleFavorite(prompt.id)
-                  }}
-                  className="p-0.5 transition-colors hover:bg-transparent"
-                >
-                  <Star 
-                    size={11} 
-                    className={`${
-                      prompt.isFavorite 
-                        ? 'text-[var(--glow-ember)] fill-current' 
-                        : 'text-[var(--moonlight-silver-bright)]'
-                    } transition-colors`}
-                  />
-                </button>
-              </div>
-            </div>
-            <div className="flex items-center gap-1.5 mb-0.5">
-              {/* Prompt type identifier */}
-              {prompt.isSaved && !isOwner ? (
-                <span className="text-xs bg-blue-500/20 text-blue-400 px-1 py-0.5 rounded-full font-medium">
-                  Saved
-                </span>
-              ) : isOwner && prompt.isPublic ? (
-                <span className="text-xs bg-cyan-500/20 text-cyan-400 px-1 py-0.5 rounded-full font-medium">
-                  Public
-                </span>
-              ) : isOwner ? (
-                <span className="text-xs bg-green-500/20 text-green-400 px-1 py-0.5 rounded-full font-medium">
-                  Private
-                </span>
-              ) : (
-                <span className="text-xs bg-gray-500/20 text-gray-400 px-1 py-0.5 rounded-full font-medium">
-                  Public
-                </span>
-              )}
-              {prompt.isDeleted && (
-                <span className="text-xs bg-red-500/20 text-red-400 px-1 py-0.5 rounded-full font-medium">
-                  Deleted
-                </span>
-              )}
-            </div>
-            <CardDescription className="text-xs text-[var(--moonlight-silver)] line-clamp-1">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between">
+            <CardTitle 
+              className="text-sm font-bold text-[var(--soft-white)] truncate"
+              title={prompt.title}
+            >
+              {prompt.title}
+            </CardTitle>
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                onToggleFavorite(prompt.id)
+              }}
+              className="p-0.5 transition-colors hover:bg-transparent ml-4"
+            >
+              <Star 
+                size={11} 
+                className={`${
+                  prompt.isFavorite 
+                    ? 'text-[var(--glow-ember)] fill-current' 
+                    : 'text-[var(--ash-grey)]'
+                } transition-colors`}
+              />
+            </button>
+          </div>
+          <div className="flex items-center justify-between">
+            <CardDescription 
+              className="text-xs text-neutral-500 line-clamp-1 flex-1"
+              title={prompt.description}
+            >
               {prompt.description}
             </CardDescription>
+            {/* Status Icon */}
+            <div className="flex-shrink-0 ml-4">
+              {getStatusIcon()}
+            </div>
           </div>
         </div>
       </CardHeader>
