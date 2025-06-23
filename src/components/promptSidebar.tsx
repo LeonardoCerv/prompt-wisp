@@ -1,0 +1,244 @@
+'use client'
+
+import { Button } from '@/components/ui/button'
+import { 
+  Search, 
+  Star, 
+  Home,
+  ChevronDown,
+  ChevronRight,
+  Edit,
+  Archive,
+  Trash2,
+  BookOpen
+} from 'lucide-react'
+import Image from 'next/image'
+import Link from 'next/link'
+
+type FilterType = 'all' | 'all-prompts' | 'favorites' | 'your-prompts' | 'saved' | 'deleted'
+
+interface PromptSidebarProps {
+  activeFilter: FilterType
+  onFilterChange: (filter: FilterType) => void
+  selectedTags: string[]
+  onTagToggle: (tag: string) => void
+  allTags: string[]
+  getFilterCount: (filter: FilterType) => number
+  onSearchFocus: () => void
+  collectionsExpanded: boolean
+  setCollectionsExpanded: (expanded: boolean) => void
+  tagsExpanded: boolean
+  setTagsExpanded: (expanded: boolean) => void
+  libraryExpanded: boolean
+  setLibraryExpanded: (expanded: boolean) => void
+}
+
+export default function PromptSidebar({
+  activeFilter,
+  onFilterChange,
+  selectedTags,
+  onTagToggle,
+  allTags,
+  getFilterCount,
+  onSearchFocus,
+  collectionsExpanded,
+  setCollectionsExpanded,
+  tagsExpanded,
+  setTagsExpanded,
+  libraryExpanded,
+  setLibraryExpanded
+}: PromptSidebarProps) {
+  return (
+    <div className="bg-[var(--black)] h-screen w-1/5 pl-6 pr-4 py-6 border-r border-[var(--moonlight-silver-dim)]/30 flex flex-col fixed top-0 left-0 z-50">
+      {/* Header - Fixed at top */}
+      <div className="flex-shrink-0">
+        <Link href="/" className="flex items-center gap-3 justify-center p-2 mb-6">
+          <Image 
+            src="/wisplogo.svg"
+            alt="Wisp logo"
+            width={100}
+            height={100}
+            priority
+            className="object-contain"
+          />
+        </Link>
+
+        {/* Search */}
+        <Button
+          variant="ghost"
+          className="w-full justify-start gap-3 text-[var(--moonlight-silver-bright)] rounded-lg py-2 px-3 mb-4"
+          onClick={onSearchFocus}
+        >
+          <Search size={16} />
+          Search
+        </Button>
+
+        {/* Home */}
+        <Button
+          variant={activeFilter === 'all' ? 'default' : 'ghost'}
+          className={`w-full justify-start gap-3 rounded-lg py-2 px-3 mb-6 ${
+            activeFilter === 'all' 
+              ? 'bg-[var(--wisp-blue)] text-white shadow-sm' 
+              : 'text-[var(--moonlight-silver-bright)]'
+          }`}
+          onClick={() => onFilterChange('all')}
+        >
+          <Home size={16} />
+          Home
+          <span className="ml-auto text-xs bg-[var(--slate-grey)]/60 px-2 py-1 rounded">
+            {getFilterCount('all')}
+          </span>
+        </Button>
+      </div>
+
+      {/* Scrollable middle section */}
+      <div className="flex-1 overflow-y-auto space-y-6 pr-2">
+        {/* Collections Section */}
+        <div className="space-y-2">
+          <h3 
+            className="text-[10px] font-medium text-[var(--wisp-blue)] uppercase tracking-wider mb-3 cursor-pointer transition-colors flex items-center justify-between"
+            onClick={() => setCollectionsExpanded(!collectionsExpanded)}
+          >
+            Collections
+            {collectionsExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+          </h3>
+          
+          {collectionsExpanded && (
+            <div className="ml-6 space-y-1">
+              <Button
+                variant="ghost"
+                className="w-full justify-start text-sm text-[var(--moonlight-silver)] rounded-lg py-1.5 px-3"
+              >
+                My Collection 1
+              </Button>
+              <Button
+                variant="ghost"
+                className="w-full justify-start text-sm text-[var(--moonlight-silver)] rounded-lg py-1.5 px-3"
+              >
+                Marketing Templates
+              </Button>
+              <Button
+                variant="ghost"
+                className="w-full justify-start text-sm text-[var(--moonlight-silver)] rounded-lg py-1.5 px-3"
+              >
+                Development Helpers
+              </Button>
+            </div>
+          )}
+        </div>
+
+        {/* Library Section */}
+        <div className="space-y-2">
+          <h3 
+            className="text-[10px] font-medium text-[var(--flare-cyan)] uppercase tracking-wider mb-3 cursor-pointer hover:text-[var(--flare-cyan)]/70 transition-colors flex items-center justify-between"
+            onClick={() => setLibraryExpanded(!libraryExpanded)}
+          >
+            Library
+            {libraryExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+          </h3>
+          
+          {libraryExpanded && (
+            <div className="ml-6 space-y-1">
+              <Button
+                variant={activeFilter === 'all-prompts' ? 'default' : 'ghost'}
+                className={`w-full justify-start gap-3 rounded-lg py-2 px-3 ${
+                  activeFilter === 'all-prompts' 
+                    ? 'bg-[var(--wisp-blue)] text-white shadow-sm' 
+                    : 'text-[var(--moonlight-silver-bright)]'
+                }`}
+                onClick={() => onFilterChange('all-prompts')}
+              >
+                <BookOpen size={16} />
+                All Prompts
+                <span className="ml-auto text-xs bg-[var(--slate-grey)]/60 px-2 py-1 rounded">
+                  {getFilterCount('all-prompts')}
+                </span>
+              </Button>
+
+              <Button
+                variant={activeFilter === 'your-prompts' ? 'default' : 'ghost'}
+                className={`w-full justify-start gap-3 rounded-lg py-2 px-3 ${
+                  activeFilter === 'your-prompts' 
+                    ? 'bg-[var(--wisp-blue)] text-white shadow-sm' 
+                    : 'text-[var(--moonlight-silver-bright)]'
+                }`}
+                onClick={() => onFilterChange('your-prompts')}
+              >
+                <Edit size={16} />
+                Your Prompts
+                <span className="ml-auto text-xs bg-[var(--slate-grey)]/60 px-2 py-1 rounded">
+                  {getFilterCount('your-prompts')}
+                </span>
+              </Button>
+              
+              <Button
+                variant={activeFilter === 'saved' ? 'default' : 'ghost'}
+                className={`w-full justify-start gap-3 rounded-lg py-2 px-3 ${
+                  activeFilter === 'saved' 
+                    ? 'bg-[var(--flare-cyan)] text-white shadow-sm' 
+                    : 'text-[var(--moonlight-silver-bright)]'
+                }`}
+                onClick={() => onFilterChange('saved')}
+              >
+                <Archive size={16} />
+                Saved
+                <span className="ml-auto text-xs bg-[var(--slate-grey)]/60 px-2 py-1 rounded">
+                  {getFilterCount('saved')}
+                </span>
+              </Button>
+            </div>
+          )}
+        </div>
+
+        {/* Tags Section */}
+        <div className="space-y-2">
+          <h3 
+            className="text-[10px] font-medium text-[var(--flare-cyan)] uppercase tracking-wider mb-3 cursor-pointer hover:text-[var(--flare-cyan)]/70 transition-colors flex items-center justify-between"
+            onClick={() => setTagsExpanded(!tagsExpanded)}
+          >
+            Tags
+            {tagsExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+          </h3>
+          
+          {tagsExpanded && (
+            <div className="ml-6 space-y-1">
+              {allTags.map((tag) => (
+                <Button
+                  key={tag}
+                  variant="ghost"
+                  className={`w-full justify-start text-sm rounded-lg py-1.5 px-3 ${
+                    selectedTags.includes(tag)
+                      ? 'bg-[var(--flare-cyan)]/20 text-[var(--flare-cyan)]'
+                      : 'text-[var(--moonlight-silver)]'
+                  }`}
+                  onClick={() => onTagToggle(tag)}
+                >
+                  #{tag}
+                </Button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+          
+      {/* Recently Deleted - Fixed at bottom */}
+      <div className="flex-shrink-0 mt-6">
+        <Button
+          variant='destructive'
+          className={`w-full justify-start gap-3 rounded-lg py-2 px-3  ${
+            activeFilter === 'deleted'
+              ? 'text-white shadow-sm bg-destructive/90 ' 
+              : 'text-destructive hover:bg-destructive/50 hover:text-white'
+          }`}
+          onClick={() => onFilterChange('deleted')}
+        >
+          <Trash2 size={16} />
+          Recently Deleted
+          <span className="ml-auto text-xs bg-[var(--slate-grey)]/60 px-2 py-1 rounded">
+            {getFilterCount('deleted')}
+          </span>
+        </Button>
+      </div>
+    </div>
+  )
+}

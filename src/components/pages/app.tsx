@@ -213,7 +213,7 @@ function SurfaceLayersExample() {
 
 export default function AppPage() {
   return (
-      <main className="flex flex-col gap-[32px] row-start-2 items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
+        <main className="flex flex-col gap-[32px] row-start-2 items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
         <div className="flex flex-col items-center gap-4 w-full">
           <h1 className="text-4xl sm:text-5xl font-light text-moonlight-silver-bright text-center mt-4 mb-6">
             Silver on Black
@@ -246,5 +246,6 @@ export default function AppPage() {
         <SurfaceLayersExample />
         
       </main>
+     
   );
 }

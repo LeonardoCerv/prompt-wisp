@@ -86,7 +86,7 @@
   --secondary-foreground: var(--black);
   --muted: var(--slate-grey);
   --muted-foreground: var(--moonlight-silver);
-  --accent: var(--glow-ember);
+  --accent: var(--flare-cyan);
   --accent-foreground: var(--black);
   --destructive: oklch(0.65 0.25 27);
   --border: var(--moonlight-silver-dim);
