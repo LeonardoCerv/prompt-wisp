@@ -22,7 +22,7 @@ export const metadata: Metadata = {
   title: "Prompt Wisp",
   description: "A management tool for your AI prompts",
   icons: {
-    icon: '/wisplogo.svg',
+    icon: '/wisp.svg',
   },
 };
 

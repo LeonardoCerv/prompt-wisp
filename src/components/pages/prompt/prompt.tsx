@@ -399,7 +399,7 @@ export default function PromptPage({ user }: PromptPageProps) {
                 
                 {/* Quick Access Section */}
                 <div className="space-y-2">
-                  <h3 className="text-[10px] font-medium text-[#7a77ba] uppercase tracking-wider mb-3">Quick Access</h3>
+                  <h3 className="text-[10px] font-medium text-[var(--flare-cyan)] uppercase tracking-wider mb-3">Quick Access</h3>
                   
                   {/* Search */}
                   <Button
@@ -416,7 +416,7 @@ export default function PromptPage({ user }: PromptPageProps) {
                     variant={activeFilter === 'all' ? 'default' : 'ghost'}
                     className={`w-full justify-start gap-3 rounded-lg py-2 px-3 ${
                       activeFilter === 'all' 
-                        ? 'bg-[#7a77ba] text-white shadow-sm' 
+                        ? 'bg-[var(--flare-cyan)] text-white shadow-sm' 
                         : 'text-[var(--moonlight-silver-bright)]'
                     }`}
                     onClick={() => setActiveFilter('all')}
@@ -432,7 +432,7 @@ export default function PromptPage({ user }: PromptPageProps) {
                 {/* Collections Section */}
                 <div className="space-y-2">
                   <h3 
-                    className="text-[10px] font-medium text-[#7a77ba] uppercase tracking-wider mb-3 cursor-pointer hover:text-[#8b89c7] transition-colors flex items-center justify-between"
+                    className="text-[10px] font-medium text-[var(--flare-cyan)] uppercase tracking-wider mb-3 cursor-pointer transition-colors flex items-center justify-between hover:text-[var(--flare-cyan)]/70"
                     onClick={() => setCollectionsExpanded(!collectionsExpanded)}
                   >
                     Collections
@@ -466,7 +466,7 @@ export default function PromptPage({ user }: PromptPageProps) {
                 {/* Library Section */}
                 <div className="space-y-2">
                   <h3 
-                    className="text-[10px] font-medium text-[#7a77ba] uppercase tracking-wider mb-3 cursor-pointer hover:text-[#8b89c7] transition-colors flex items-center justify-between"
+                    className="text-[10px] font-medium text-[var(--flare-cyan)] uppercase tracking-wider mb-3 cursor-pointer hover:text-[var(--flare-cyan)]/70 transition-colors flex items-center justify-between"
                     onClick={() => setLibraryExpanded(!libraryExpanded)}
                   >
                     Library
@@ -479,7 +479,7 @@ export default function PromptPage({ user }: PromptPageProps) {
                         variant={activeFilter === 'your-prompts' ? 'default' : 'ghost'}
                         className={`w-full justify-start gap-3 rounded-lg py-2 px-3 ${
                           activeFilter === 'your-prompts' 
-                            ? 'bg-[#7a77ba] text-white shadow-sm' 
+                            ? 'bg-[var(--flare-cyan)] text-white shadow-sm' 
                             : 'text-[var(--moonlight-silver-bright)]'
                         }`}
                         onClick={() => setActiveFilter('your-prompts')}
@@ -495,7 +495,7 @@ export default function PromptPage({ user }: PromptPageProps) {
                         variant={activeFilter === 'favorites' ? 'default' : 'ghost'}
                         className={`w-full justify-start gap-3 rounded-lg py-2 px-3 ${
                           activeFilter === 'favorites' 
-                            ? 'bg-[#7a77ba] text-white shadow-sm' 
+                            ? 'bg-[var(--flare-cyan)] text-white shadow-sm' 
                             : 'text-[var(--moonlight-silver-bright)]'
                         }`}
                         onClick={() => setActiveFilter('favorites')}
@@ -511,7 +511,7 @@ export default function PromptPage({ user }: PromptPageProps) {
                         variant={activeFilter === 'saved' ? 'default' : 'ghost'}
                         className={`w-full justify-start gap-3 rounded-lg py-2 px-3 ${
                           activeFilter === 'saved' 
-                            ? 'bg-[#7a77ba] text-white shadow-sm' 
+                            ? 'bg-[var(--flare-cyan)] text-white shadow-sm' 
                             : 'text-[var(--moonlight-silver-bright)]'
                         }`}
                         onClick={() => setActiveFilter('saved')}
@@ -529,7 +529,7 @@ export default function PromptPage({ user }: PromptPageProps) {
                 {/* Tags Section */}
                 <div className="space-y-2">
                   <h3 
-                    className="text-[10px] font-medium text-[#7a77ba] uppercase tracking-wider mb-3 cursor-pointer hover:text-[#8b89c7] transition-colors flex items-center justify-between"
+                    className="text-[10px] font-medium text-[var(--flare-cyan)] uppercase tracking-wider mb-3 cursor-pointer hover:text-[var(--flare-cyan)]/70 transition-colors flex items-center justify-between"
                     onClick={() => setTagsExpanded(!tagsExpanded)}
                   >
                     Tags
@@ -544,7 +544,7 @@ export default function PromptPage({ user }: PromptPageProps) {
                           variant="ghost"
                           className={`w-full justify-start text-sm rounded-lg py-1.5 px-3 ${
                             selectedTags.includes(tag)
-                              ? 'bg-[#7a77ba]/20 text-[#7a77ba]'
+                              ? 'bg-[var(--flare-cyan)]/20 text-[var(--flare-cyan)]'
                               : 'text-[var(--moonlight-silver)]'
                           }`}
                           onClick={() => toggleTag(tag)}
@@ -558,14 +558,14 @@ export default function PromptPage({ user }: PromptPageProps) {
 
                 {/* Other Section */}
                 <div className="space-y-2">
-                  <h3 className="text-[10px] font-medium text-[#7a77ba] uppercase tracking-wider mb-3">Other</h3>
+                  <h3 className="text-[10px] font-medium text-[var(--flare-cyan)] uppercase tracking-wider mb-3">Other</h3>
                   
                   {/* Recently Deleted */}
                   <Button
                     variant={activeFilter === 'deleted' ? 'default' : 'ghost'}
                     className={`w-full justify-start gap-3 rounded-lg py-2 px-3 ${
                       activeFilter === 'deleted' 
-                        ? 'bg-[#7a77ba] text-white shadow-sm' 
+                        ? 'bg-[var(--wisp-blue)] text-white shadow-sm' 
                         : 'text-[var(--moonlight-silver-bright)]'
                     }`}
                     onClick={() => setActiveFilter('deleted')}
@@ -894,7 +894,7 @@ function PromptListCard({
       className={`cursor-pointer transition-all duration-200 ${
         isSelected 
           ? 'bg-[var(--deep-charcoal)] border-[var(--glow-ember)]/50 shadow-lg shadow-[var(--glow-ember)]/10' 
-          : 'bg-[var(--deep-charcoal)] border-[var(--moonlight-silver-dim)] hover:border-[var(--dusky-purple)]/30 hover:shadow-lg hover:shadow-[var(--glow-ember)]/5'
+          : 'bg-[var(--deep-charcoal)] border-[var(--moonlight-silver-dim)] hover:border-[var(--flare-cyan)]/30 hover:shadow-lg hover:shadow-[var(--glow-ember)]/5'
       }`}
       onClick={onSelect}
     >

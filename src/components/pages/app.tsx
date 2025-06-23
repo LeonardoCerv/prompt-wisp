@@ -11,14 +11,28 @@ function WispColorPalette() {
         <h2 className="text-xl font-medium">Wisp Color Palette</h2>
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <ColorSwatch name="Black" variable="--black" />
+        <ColorSwatch name="Deep Charcoal" variable="--deep-charcoal" />
+        <ColorSwatch name="Slate Grey" variable="--slate-grey" />
+        <ColorSwatch name="Ash Grey" variable="--ash-grey" />
         <ColorSwatch name="Pale Cyan" variable="--pale-cyan" />
         <ColorSwatch name="Soft Lavender" variable="--soft-lavender" />
         <ColorSwatch name="Ghostly White" variable="--ghostly-white" />
+        <ColorSwatch name="Soft White" variable="--soft-white" />
         <ColorSwatch name="Moonlight Silver" variable="--moonlight-silver" />
+        <ColorSwatch name="Moonlight Silver Dim" variable="--moonlight-silver-dim" />
+        <ColorSwatch name="Moonlight Silver Bright" variable="--moonlight-silver-bright" />
         <ColorSwatch name="Ethereal Teal" variable="--ethereal-teal" />
+        <ColorSwatch name="Sky Glow" variable="--sky-glow" />
+        <ColorSwatch name="Ice Glint" variable="--ice-glint" />
+        <ColorSwatch name="Neon Purple" variable="--neon-purple" />
+        <ColorSwatch name="Flare Cyan" variable="--flare-cyan" />
+        <ColorSwatch name="Error Rose" variable="--error-rose" />
+        <ColorSwatch name="Warning Amber" variable="--warning-amber" />
         <ColorSwatch name="Faint Rose" variable="--faint-rose" />
-        <ColorSwatch name="Dusky Purple" variable="--dusky-purple" />
+        <ColorSwatch name="Wisp Blue" variable="--wisp-blue" />
         <ColorSwatch name="Glow Ember" variable="--glow-ember" />
+        <ColorSwatch name="Silver Mist" variable="--silver-mist" />
       </div>
     </div>
   );

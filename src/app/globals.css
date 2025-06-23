@@ -55,9 +55,23 @@
   --moonlight-silver-dim: oklch(0.7 0.03 255); /* Dimmer version for contrast */
   --moonlight-silver-bright: #c8e0ff; /* Brighter version for highlights */
   --ethereal-teal: oklch(0.85 0.08 170); /* Mint Green / Ethereal Teal - forest-spirit vibe */
+
+  --sky-glow: oklch(0.85 0.13 235); /* Lighter radiant version for highlights or hover states */
+  --ice-glint: oklch(0.95 0.05 240); /* Very soft blue for backgrounds or borders */
+
+  --deep-charcoal: oklch(0.22 0.02 280); /* Deep charcoal with slight purple tint for cards */
+  --slate-grey: oklch(0.30 0.025 260); /* Dark slate grey for lighter surfaces */
+  --ash-grey: oklch(0.40 0.03 250); /* Medium grey for general UI elements */
+
+  --neon-purple: oklch(0.60 0.18 295); /* Accent color for contrast and glow effects */
+  --flare-cyan: oklch(0.70 0.12 220); /* Subtle secondary blue for variation */
+  --soft-white: oklch(0.98 0.005 270); /* Clean white with slight cool tone for text or backgrounds */
+
+  --error-rose: oklch(0.60 0.18 20); /* Optional alert color, rose red with clarity */
+  --warning-amber: oklch(0.78 0.16 85); /* Warm amber for warnings, pairs well with blues */
   
   --faint-rose: oklch(0.85 0.08 15); /* Faint Rose / Blush Pink - emotional depth */
-  --dusky-purple: #7a77ba; /* Dusky Purple / Indigo Mist - for important buttons */
+  --wisp-blue: #00aaff; /* Wisp Blue / Indigo Mist - for important buttons */
   --glow-ember: oklch(0.75 0.13 80); /* Glow Ember - soul-energy warmth - accent */
   
   --background: var(--black);
@@ -66,7 +80,7 @@
   --card-foreground: var(--moonlight-silver-bright);
   --popover: var(--deep-charcoal);
   --popover-foreground: var(--moonlight-silver-bright);
-  --primary: var(--dusky-purple);
+  --primary: var(--wisp-blue);
   --primary-foreground: var(--ghostly-white);
   --secondary: var(--moonlight-silver);
   --secondary-foreground: var(--black);
@@ -79,13 +93,13 @@
   --input: var(--deep-charcoal);
   --ring: var(--moonlight-silver);
   --chart-1: var(--moonlight-silver);
-  --chart-2: var(--dusky-purple);
+  --chart-2: var(--wisp-blue);
   --chart-3: var(--glow-ember);
   --chart-4: var(--pale-cyan);
   --chart-5: var(--soft-lavender);
   --sidebar: var(--slate-grey);
   --sidebar-foreground: var(--moonlight-silver-bright);
-  --sidebar-primary: var(--dusky-purple);
+  --sidebar-primary: var(--wisp-blue);
   --sidebar-primary-foreground: var(--ghostly-white);
   --sidebar-accent: var(--glow-ember);
   --sidebar-accent-foreground: var(--black);
@@ -108,7 +122,7 @@
 }
 
 .wispy-text-ethereal {
-  text-shadow: 0 0 8px var(--dusky-purple);
+  text-shadow: 0 0 8px var(--wisp-blue);
   letter-spacing: 0.03em;
   font-weight: 300;
 }
@@ -117,7 +131,7 @@
   background: linear-gradient(
     to right,
     var(--moonlight-silver),
-    var(--dusky-purple),
+    var(--wisp-blue),
     var(--glow-ember)
   );
   -webkit-background-clip: text;
@@ -138,7 +152,7 @@
 }
 
 .purple-text {
-  color: var(--dusky-purple);
+  color: var(--wisp-blue);
 }
 
 .ember-text {
@@ -166,7 +180,7 @@
 }
 
 .wispy-border-purple::after {
-  border-color: var(--dusky-purple);
+  border-color: var(--wisp-blue);
 }
 
 .wispy-border-ember::after {
