@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 
 import { createClient } from '../../../lib/utils/supabase/server'
-import LoginPage from '@/components/pages/login'
+import LoginPage from '@/components/pages/login/login'
 
 export async function login(formData: FormData) {
   const supabase = await createClient()
@@ -22,7 +22,7 @@ export async function login(formData: FormData) {
   }
 
   revalidatePath('/', 'layout')
-  redirect('/')
+  redirect('/user/')
 }
 
 export default async function Login() {

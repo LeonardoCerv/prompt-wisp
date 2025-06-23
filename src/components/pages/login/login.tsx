@@ -9,7 +9,7 @@ import Image from 'next/image';
 
 import Link from 'next/link';
 
-import { login } from '../../app/(routes)/login/page'
+import { login } from '../../../app/(routes)/login/page'
 
 export default function LoginPage() {
 

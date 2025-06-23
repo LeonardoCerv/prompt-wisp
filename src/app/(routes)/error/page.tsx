@@ -1,8 +1,8 @@
 'use server'
 
-import ErrorPage from '@/components/pages/error'
+import ErrorPage from '@/components/pages/error/error'
 
-export default async function Signup() {
+export default async function Error() {
   return (
     <ErrorPage />
   );

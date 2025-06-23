@@ -4,9 +4,9 @@ import { User2, Mail, Sparkles, BookOpen, Settings } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 import { type User } from '@supabase/supabase-js'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../..//ui/card';
 
-export default function HomePage( { user }: { user: User}) {
+export default function UserPage( { user }: { user: User}) {
     return (
     <div className="min-h-screen bg-background p-6">
       <div className="max-w-7xl mx-auto space-y-8">

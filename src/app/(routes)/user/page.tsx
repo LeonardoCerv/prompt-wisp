@@ -1,9 +1,9 @@
 
 import { redirect } from 'next/navigation';
 import { createClient } from '../../../lib/utils/supabase/server';
-import HomePage from '../../../components/pages/home';
+import UserPage from '../../../components/pages/user/user';
 
-export default async function Home() {
+export default async function User() {
 
     const supabase = await createClient()
   
@@ -16,7 +16,7 @@ export default async function Home() {
     }
     else if (user) {
       return (
-        <HomePage user={user} />
+        <UserPage user={user} />
       )
     }
 }

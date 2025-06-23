@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 
 import { createClient } from '../../../lib/utils/supabase/server'
-import SignupPage from '@/components/pages/signup'
+import SignupPage from '@/components/pages/signup/signup'
 
 export async function signup(formData: FormData) {
   const supabase = await createClient()

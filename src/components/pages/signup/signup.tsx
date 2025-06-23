@@ -9,7 +9,7 @@ import Image from 'next/image';
 
 import Link from 'next/link';
 
-import { signup } from '../../app/(routes)/signup/page'
+import { signup } from '../../../app/(routes)/signup/page'
 
 export default function SignupPage() {
 
