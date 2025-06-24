@@ -156,8 +156,8 @@ export default function PromptMidbar({
       <Dialog
         isOpen={showCreateDialog}
         onClose={() => setShowCreateDialog(false)}
-        title="Create New Prompt"
-        maxWidth="max-w-2xl"
+        title=""
+        maxWidth="max-w-3xl"
       >
         <NewPromptPage
           onSubmit={async (prompt) => {

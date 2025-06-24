@@ -220,3 +220,32 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+/* Custom scrollbar styles for dialog content */
+.dialog-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--pale-cyan) transparent;
+}
+
+.dialog-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.dialog-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.dialog-scroll::-webkit-scrollbar-thumb {
+  background: linear-gradient(to bottom, var(--pale-cyan), var(--wisp-blue));
+  border-radius: 3px;
+  transition: background 0.3s ease;
+}
+
+.dialog-scroll::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(to bottom, var(--wisp-blue), var(--flare-cyan));
+}
+
+/* Form field focus glow effects */
+.form-field-glow:focus {
+  box-shadow: 0 0 0 1px var(--wisp-blue), 0 0 12px var(--wisp-blue)/25;
+}

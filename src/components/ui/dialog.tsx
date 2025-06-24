@@ -44,25 +44,39 @@ export default function Dialog({ isOpen, onClose, title, children, maxWidth = "m
 
   return createPortal(
     <div 
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-start justify-center bg-black/60 backdrop-blur-sm overflow-y-auto py-8"
       onClick={handleBackdropClick}
     >
       <div 
         ref={dialogRef}
-        className={`bg-[var(--deep-charcoal)] border border-[var(--moonlight-silver-dim)] rounded-lg shadow-xl ${maxWidth} w-full mx-4`}
+        className={`bg-[var(--deep-charcoal)] border border-[var(--moonlight-silver-dim)] rounded-lg shadow-xl ${maxWidth} w-full mx-4 max-h-[90vh] flex flex-col`}
       >
-        <div className="flex items-center justify-between p-4 border-b border-[var(--moonlight-silver-dim)]">
-          <h2 className="text-lg font-semibold text-white">{title}</h2>
-          <Button
-            onClick={onClose}
-            variant="icon"
-            size="sm"
-            className="h-8 w-8 p-0 hover:text-[var(--glow-ember)]"
-          >
-            <X size={16} />
-          </Button>
-        </div>
-        <div className="p-4">
+        {title && (
+          <div className="flex items-center justify-between p-4 border-b border-[var(--moonlight-silver-dim)]">
+            <h2 className="text-lg font-semibold text-white">{title}</h2>
+            <Button
+              onClick={onClose}
+              variant="icon"
+              size="sm"
+              className="h-8 w-8 p-0 hover:text-[var(--glow-ember)]"
+            >
+              <X size={16} />
+            </Button>
+          </div>
+        )}
+        {!title && (
+          <div className="flex justify-end p-2 absolute top-2 right-2 z-10">
+            <Button
+              onClick={onClose}
+              variant="icon"
+              size="sm"
+              className="h-8 w-8 p-0 hover:text-[var(--glow-ember)] bg-[var(--deep-charcoal)]/80 backdrop-blur-sm"
+            >
+              <X size={16} />
+            </Button>
+          </div>
+        )}
+        <div className={`${title ? 'p-4' : 'p-4'}`}>
           {children}
         </div>
       </div>
