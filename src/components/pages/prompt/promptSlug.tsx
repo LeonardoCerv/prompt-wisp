@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import PromptEdit from '@/components/promptEdit'
+import PromptSlugPreview from '@/components/promptPreview'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Home, FileX } from 'lucide-react'
@@ -191,8 +192,6 @@ export default function PromptSlugPage({ slug, promptData, user }: PromptSlugPag
   useEffect(() => {
     // If we have server-side data, use it immediately
     if (promptData) {
-      console.log('Processing promptData:', promptData)
-      
       const transformedPrompt: ExtendedPromptData = {
         id: promptData.id,
         title: promptData.title,
@@ -213,8 +212,23 @@ export default function PromptSlugPage({ slug, promptData, user }: PromptSlugPag
         isDeleted: promptData.deleted || false
       }
       
-      console.log('Transformed prompt:', transformedPrompt)
       selectPrompt(transformedPrompt)
+      
+      // Set appropriate filter based on prompt characteristics for direct URL access
+      if (activeFilter === 'all') {
+        if (transformedPrompt.isDeleted) {
+          setActiveFilter('deleted')
+        } else if (transformedPrompt.isFavorite) {
+          setActiveFilter('favorites')
+        } else if (isOwner(transformedPrompt)) {
+          setActiveFilter('your-prompts')
+        } else if (transformedPrompt.isSaved) {
+          setActiveFilter('saved')
+        } else {
+          setActiveFilter('all-prompts')
+        }
+      }
+      
       setPromptFound(true)
       setIsLoading(false)
       return
@@ -318,18 +332,44 @@ export default function PromptSlugPage({ slug, promptData, user }: PromptSlugPag
     )
   }
 
-  // Render the prompt edit component
+  // Render the appropriate component based on user permissions
+  // Check if user can edit this prompt:
+  // - User must be the owner OR a collaborator
+  // - Prompt must NOT be soft deleted
+  const canEdit = selectedPrompt && (
+    isOwner(selectedPrompt) || 
+    (selectedPrompt.collaborators && selectedPrompt.collaborators.includes(user.id))
+  ) && !selectedPrompt.deleted
+
+  // Show edit component for users with edit permissions
+  if (canEdit) {
+    return (
+      <PromptEdit
+        selectedPrompt={selectedPrompt}
+        onToggleFavorite={handleToggleFavorite}
+        onCopy={handleCopyToClipboard}
+        onSave={handleSavePrompt}
+        onDelete={handleDeletePrompt}
+        onRestore={handleRestorePrompt}
+        onUpdatePrompt={updatePrompt}
+        isOwner={isOwner}
+        currentFilter={activeFilter}
+      />
+    )
+  }
+
+  // Show preview component for read-only access:
+  // - Non-owners/non-collaborators  
+  // - Owners viewing soft-deleted prompts
+  // - Any user viewing public/shared prompts
   return (
-    <PromptEdit
+    <PromptSlugPreview
       selectedPrompt={selectedPrompt}
       onToggleFavorite={handleToggleFavorite}
       onCopy={handleCopyToClipboard}
       onSave={handleSavePrompt}
-      onDelete={handleDeletePrompt}
-      onRestore={handleRestorePrompt}
-      onUpdatePrompt={updatePrompt}
-      isOwner={isOwner}
       currentFilter={activeFilter}
+      user={user}
     />
   )
 }

@@ -6,7 +6,6 @@ import PromptSidebar from '@/components/promptSidebar'
 import PromptMidbar from '@/components/promptMidbar'
 import { toast } from 'sonner';
 import { PromptData } from '@/lib/models/prompt'
-import { useRouter } from 'next/navigation'
 
 // Define FilterType
 export type FilterType = 'all' | 'all-prompts' | 'your-prompts' | 'favorites' | 'saved' | 'deleted'

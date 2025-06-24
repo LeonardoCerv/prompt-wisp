@@ -4,7 +4,7 @@ import PromptSlugPage from '@/components/pages/prompt/promptSlug'
 import { createClient } from '@/lib/utils/supabase/server'
 import Prompt from '@/lib/models/prompt'
 
-interface PromptSlugProps {
+interface PromptPreviewProps {
   params: Promise<{
     slug: string
   }>
@@ -13,19 +13,32 @@ interface PromptSlugProps {
 // Helper function to get prompt by ID (treating slug as ID since we removed slug)
 async function getPromptById(id: string, userId?: string) {
   try {
-    const prompt = await Prompt.findById(id)
+    const supabase = await createClient()
     
-    if (!prompt) {
+    // First try to get the prompt including deleted ones
+    const { data: prompt, error } = await supabase
+      .from('prompts')
+      .select('*')
+      .eq('id', id)
+      .single()
+    
+    if (error || !prompt) {
       return null
     }
     
     // Check if user has access to this prompt
-    if (prompt.visibility !== 'public' && prompt.user_id !== userId) {
+    // Allow access if:
+    // 1. Prompt is public, OR
+    // 2. User is the owner (including deleted prompts), OR  
+    // 3. User is a collaborator
+    const hasAccess = 
+      prompt.visibility === 'public' || 
+      prompt.user_id === userId ||
+      (prompt.collaborators && prompt.collaborators.includes(userId))
+    
+    if (!hasAccess) {
       return null
     }
-    
-    // Add additional metadata for the component
-    const supabase = await createClient()
     
     // Check if user has favorited this prompt (stored in user favorites array)
     let isFavorite = false
@@ -72,16 +85,26 @@ async function getPromptById(id: string, userId?: string) {
 }
 
 // Generate metadata for the page
-export async function generateMetadata({ params }: PromptSlugProps): Promise<Metadata> {
+export async function generateMetadata({ params }: PromptPreviewProps): Promise<Metadata> {
   const { slug } = await params
   
   try {
-    const prompt = await getPromptById(slug)
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    const prompt = await getPromptById(slug, user?.id)
     
-    if (!prompt || prompt.deleted) {
+    if (!prompt) {
       return {
         title: 'Prompt Not Found | Prompt Wisp',
         description: 'The requested prompt could not be found',
+      }
+    }
+    
+    // Special handling for deleted prompts
+    if (prompt.deleted) {
+      return {
+        title: `${prompt.title} (Deleted) | Prompt Wisp`,
+        description: prompt.description || `View deleted prompt: ${prompt.title}`,
       }
     }
     
@@ -97,7 +120,7 @@ export async function generateMetadata({ params }: PromptSlugProps): Promise<Met
   }
 }
 
-export default async function PromptSlug({ params }: PromptSlugProps) {
+export default async function PromptPreview({ params }: PromptPreviewProps) {
   const { slug } = await params
   
   // Validate slug format - treating it as prompt ID
