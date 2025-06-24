@@ -18,6 +18,7 @@ interface PromptMidbarProps {
     username: string
     full_name: string
     avatar_url: string
+    favorites: string[]
   }
 }
 
@@ -35,6 +36,10 @@ export default function PromptMidbar({
 
   const isOwner = (prompt: PromptData) => {
     return prompt.user_id === user.id
+  }
+
+  const isFavorite = (prompt: PromptData) => {
+    return user.favorites.includes(prompt.id)
   }
 
   return (
@@ -100,7 +105,6 @@ export default function PromptMidbar({
         </div>
 
       {/* Filtered Results or Empty State - Show for non-'all' filters */}
-      
         <div className="flex-1 overflow-y-auto px-3">
           {(prompts.length === 0) ? (
             <Card className="bg-[var(--deep-charcoal)] border-[var(--moonlight-silver-dim)] text-center py-8">
@@ -108,7 +112,7 @@ export default function PromptMidbar({
                 <BookOpen className="h-8 w-8 text-slate-400 mx-auto mb-3" />
                 <h3 className="text-sm font-semibold text-slate-300 mb-2">No prompts found</h3>
                 <Button 
-                  onClick={createNewPrompt}
+                  onClick={() => setShowCreateDialog(true)}
                   size="sm"
                   className="bg-[var(--glow-ember)] hover:bg-[var(--glow-ember)]/90"
                 >
@@ -132,6 +136,8 @@ export default function PromptMidbar({
                     isLast={isLast}
                     isBeforeSelected={isBeforeSelected}
                     onSelect={() => handlePromptSelect(prompt)}
+                    isOwner={isOwner(prompt)}
+                    isFavorite={isFavorite(prompt)}
                   />
                 </div>
                 )}

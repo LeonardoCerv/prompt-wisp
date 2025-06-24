@@ -8,7 +8,8 @@ import {
   Bookmark,
   Trash2
 } from 'lucide-react'
-import { PromptData } from './promptProvider'
+import { PromptData } from '@/lib/models/prompt'
+import { toggleFavorite }from './pages/prompt/navbar'
 
 interface PromptCardProps {
   prompt: PromptData
@@ -16,12 +17,8 @@ interface PromptCardProps {
   isLast: boolean
   isBeforeSelected: boolean
   onSelect: () => void
-  onToggleFavorite: (id: string) => void
-  onCopy: (content: string, title: string) => void
-  onDelete: (id: string) => void
-  onRestore: (id: string) => void
-  onSave: (id: string) => void
   isOwner: boolean
+  isFavorite: boolean
 }
 
 export default function PromptCard({ 
@@ -30,8 +27,8 @@ export default function PromptCard({
   isLast,
   isBeforeSelected,
   onSelect,
-  onToggleFavorite,
-  isOwner
+  isOwner,
+  isFavorite
 }: PromptCardProps) {
   const getBorderClass = () => {
     if (isSelected) {
@@ -44,44 +41,16 @@ export default function PromptCard({
       : 'bg-transparent border-b-[var(--ash-grey)] border-x-transparent border-t-transparent rounded-none mx-4 px-0'
   }
 
-
-  const toggleFavorite = (id: string) => {
-    try {
-      const response = await fetch('/api/prompts/favorite', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ promptId: id })
-      })
-
-      if (response.ok) {
-        const { isFavorite } = await response.json()
-        setPrompts(prev => prev.map(p =>
-          p.id === id ? { ...p, isFavorite } : p
-        ))
-        
-        // Update selected prompt if it's the same one
-        if (selectedPrompt?.id === id) {
-          setSelectedPrompt(prev => prev ? { ...prev, isFavorite } : null)
-        }
-      } else {
-        toast.error('Failed to toggle favorite')
-      }
-    } catch (error) {
-      console.error('Error toggling favorite:', error)
-      toast.error('Failed to toggle favorite')
-    }
-  }
-
   const getStatusIcon = () => {
-    if (prompt.isDeleted) {
+    if (prompt.is_deleted) {
       return <Trash2 size={14} className="text-[var(--ash-grey)]" />
     }
     
-    if (prompt.isSaved && !isOwner) {
+    if (!isOwner) {
       return <Bookmark size={14} className="text-[var(--ash-grey)]" />
     }
     
-    if (isOwner && prompt.isPublic) {
+    if (isOwner && prompt.is_public) {
       return <Globe size={14} className="text-[var(--ash-grey)]" />
     }
     
@@ -109,14 +78,14 @@ export default function PromptCard({
             <button
               onClick={(e) => {
                 e.stopPropagation()
-                onToggleFavorite(prompt.id)
+                toggleFavorite(prompt.id)
               }}
               className="p-0.5 transition-colors hover:bg-transparent ml-4"
             >
               <Star 
-                size={11} 
+                size={11}
                 className={`${
-                  prompt.isFavorite 
+                  isFavorite 
                     ? 'text-[var(--glow-ember)] fill-current' 
                     : 'text-[var(--ash-grey)]'
                 } transition-colors`}
