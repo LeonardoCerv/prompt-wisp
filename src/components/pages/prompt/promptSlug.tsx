@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { usePromptContext } from '@/components/promptContext'
 import PromptEdit from '@/components/promptEdit'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -25,15 +24,43 @@ export default function PromptSlugPage({ slug }: PromptSlugPageProps) {
     savePrompt,
     deletePrompt,
     restorePrompt,
-    updatePrompt
+    updatePrompt,
+    loading
   } = usePromptContext()
   
   const [isLoading, setIsLoading] = useState(true)
   const [promptFound, setPromptFound] = useState(false)
 
   useEffect(() => {
-    if (slug && prompts.length > 0) {
-      const prompt = prompts.find(p => p.id === slug)
+    // If we have server-side data, use it immediately
+    if (promptData) {
+      const transformedPrompt = {
+        id: promptData.id,
+        slug: promptData.slug,
+        title: promptData.title,
+        description: promptData.description,
+        tags: promptData.tags,
+        isFavorite: promptData.is_favorite,
+        isDeleted: promptData.is_deleted,
+        isSaved: promptData.is_saved,
+        isOwner: promptData.is_owner,
+        isPublic: promptData.is_public,
+        createdAt: new Date(promptData.created_at).toISOString().split('T')[0],
+        lastUsed: new Date(promptData.last_used_at).toISOString().split('T')[0],
+        content: promptData.content,
+        user_id: promptData.user_id,
+        profile: promptData.profile
+      }
+      
+      selectPrompt(transformedPrompt)
+      setPromptFound(true)
+      setIsLoading(false)
+      return
+    }
+
+    // Fallback to client-side lookup if no server data
+    if (slug && prompts.length > 0 && !loading) {
+      const prompt = prompts.find(p => p.slug === slug)
       if (prompt) {
         selectPrompt(prompt)
         
@@ -59,11 +86,12 @@ export default function PromptSlugPage({ slug }: PromptSlugPageProps) {
         setPromptFound(false)
       }
       setIsLoading(false)
-    } else if (slug && prompts.length === 0) {
-      // Still loading prompts
-      setIsLoading(true)
+    } else if (slug && !loading && prompts.length === 0) {
+      // No prompts loaded and not loading - prompt not found
+      setPromptFound(false)
+      setIsLoading(false)
     }
-  }, [slug, prompts, selectPrompt, activeFilter, setActiveFilter, isOwner])
+  }, [slug, prompts, selectPrompt, activeFilter, setActiveFilter, isOwner, loading, promptData])
 
   // Loading skeleton
   if (isLoading) {
@@ -140,6 +168,7 @@ export default function PromptSlugPage({ slug }: PromptSlugPageProps) {
       onRestore={restorePrompt}
       onUpdatePrompt={updatePrompt}
       isOwner={isOwner}
+      currentFilter={activeFilter}
     />
   )
 }

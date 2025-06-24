@@ -1,12 +1,15 @@
 'use client'
 
+import { useState } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import Dialog from '@/components/ui/dialog'
+import NewPromptPage from '@/components/newPrompt'
 import { Search, Clock, Star, PlusCircle, Copy, Trash2, RotateCcw, Save, BookOpen } from 'lucide-react'
 import { type User } from '@supabase/supabase-js'
-import { PromptData } from './prompt-list-card'
-import PromptListCard from './prompt-list-card'
+import { PromptData } from './promptCard'
+import PromptCard from './promptCard'
 import { useRouter } from 'next/navigation'
 
 interface PromptMidbarProps {
@@ -29,6 +32,7 @@ interface PromptMidbarProps {
   onRestore?: (id: string) => void
   onSave?: (id: string) => void
   isOwner?: (prompt: PromptData) => boolean
+  createNewPrompt?: (prompt: { title: string; description: string; tags: string; content: string }) => void
 }
 
 export default function PromptMidbar({
@@ -49,9 +53,11 @@ export default function PromptMidbar({
   onDelete,
   onRestore,
   onSave,
-  isOwner
+  isOwner,
+  createNewPrompt
 }: PromptMidbarProps) {
   const router = useRouter()
+  const [showCreateDialog, setShowCreateDialog] = useState(false)
   
   const recentPrompts = prompts
     .filter(p => !p.isDeleted)
@@ -69,6 +75,16 @@ export default function PromptMidbar({
       {activeFilter !== 'all' && (
         <div className="sticky top-0 z-10">
           <div className="flex justify-end items-center gap-2 bg-[var(--blackblack)] p-2">
+            <Button
+              size="sm"
+              variant="icon"
+              onClick={() => setShowCreateDialog(true)}
+              className="h-10 w-10 p-0 hover:text-[var(--glow-ember)] text-[var(--glow-ember)]/70"
+              title="Create new prompt"
+            >
+              <PlusCircle size={22} />
+            </Button>
+
             <Button
               size="sm"
               variant="icon"
@@ -150,7 +166,7 @@ export default function PromptMidbar({
               
               return (
                 <div key={prompt.id}>
-                  <PromptListCard 
+                  <PromptCard 
                     prompt={prompt} 
                     isSelected={isSelected}
                     isLast={isLast}
@@ -169,6 +185,23 @@ export default function PromptMidbar({
           )}
         </div>
       )}
+
+      {/* Create Prompt Dialog */}
+      <Dialog
+        isOpen={showCreateDialog}
+        onClose={() => setShowCreateDialog(false)}
+        title="Create New Prompt"
+        maxWidth="max-w-2xl"
+      >
+        <NewPromptPage
+          onSubmit={(prompt) => {
+            if (createNewPrompt) {
+              createNewPrompt(prompt)
+            }
+          }}
+          onCancel={() => setShowCreateDialog(false)}
+        />
+      </Dialog>
     </div>
   )
 }

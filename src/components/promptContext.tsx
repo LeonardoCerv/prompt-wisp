@@ -2,7 +2,7 @@
 
 import { createContext, useContext } from 'react'
 import { type User } from '@supabase/supabase-js'
-import { PromptData } from './prompt-list-card'
+import { PromptData } from './promptCard'
 import { FilterType } from './use-prompts'
 
 interface PromptContextType {
@@ -25,7 +25,6 @@ interface PromptContextType {
   createNewPrompt: (newPrompt: {
     title: string
     description: string
-    category: string
     tags: string
     content: string
   }) => void

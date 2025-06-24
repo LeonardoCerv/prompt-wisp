@@ -5,18 +5,18 @@ import { Button } from '@/components/ui/button'
 import { 
   Star, 
   Calendar, 
-  Eye, 
   Copy,
   Save,
   Edit,
   Trash2,
   RotateCcw,
-  MoreHorizontal,
   Hash,
-  Clock
+  Clock,
+  Folder,
+  Share
 } from 'lucide-react'
 import Link from 'next/link'
-import { PromptData } from './prompt-list-card'
+import { PromptData } from './promptCard'
 
 interface PromptEditProps {
   selectedPrompt: PromptData | null
@@ -27,6 +27,7 @@ interface PromptEditProps {
   onRestore: (id: string) => void
   isOwner: (prompt: PromptData) => boolean
   onUpdatePrompt?: (id: string, updates: Partial<PromptData>) => void
+  currentFilter?: string
 }
 
 export default function PromptEdit({
@@ -37,13 +38,15 @@ export default function PromptEdit({
   onDelete,
   onRestore,
   isOwner,
-  onUpdatePrompt
+  onUpdatePrompt,
+  currentFilter
 }: PromptEditProps) {
   const [editedTitle, setEditedTitle] = useState('')
   const [editedContent, setEditedContent] = useState('')
   const [editedDescription, setEditedDescription] = useState('')
   const [editedTags, setEditedTags] = useState<string[]>([])
   const [isSaving, setIsSaving] = useState(false)
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const titleRef = useRef<HTMLTextAreaElement>(null)
   const contentRef = useRef<HTMLTextAreaElement>(null)
 
@@ -54,8 +57,22 @@ export default function PromptEdit({
       setEditedContent(selectedPrompt.content)
       setEditedDescription(selectedPrompt.description)
       setEditedTags(selectedPrompt.tags)
+      setHasUnsavedChanges(false)
     }
   }, [selectedPrompt])
+
+  // Track unsaved changes
+  useEffect(() => {
+    if (!selectedPrompt) return
+    
+    const hasChanges = 
+      editedTitle !== selectedPrompt.title ||
+      editedContent !== selectedPrompt.content ||
+      editedDescription !== selectedPrompt.description ||
+      JSON.stringify(editedTags) !== JSON.stringify(selectedPrompt.tags)
+    
+    setHasUnsavedChanges(hasChanges)
+  }, [selectedPrompt, editedTitle, editedContent, editedDescription, editedTags])
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -88,7 +105,7 @@ export default function PromptEdit({
 
   // Handle saving changes
   const handleSave = async () => {
-    if (!selectedPrompt || !onUpdatePrompt) return
+    if (!selectedPrompt || !onUpdatePrompt || !hasUnsavedChanges) return
     
     setIsSaving(true)
     try {
@@ -98,6 +115,7 @@ export default function PromptEdit({
         description: editedDescription,
         tags: editedTags
       })
+      setHasUnsavedChanges(false)
     } catch (error) {
       console.error('Failed to save changes:', error)
     } finally {
@@ -111,13 +129,69 @@ export default function PromptEdit({
     setEditedTags(tags)
   }
 
+  // Generate directory path based on how the prompt was accessed
+  const getDirectoryPath = () => {
+    if (!selectedPrompt) return ''
+    
+    const filterMap: Record<string, string> = {
+      'all-prompts': 'All Prompts',
+      'favorites': 'Favorites',
+      'your-prompts': 'Your Prompts',
+      'saved': 'Saved',
+      'deleted': 'Deleted'
+    }
+    
+    // Determine the primary category based on prompt properties
+    let category = 'All Prompts'
+    
+    if (currentFilter && currentFilter !== 'all' && filterMap[currentFilter]) {
+      category = filterMap[currentFilter]
+    } else {
+      // Fallback logic based on prompt properties
+      if (selectedPrompt.isDeleted) {
+        category = 'Deleted'
+      } else if (selectedPrompt.isSaved && !isOwner(selectedPrompt)) {
+        category = 'Saved'
+      } else if (selectedPrompt.isFavorite) {
+        category = 'Favorites'
+      } else if (isOwner(selectedPrompt)) {
+        category = 'Your Prompts'
+      }
+    }
+    
+    return `${category}/${editedTitle || selectedPrompt.title || 'Untitled'}`
+  }
+
   return (
     <div className="flex flex-col bg-[var(--prompts)] h-screen">
       {selectedPrompt ? (
         <div className="flex flex-col h-full">
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-[var(--moonlight-silver-dim)]/30">
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <Folder size={14} className="text-gray-400 flex-shrink-0" />
+                <span className="text-sm text-gray-400 truncate font-medium opacity-80">{getDirectoryPath()}</span>
+              </div>
+            </div>
+
             <div className="flex items-center gap-2">
+              <span className="text-xs text-[var(--moonlight-silver)] flex items-center gap-1">
+                <Clock size={12} />
+                {new Date(selectedPrompt.lastUsed).toLocaleDateString()}
+              </span>
+              
+              {hasUnsavedChanges && (
+                <Button
+                  size="sm"
+                  onClick={handleSave}
+                  disabled={isSaving}
+                  className="bg-blue-600 hover:bg-blue-700 text-white p-1.5"
+                >
+                  <Save size={16} />
+                </Button>
+              )}
+
               <Button
                 size="sm"
                 variant="ghost"
@@ -130,17 +204,21 @@ export default function PromptEdit({
               >
                 <Star size={16} className={selectedPrompt.isFavorite ? 'fill-current' : ''} />
               </Button>
-              
-              <span className="text-xs bg-[var(--glow-ember)]/20 text-[var(--glow-ember)] px-2 py-1 rounded-full font-medium">
-                {selectedPrompt.category}
-              </span>
-              
-              <span className="text-xs text-[var(--moonlight-silver)]/80 font-medium">
-                • Editing
-              </span>
-            </div>
 
-            <div className="flex items-center gap-1">
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  // Share functionality - copy link to clipboard
+                  const shareUrl = `${window.location.origin}/prompt/${selectedPrompt.id}`
+                  navigator.clipboard.writeText(shareUrl)
+                  // You might want to show a toast notification here
+                }}
+                className="p-1.5 text-[var(--moonlight-silver)] hover:text-[var(--moonlight-silver-bright)]"
+              >
+                <Share size={16} />
+              </Button>
+
               <Button
                 size="sm"
                 variant="ghost"
@@ -149,43 +227,81 @@ export default function PromptEdit({
               >
                 <Copy size={16} />
               </Button>
-              
-              <Button
-                size="sm"
-                variant="ghost"
-                className="p-1.5 text-[var(--moonlight-silver)] hover:text-[var(--moonlight-silver-bright)]"
-              >
-                <MoreHorizontal size={16} />
-              </Button>
+
+              {isOwner(selectedPrompt) && (
+                selectedPrompt.isDeleted ? (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => onRestore(selectedPrompt.id)}
+                    className="p-1.5 text-green-400 hover:text-green-300"
+                  >
+                    <RotateCcw size={16} />
+                  </Button>
+                ) : (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => onDelete(selectedPrompt.id)}
+                    className="p-1.5 text-red-400 hover:text-red-300"
+                  >
+                    <Trash2 size={16} />
+                  </Button>
+                )
+              )}
             </div>
           </div>
 
           {/* Content - Always in edit mode */}
           <div className="flex-1 p-4 space-y-4 overflow-y-auto">
             {/* Title */}
-            <textarea
-              ref={titleRef}
-              value={editedTitle}
-              onChange={(e) => {
-                setEditedTitle(e.target.value)
-                autoResizeTextarea(e.target)
-              }}
-              className="w-full text-2xl font-bold text-white bg-transparent border-none outline-none resize-none placeholder-[var(--moonlight-silver)] leading-tight"
-              placeholder="Untitled prompt..."
-              style={{ minHeight: '40px' }}
-            />
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-[var(--moonlight-silver)]/80 uppercase tracking-wide">
+                Title
+              </label>
+              <textarea
+                ref={titleRef}
+                value={editedTitle}
+                onChange={(e) => {
+                  setEditedTitle(e.target.value)
+                  autoResizeTextarea(e.target)
+                }}
+                className="w-full text-3xl font-bold text-white bg-transparent border-none outline-none resize-none placeholder-[var(--moonlight-silver)]/50 leading-tight"
+                placeholder="Enter prompt title..."
+                style={{ minHeight: '50px' }}
+                rows={1}
+              />
+            </div>
 
             {/* Description */}
-            <textarea
-              value={editedDescription}
-              onChange={(e) => setEditedDescription(e.target.value)}
-              className="w-full text-[var(--moonlight-silver)] bg-transparent border-none outline-none resize-none placeholder-[var(--moonlight-silver)]/60"
-              placeholder="Add a description..."
-              rows={2}
-            />
+            <div className="space-y-2 border-l-2 border-[var(--moonlight-silver-dim)]/30 pl-4">
+              <label className="text-xs font-medium text-[var(--moonlight-silver)]/80 uppercase tracking-wide">
+                Description
+              </label>
+              <textarea
+                value={editedDescription}
+                onChange={(e) => setEditedDescription(e.target.value)}
+                className="w-full text-base text-[var(--moonlight-silver-bright)] bg-transparent border-none outline-none resize-none placeholder-[var(--moonlight-silver)]/50 leading-relaxed"
+                placeholder="Describe what this prompt does..."
+                rows={3}
+              />
+            </div>
 
             {/* Main Content */}
-            <div className="flex-1">
+            <div className="space-y-2 bg-[var(--moonlight-silver-dim)]/5 rounded-lg p-4 border border-[var(--moonlight-silver-dim)]/20">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-medium text-[var(--moonlight-silver)]/80 uppercase tracking-wide">
+                  Prompt Content
+                </label>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => onCopy(editedContent, editedTitle)}
+                  className="p-1.5 text-[var(--moonlight-silver)] hover:text-[var(--moonlight-silver-bright)]"
+                >
+                  <Copy size={14} />
+                </Button>
+              </div>
               <textarea
                 ref={contentRef}
                 value={editedContent}
@@ -193,24 +309,24 @@ export default function PromptEdit({
                   setEditedContent(e.target.value)
                   autoResizeTextarea(e.target)
                 }}
-                className="w-full text-[var(--moonlight-silver-bright)] bg-transparent border-none outline-none resize-none leading-relaxed placeholder-[var(--moonlight-silver)]/60"
-                placeholder="Start writing your prompt..."
-                style={{ minHeight: '200px' }}
+                className="w-full text-[var(--moonlight-silver-bright)] bg-transparent border-none outline-none resize-none leading-relaxed placeholder-[var(--moonlight-silver)]/50 font-mono"
+                placeholder="Write your prompt here..."
+                style={{ minHeight: '300px' }}
               />
             </div>
 
             {/* Tags */}
-            <div className="border-t border-[var(--moonlight-silver-dim)]/30 pt-4">
-              <div>
-                <div className="flex items-center gap-2 mb-2">
+            <div className="border-t border-[var(--moonlight-silver-dim)]/30 pt-6">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
                   <Hash size={14} className="text-[var(--moonlight-silver)]" />
-                  <span className="text-sm text-[var(--moonlight-silver)]">Tags</span>
+                  <label className="text-xs font-medium text-[var(--moonlight-silver)]/80 uppercase tracking-wide">Tags</label>
                 </div>
                 <input
                   type="text"
                   value={editedTags.join(', ')}
                   onChange={(e) => handleTagEdit(e.target.value)}
-                  className="w-full text-sm text-[var(--moonlight-silver-bright)] bg-transparent border border-[var(--moonlight-silver-dim)]/50 rounded px-3 py-2 outline-none focus:border-[var(--glow-ember)]/50"
+                  className="w-full text-sm text-[var(--moonlight-silver-bright)] bg-transparent border border-[var(--moonlight-silver-dim)]/50 rounded-md px-3 py-2 outline-none focus:border-[var(--glow-ember)]/50 focus:ring-1 focus:ring-[var(--glow-ember)]/20"
                   placeholder="Add tags separated by commas..."
                 />
               </div>
@@ -219,81 +335,29 @@ export default function PromptEdit({
 
           {/* Footer */}
           <div className="border-t border-[var(--moonlight-silver-dim)]/30 p-4">
-            {/* Save Actions */}
-            <div className="flex justify-between items-center mb-3">
+            <div className="flex justify-between items-center">
               <Link 
                 href="/prompt"
                 className="text-sm text-[var(--moonlight-silver)] hover:text-[var(--moonlight-silver-bright)] transition-colors"
               >
                 ← Back to prompts
               </Link>
-              <Button
-                size="sm"
-                onClick={handleSave}
-                disabled={isSaving}
-                className="bg-[var(--glow-ember)] hover:bg-[var(--glow-ember)]/90 text-white"
-              >
-                {isSaving ? 'Saving...' : 'Save Changes'}
-              </Button>
-            </div>
 
-            {/* Stats */}
-            <div className="flex items-center justify-between text-xs text-[var(--moonlight-silver)]">
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-1">
-                  <Eye size={12} />
-                  {selectedPrompt.usage} uses
-                </div>
-                <div className="flex items-center gap-1">
-                  <Clock size={12} />
-                  {new Date(selectedPrompt.lastUsed).toLocaleDateString()}
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex items-center gap-2">
-                {!isOwner(selectedPrompt) && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => onSave(selectedPrompt.id)}
-                    className={`text-xs border-[var(--moonlight-silver-dim)] ${
-                      selectedPrompt.isSaved 
-                        ? 'text-[var(--glow-ember)] border-[var(--glow-ember)]/50' 
-                        : 'text-[var(--moonlight-silver-bright)] hover:bg-[var(--slate-grey)]'
-                    }`}
-                  >
-                    <Save size={12} className="mr-1" />
-                    {selectedPrompt.isSaved ? 'Saved' : 'Save'}
-                  </Button>
-                )}
-
-                {isOwner(selectedPrompt) && (
-                  <>
-                    {selectedPrompt.isDeleted ? (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => onRestore(selectedPrompt.id)}
-                        className="text-xs border-green-500/50 text-green-400 hover:bg-green-500/10"
-                      >
-                        <RotateCcw size={12} className="mr-1" />
-                        Restore
-                      </Button>
-                    ) : (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => onDelete(selectedPrompt.id)}
-                        className="text-xs border-red-500/50 text-red-400 hover:bg-red-500/10"
-                      >
-                        <Trash2 size={12} className="mr-1" />
-                        Delete
-                      </Button>
-                    )}
-                  </>
-                )}
-              </div>
+              {!isOwner(selectedPrompt) && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => onSave(selectedPrompt.id)}
+                  className={`text-xs border-[var(--moonlight-silver-dim)] ${
+                    selectedPrompt.isSaved 
+                      ? 'text-[var(--glow-ember)] border-[var(--glow-ember)]/50' 
+                      : 'text-[var(--moonlight-silver-bright)] hover:bg-[var(--slate-grey)]'
+                  }`}
+                >
+                  <Save size={12} className="mr-1" />
+                  {selectedPrompt.isSaved ? 'Saved' : 'Save'}
+                </Button>
+              )}
             </div>
           </div>
         </div>

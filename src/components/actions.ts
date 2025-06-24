@@ -26,7 +26,6 @@ export async function createPrompt(formData: FormData) {
   
   const title = formData.get('title') as string
   const description = formData.get('description') as string
-  const category = formData.get('category') as string
   const tags = formData.get('tags') as string
   const content = formData.get('content') as string
   
@@ -36,7 +35,6 @@ export async function createPrompt(formData: FormData) {
   //   .insert({
   //     title,
   //     description,
-  //     category,
   //     tags: tags.split(',').map(tag => tag.trim()),
   //     content,
   //     user_id: user.id
@@ -59,7 +57,6 @@ export async function updatePrompt(id: string, formData: FormData) {
   //   .update({
   //     title: formData.get('title') as string,
   //     description: formData.get('description') as string,
-  //     category: formData.get('category') as string,
   //     tags: (formData.get('tags') as string).split(',').map(tag => tag.trim()),
   //     content: formData.get('content') as string,
   //   })

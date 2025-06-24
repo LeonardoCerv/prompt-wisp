@@ -11,9 +11,9 @@ import {
 
 export interface PromptData {
   id: string
+  slug: string
   title: string
-  description: string
-  category: string
+  description: string | null
   tags: string[]
   isFavorite: boolean
   isDeleted: boolean
@@ -22,11 +22,16 @@ export interface PromptData {
   isPublic?: boolean
   createdAt: string
   lastUsed: string
-  usage: number
   content: string
+  user_id: string
+  profile?: {
+    username: string | null
+    full_name: string | null
+    avatar_url: string | null
+  }
 }
 
-interface PromptListCardProps {
+interface PromptCardProps {
   prompt: PromptData
   isSelected: boolean
   isLast: boolean
@@ -40,7 +45,7 @@ interface PromptListCardProps {
   isOwner: boolean
 }
 
-export default function PromptListCard({ 
+export default function PromptCard({ 
   prompt, 
   isSelected,
   isLast,
@@ -48,7 +53,7 @@ export default function PromptListCard({
   onSelect,
   onToggleFavorite,
   isOwner
-}: PromptListCardProps) {
+}: PromptCardProps) {
   const getBorderClass = () => {
     if (isSelected) {
       return 'bg-[var(--flare-cyan)]/30 border-transparent shadow-sm rounded-sm px-3'
@@ -114,9 +119,9 @@ export default function PromptListCard({
           <div className="flex items-center justify-between">
             <CardDescription 
               className="text-xs text-neutral-500 line-clamp-1 flex-1"
-              title={prompt.description}
+              title={prompt.description || undefined}
             >
-              {prompt.description}
+              {prompt.description || ''}
             </CardDescription>
             {/* Status Icon */}
             <div className="flex-shrink-0 ml-4">
