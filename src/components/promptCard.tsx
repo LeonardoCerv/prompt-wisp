@@ -8,28 +8,7 @@ import {
   Bookmark,
   Trash2
 } from 'lucide-react'
-
-export interface PromptData {
-  id: string
-  slug: string
-  title: string
-  description: string | null
-  tags: string[]
-  isFavorite: boolean
-  isDeleted: boolean
-  isSaved: boolean
-  isOwner: boolean
-  isPublic?: boolean
-  createdAt: string
-  lastUsed: string
-  content: string
-  user_id: string
-  profile?: {
-    username: string | null
-    full_name: string | null
-    avatar_url: string | null
-  }
-}
+import { PromptData } from './promptProvider'
 
 interface PromptCardProps {
   prompt: PromptData
@@ -63,6 +42,34 @@ export default function PromptCard({
     return shouldHideBorder 
       ? 'bg-transparent border-transparent rounded-none mx-4 px-0'
       : 'bg-transparent border-b-[var(--ash-grey)] border-x-transparent border-t-transparent rounded-none mx-4 px-0'
+  }
+
+
+  const toggleFavorite = (id: string) => {
+    try {
+      const response = await fetch('/api/prompts/favorite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ promptId: id })
+      })
+
+      if (response.ok) {
+        const { isFavorite } = await response.json()
+        setPrompts(prev => prev.map(p =>
+          p.id === id ? { ...p, isFavorite } : p
+        ))
+        
+        // Update selected prompt if it's the same one
+        if (selectedPrompt?.id === id) {
+          setSelectedPrompt(prev => prev ? { ...prev, isFavorite } : null)
+        }
+      } else {
+        toast.error('Failed to toggle favorite')
+      }
+    } catch (error) {
+      console.error('Error toggling favorite:', error)
+      toast.error('Failed to toggle favorite')
+    }
   }
 
   const getStatusIcon = () => {

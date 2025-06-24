@@ -1,6 +1,7 @@
 
 import Navbar from '@/components/pages/prompt/navbar';
 import { createClient } from '../../../lib/utils/supabase/server'
+import { PromptProvider } from '@/components/promptProvider'
 
 export default async function PromptLayout({
   children,
@@ -26,6 +27,7 @@ export default async function PromptLayout({
 
   // This layout provides the sidebar and midbar navigation for all prompt pages
   return (
+    <PromptProvider user={user}>
       <div className="min-h-screen bg-[var(--black)] w-full">
         <div className="h-screen">
           <div className="flex gap-0 h-full">
@@ -35,5 +37,6 @@ export default async function PromptLayout({
           </div>
         </div>
       </div>
+    </PromptProvider>
   )
 }

@@ -6,12 +6,14 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Home, FileX } from 'lucide-react'
 import Link from 'next/link'
+import { usePromptContext } from '@/components/promptContext'
 
 interface PromptSlugPageProps {
   slug: string
+  promptData?: any // eslint-disable-line @typescript-eslint/no-explicit-any
 }
 
-export default function PromptSlugPage({ slug }: PromptSlugPageProps) {
+export default function PromptSlugPage({ slug, promptData }: PromptSlugPageProps) {
   const { 
     prompts, 
     selectPrompt, 
@@ -139,7 +141,7 @@ export default function PromptSlugPage({ slug }: PromptSlugPageProps) {
                 Prompt Not Found
               </h3>
               <p className="text-[var(--moonlight-silver)]/80 mb-6">
-                The prompt you're looking for doesn't exist or may have been removed.
+                The prompt you&apos;re looking for doesn&apos;t exist or may have been removed.
               </p>
               <Link href="/prompt">
                 <Button 

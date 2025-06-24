@@ -16,7 +16,7 @@ import {
   Share
 } from 'lucide-react'
 import Link from 'next/link'
-import { PromptData } from './promptCard'
+import { PromptData } from './promptProvider'
 
 interface PromptEditProps {
   selectedPrompt: PromptData | null
@@ -55,7 +55,7 @@ export default function PromptEdit({
     if (selectedPrompt) {
       setEditedTitle(selectedPrompt.title)
       setEditedContent(selectedPrompt.content)
-      setEditedDescription(selectedPrompt.description)
+      setEditedDescription(selectedPrompt.description || '')
       setEditedTags(selectedPrompt.tags)
       setHasUnsavedChanges(false)
     }

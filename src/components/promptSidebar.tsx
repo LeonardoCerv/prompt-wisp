@@ -13,8 +13,7 @@ import {
 } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
-
-type FilterType = 'all' | 'all-prompts' | 'favorites' | 'your-prompts' | 'saved' | 'deleted'
+import { FilterType } from '@/components/promptProvider'
 
 interface PromptSidebarProps {
   activeFilter: FilterType
