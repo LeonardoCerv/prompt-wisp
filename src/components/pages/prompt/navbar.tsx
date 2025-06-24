@@ -6,7 +6,7 @@ import PromptSidebar from '@/components/promptSidebar'
 import PromptMidbar from '@/components/promptMidbar'
 import { toast } from 'sonner';
 import { PromptData } from '@/lib/models/prompt'
-import Router from 'next/router'
+import { useRouter } from 'next/navigation'
 
 // Define FilterType
 export type FilterType = 'all' | 'all-prompts' | 'your-prompts' | 'favorites' | 'saved' | 'deleted'
@@ -52,7 +52,7 @@ export async function deletePrompt(id: string) {
     })
 
     if (response.ok) {
-      toast.success('Prompt deleted')
+      toast.success('Prompt moved to Recently Deleted')
     } else {
       toast.error('Failed to delete prompt')
     }
@@ -103,30 +103,54 @@ export async function createNewPrompt(newPrompt: {
   description: string
   tags: string
   content: string
-}) {
+  visibility?: 'public' | 'private' | 'unlisted'
+  images?: string[]
+  collaborators?: string[]
+  collections?: string[]
+}, onSuccess?: (promptId: string) => void) {
   try {
+    console.log('Creating prompt with data:', newPrompt);
+    
+    const requestBody = {
+      title: newPrompt.title.trim(),
+      description: newPrompt.description.trim() || null,
+      content: newPrompt.content.trim(),
+      tags: newPrompt.tags.split(',').map(tag => tag.trim()).filter(Boolean),
+      visibility: newPrompt.visibility || 'private',
+      images: newPrompt.images || null,
+      collaborators: newPrompt.collaborators || null,
+      collections: newPrompt.collections || null
+    };
+    
+    console.log('Request body:', requestBody);
+
     const response = await fetch('/api/prompts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        title: newPrompt.title,
-        description: newPrompt.description,
-        content: newPrompt.content,
-        tags: newPrompt.tags.split(',').map(tag => tag.trim()).filter(Boolean),
-        is_public: false
-      })
+      body: JSON.stringify(requestBody)
     })
+
+    console.log('Response status:', response.status);
+    console.log('Response ok:', response.ok);
 
     if (response.ok) {
       const createdPrompt = await response.json()
-      Router.push(`/prompt/${createdPrompt.id}`)
+      console.log('Created prompt:', createdPrompt);
       toast.success('Prompt created successfully')
+      if (onSuccess) {
+        onSuccess(createdPrompt.id)
+      }
+      return createdPrompt
     } else {
-      toast.error('Failed to create prompt')
+      const errorData = await response.json()
+      console.error('Error response:', errorData);
+      toast.error(errorData.error || 'Failed to create prompt')
+      throw new Error(errorData.error || 'Failed to create prompt')
     }
   } catch (error) {
     console.error('Error creating prompt:', error)
     toast.error('Failed to create prompt')
+    throw error
   }
 }
 
@@ -187,19 +211,19 @@ export function filterPrompts(
       filtered = []
       break
     case 'all-prompts':
-      filtered = prompts.filter(p => !p.is_deleted)
+      filtered = prompts.filter(p => !p.deleted)
       break
     case 'your-prompts':
-      filtered = prompts.filter(p => p.isOwner && !p.is_deleted)
+      filtered = prompts.filter(p => p.isOwner && !p.deleted)
       break
     case 'favorites':
-      filtered = prompts.filter(p => p.isFavorite && !p.is_deleted)
+      filtered = prompts.filter(p => p.isFavorite && !p.deleted)
       break
     case 'saved':
-      filtered = prompts.filter(p => p.isSaved && !p.is_deleted)
+      filtered = prompts.filter(p => p.isSaved && !p.deleted)
       break
     case 'deleted':
-      filtered = prompts.filter(p => p.is_deleted && p.isOwner)
+      filtered = prompts.filter(p => p.deleted && p.isOwner)
       break
   }
 
@@ -228,15 +252,15 @@ export function getPromptFilterCount(prompts: ExtendedPromptData[], filter: Filt
     case 'all':
       return 0
     case 'all-prompts':
-      return prompts.filter(p => !p.is_deleted).length
+      return prompts.filter(p => !p.deleted).length
     case 'your-prompts':
-      return prompts.filter(p => p.isOwner && !p.is_deleted).length
+      return prompts.filter(p => p.isOwner && !p.deleted).length
     case 'favorites':
-      return prompts.filter(p => p.isFavorite && !p.is_deleted).length
+      return prompts.filter(p => p.isFavorite && !p.deleted).length
     case 'saved':
-      return prompts.filter(p => p.isSaved && !p.is_deleted).length
+      return prompts.filter(p => p.isSaved && !p.deleted).length
     case 'deleted':
-      return prompts.filter(p => p.is_deleted && p.isOwner).length
+      return prompts.filter(p => p.deleted && p.isOwner).length
     default:
       return 0
   }
@@ -395,7 +419,7 @@ export default function Navbar({ user, children, initialPrompts = [] }: NavbarPr
           <div className={`h-full flex flex-col ${activeFilter === 'all' ? 'hidden' : 'w-[300px]'}`}> 
             <PromptMidbar
               prompts={filteredPrompts}
-              user={user as any}
+              user={{ id: user.id, email: user.email }}
             />
           </div>
 

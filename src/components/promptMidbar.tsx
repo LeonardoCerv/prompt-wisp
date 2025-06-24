@@ -11,14 +11,22 @@ import { useRouter } from 'next/navigation'
 import { PromptData } from '@/lib/models/prompt'
 import { savePrompt, deletePrompt, restorePrompt, copyToClipboard, createNewPrompt } from './pages/prompt/navbar'
 
+// Import the ExtendedPromptData type from navbar
+import { type FilterType } from './pages/prompt/navbar'
+
+// Define the extended interface locally or import from navbar
+interface ExtendedPromptData extends PromptData {
+  isOwner: boolean
+  isFavorite: boolean
+  isSaved: boolean
+  isDeleted?: boolean
+}
+
 interface PromptMidbarProps {
-  prompts: PromptData[]
+  prompts: ExtendedPromptData[]
   user: {
     id: string
-    username: string
-    full_name: string
-    avatar_url: string
-    favorites: string[]
+    email?: string
   }
 }
 
@@ -27,19 +35,19 @@ export default function PromptMidbar({
 }: PromptMidbarProps) {
   const router = useRouter()
   const [showCreateDialog, setShowCreateDialog] = useState(false)
-  const [selectedPrompt, setSelectedPrompt] = useState<PromptData | null>(null)
+  const [selectedPrompt, setSelectedPrompt] = useState<ExtendedPromptData | null>(null)
 
-  const handlePromptSelect = (prompt: PromptData) => {
+  const handlePromptSelect = (prompt: ExtendedPromptData) => {
     setSelectedPrompt(prompt)
     router.push(`/prompt/${prompt.id}`) // Navigate to the edit page
   }
 
-  const isOwner = (prompt: PromptData) => {
+  const isOwner = (prompt: ExtendedPromptData) => {
     return prompt.user_id === user.id
   }
 
-  const isFavorite = (prompt: PromptData) => {
-    return user.favorites.includes(prompt.id)
+  const isFavorite = (prompt: ExtendedPromptData) => {
+    return prompt.isFavorite
   }
 
   return (
@@ -68,12 +76,12 @@ export default function PromptMidbar({
               <Copy size={22} />
             </Button>
 
-            {(selectedPrompt?.is_deleted) ? (
+            {(selectedPrompt?.deleted) ? (
               <Button
                 size="sm"
                 variant="icon"
                 onClick={() => selectedPrompt && restorePrompt(selectedPrompt.id)}
-                disabled={!selectedPrompt || !selectedPrompt.is_deleted || !isOwner?.(selectedPrompt)}
+                disabled={!selectedPrompt || !selectedPrompt.deleted || !isOwner?.(selectedPrompt)}
                 className="h-10 w-10 hover:text-green-400 disabled:opacity-30 disabled:cursor-not-allowed text-green-400/70"
                 title="Restore prompt"
               >
@@ -94,7 +102,7 @@ export default function PromptMidbar({
                     }
                   }
                 }}
-                disabled={!selectedPrompt || selectedPrompt.is_deleted || (!isOwner?.(selectedPrompt))}
+                disabled={!selectedPrompt || selectedPrompt.deleted || (!isOwner?.(selectedPrompt))}
                 className="h-10 w-10 hover:text-red-400 disabled:opacity-30 disabled:cursor-not-allowed text-red-400/70"
                 title={selectedPrompt && !isOwner?.(selectedPrompt) ? "Unsave prompt" : "Delete prompt"}
               >
@@ -152,9 +160,14 @@ export default function PromptMidbar({
         maxWidth="max-w-2xl"
       >
         <NewPromptPage
-          onSubmit={(prompt) => {
-            if (createNewPrompt) {
-              createNewPrompt(prompt)
+          onSubmit={async (prompt) => {
+            try {
+              await createNewPrompt(prompt, (promptId) => {
+                router.push(`/prompt/${promptId}`)
+              })
+              setShowCreateDialog(false)
+            } catch (error) {
+              console.error('Error creating prompt:', error)
             }
           }}
           onCancel={() => setShowCreateDialog(false)}

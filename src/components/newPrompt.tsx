@@ -14,7 +14,7 @@ interface NewPrompt {
 }
 
 interface NewPromptPageProps {
-  onSubmit: (prompt: NewPrompt) => void
+  onSubmit: (prompt: NewPrompt) => Promise<void>
   onCancel: () => void
 }
 
@@ -37,8 +37,7 @@ export default function NewPromptPage({ onSubmit, onCancel }: NewPromptPageProps
 
     setIsSubmitting(true)
     try {
-      onSubmit(formData)
-      onCancel() // Close the dialog after successful submission
+      await onSubmit(formData)
     } catch (error) {
       console.error('Error creating prompt:', error)
     } finally {

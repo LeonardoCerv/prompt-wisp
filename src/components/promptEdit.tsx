@@ -1,10 +1,9 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { 
   Star, 
-  Calendar, 
   Copy,
   Save,
   Edit,
@@ -16,10 +15,17 @@ import {
   Share
 } from 'lucide-react'
 import Link from 'next/link'
-import { PromptData } from './promptProvider'
+import { PromptData } from '@/lib/models/prompt'
+
+interface ExtendedPromptData extends PromptData {
+  isOwner: boolean
+  isFavorite: boolean
+  isSaved: boolean
+  isDeleted?: boolean
+}
 
 interface PromptEditProps {
-  selectedPrompt: PromptData | null
+  selectedPrompt: ExtendedPromptData | null
   onToggleFavorite: (id: string) => void
   onCopy: (content: string, title: string) => void
   onSave: (id: string) => void
@@ -74,29 +80,6 @@ export default function PromptEdit({
     setHasUnsavedChanges(hasChanges)
   }, [selectedPrompt, editedTitle, editedContent, editedDescription, editedTags])
 
-  // Keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (!selectedPrompt || !isOwner(selectedPrompt)) return
-
-      // Cmd/Ctrl + S to save
-      if ((event.metaKey || event.ctrlKey) && event.key === 's') {
-        event.preventDefault()
-        handleSave()
-      }
-    }
-
-    document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [selectedPrompt])
-
-  // Auto-focus title on mount
-  useEffect(() => {
-    if (selectedPrompt && titleRef.current) {
-      titleRef.current.focus()
-    }
-  }, [selectedPrompt])
-
   // Auto-resize textareas
   const autoResizeTextarea = (element: HTMLTextAreaElement) => {
     element.style.height = 'auto'
@@ -104,7 +87,7 @@ export default function PromptEdit({
   }
 
   // Handle saving changes
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     if (!selectedPrompt || !onUpdatePrompt || !hasUnsavedChanges) return
     
     setIsSaving(true)
@@ -121,7 +104,30 @@ export default function PromptEdit({
     } finally {
       setIsSaving(false)
     }
-  }
+  }, [selectedPrompt, onUpdatePrompt, hasUnsavedChanges, editedTitle, editedContent, editedDescription, editedTags])
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (!selectedPrompt || !isOwner(selectedPrompt)) return
+
+      // Cmd/Ctrl + S to save
+      if ((event.metaKey || event.ctrlKey) && event.key === 's') {
+        event.preventDefault()
+        handleSave()
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [selectedPrompt, isOwner, handleSave])
+
+  // Auto-focus title on mount
+  useEffect(() => {
+    if (selectedPrompt && titleRef.current) {
+      titleRef.current.focus()
+    }
+  }, [selectedPrompt])
 
   // Handle tag editing
   const handleTagEdit = (value: string) => {
@@ -178,7 +184,7 @@ export default function PromptEdit({
             <div className="flex items-center gap-2">
               <span className="text-xs text-[var(--moonlight-silver)] flex items-center gap-1">
                 <Clock size={12} />
-                {new Date(selectedPrompt.lastUsed).toLocaleDateString()}
+                {new Date(selectedPrompt.updated_at).toLocaleDateString()}
               </span>
               
               {hasUnsavedChanges && (

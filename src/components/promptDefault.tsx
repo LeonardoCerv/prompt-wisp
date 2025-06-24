@@ -4,7 +4,7 @@ import {
   Edit,
 } from 'lucide-react'
 
-export default function PromptPreview() {
+export default function PromptDefault() {
 
   return (
     <div className="flex flex-col bg-[var(--prompts)] h-screen">

@@ -6,54 +6,214 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Home, FileX } from 'lucide-react'
 import Link from 'next/link'
-import { usePromptContext } from '@/components/promptContext'
+import { 
+  savePrompt, 
+  deletePrompt, 
+  restorePrompt, 
+  copyToClipboard, 
+  toggleFavorite,
+  refreshPrompts,
+  type FilterType
+} from '@/components/pages/prompt/navbar'
+import { PromptData } from '@/lib/models/prompt'
+
+// Extended interface for transformed prompt data
+interface ExtendedPromptData extends PromptData {
+  isOwner: boolean
+  isFavorite: boolean
+  isSaved: boolean
+  isDeleted?: boolean
+}
 
 interface PromptSlugPageProps {
   slug: string
   promptData?: any // eslint-disable-line @typescript-eslint/no-explicit-any
+  user: {
+    id: string
+    email?: string
+  }
 }
 
-export default function PromptSlugPage({ slug, promptData }: PromptSlugPageProps) {
-  const { 
-    prompts, 
-    selectPrompt, 
-    selectedPrompt,
-    activeFilter, 
-    setActiveFilter, 
-    isOwner,
-    toggleFavorite,
-    copyToClipboard,
-    savePrompt,
-    deletePrompt,
-    restorePrompt,
-    updatePrompt,
-    loading
-  } = usePromptContext()
-  
+export default function PromptSlugPage({ slug, promptData, user }: PromptSlugPageProps) {
+  const [prompts, setPrompts] = useState<ExtendedPromptData[]>([])
+  const [selectedPrompt, setSelectedPrompt] = useState<ExtendedPromptData | null>(null)
+  const [activeFilter, setActiveFilter] = useState<FilterType>('all')
+  const [loading, setLoading] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [promptFound, setPromptFound] = useState(false)
+
+  // Helper function to safely parse dates
+  const safeParseDate = (dateString: any): string => {
+    if (!dateString) return new Date().toISOString()
+    
+    try {
+      console.log('Original date input:', dateString, 'Type:', typeof dateString)
+      
+      // If it's already a valid ISO string, return it
+      if (typeof dateString === 'string' && dateString.includes('T') && dateString.includes('Z')) {
+        const testDate = new Date(dateString)
+        if (!isNaN(testDate.getTime())) {
+          console.log('Already valid ISO string:', dateString)
+          return dateString
+        }
+      }
+      
+      let parsedDate: Date
+      
+      if (typeof dateString === 'string') {
+        // Handle PostgreSQL timestamp format: "2025-06-24 20:19:11.559614+00"
+        let normalizedDate = dateString.trim()
+        
+        // If it has timezone offset like +00 or -05, convert to proper format
+        if (normalizedDate.includes('+') || normalizedDate.match(/-\d{2}$/)) {
+          // Replace space with T for ISO format
+          normalizedDate = normalizedDate.replace(' ', 'T')
+          
+          // Handle timezone: +00 -> Z, +05:30 -> +05:30, etc.
+          if (normalizedDate.endsWith('+00')) {
+            normalizedDate = normalizedDate.replace('+00', 'Z')
+          } else if (normalizedDate.match(/[+-]\d{2}$/)) {
+            // Add :00 to timezone if missing (e.g., +05 -> +05:00)
+            normalizedDate = normalizedDate + ':00'
+          }
+        } else if (!normalizedDate.includes('T')) {
+          // If no timezone info, assume UTC and add Z
+          normalizedDate = normalizedDate.replace(' ', 'T') + 'Z'
+        }
+        
+        // Trim microseconds to 3 digits (milliseconds) if they exist
+        normalizedDate = normalizedDate.replace(/(\.\d{3})\d{3}/, '$1')
+        
+        console.log('Normalized date:', normalizedDate)
+        parsedDate = new Date(normalizedDate)
+      } else {
+        // Try direct parsing for non-string inputs
+        parsedDate = new Date(dateString)
+      }
+      
+      if (isNaN(parsedDate.getTime())) {
+        console.warn('Failed to parse date:', dateString, 'Using current date as fallback')
+        return new Date().toISOString()
+      }
+      
+      const result = parsedDate.toISOString()
+      console.log('Successfully parsed date. Final result:', result)
+      return result
+    } catch (error) {
+      console.error('Error parsing date:', dateString, 'Error:', error)
+      return new Date().toISOString()
+    }
+  }
+
+  // Helper functions
+  const selectPrompt = (prompt: ExtendedPromptData | null) => {
+    setSelectedPrompt(prompt)
+  }
+
+  const isOwner = (prompt: PromptData) => {
+    return prompt.user_id === user.id
+  }
+
+  const updatePrompt = async (id: string, updates: Partial<PromptData>) => {
+    try {
+      // Update the prompt via API
+      const response = await fetch(`/api/prompts`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, updates })
+      })
+
+      if (response.ok) {
+        const updated = await response.json()
+        if (selectedPrompt) {
+          setSelectedPrompt({ ...selectedPrompt, ...updated })
+        }
+        // Refresh prompts list
+        loadPrompts()
+      }
+    } catch (error) {
+      console.error('Error updating prompt:', error)
+    }
+  }
+
+  // Wrapper functions for navbar functions to match expected signatures
+  const handleToggleFavorite = (id: string) => {
+    toggleFavorite(id)
+    loadPrompts() // Refresh to get updated data
+  }
+
+  const handleCopyToClipboard = (content: string, title: string) => {
+    copyToClipboard(content, title)
+  }
+
+  const handleSavePrompt = (id: string) => {
+    savePrompt(id)
+    loadPrompts() // Refresh to get updated data
+  }
+
+  const handleDeletePrompt = (id: string) => {
+    deletePrompt(id)
+    loadPrompts() // Refresh to get updated data
+  }
+
+  const handleRestorePrompt = (id: string) => {
+    restorePrompt(id)
+    loadPrompts() // Refresh to get updated data
+  }
+
+  const loadPrompts = async () => {
+    setLoading(true)
+    try {
+      const userPrompts = await refreshPrompts()
+      // Transform prompts to ExtendedPromptData format
+      const transformedPrompts = userPrompts.map((prompt: any) => ({
+        ...prompt,
+        created_at: safeParseDate(prompt.created_at),
+        updated_at: safeParseDate(prompt.updated_at),
+        isOwner: prompt.user_id === user.id,
+        isFavorite: prompt.is_favorite || false,
+        isSaved: prompt.is_saved || false,
+        isDeleted: prompt.deleted || false
+      }))
+      setPrompts(transformedPrompts)
+    } catch (error) {
+      console.error('Error loading prompts:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    // Load prompts first
+    loadPrompts()
+  }, [user.id]) // Add user.id as dependency
 
   useEffect(() => {
     // If we have server-side data, use it immediately
     if (promptData) {
-      const transformedPrompt = {
+      console.log('Processing promptData:', promptData)
+      
+      const transformedPrompt: ExtendedPromptData = {
         id: promptData.id,
-        slug: promptData.slug,
         title: promptData.title,
-        description: promptData.description,
-        tags: promptData.tags,
-        isFavorite: promptData.is_favorite,
-        isDeleted: promptData.is_deleted,
-        isSaved: promptData.is_saved,
-        isOwner: promptData.is_owner,
-        isPublic: promptData.is_public,
-        createdAt: new Date(promptData.created_at).toISOString().split('T')[0],
-        lastUsed: new Date(promptData.last_used_at).toISOString().split('T')[0],
+        description: promptData.description || null,
         content: promptData.content,
+        tags: promptData.tags || [],
+        created_at: safeParseDate(promptData.created_at),
+        updated_at: safeParseDate(promptData.updated_at),
         user_id: promptData.user_id,
-        profile: promptData.profile
+        images: promptData.images || null,
+        collaborators: promptData.collaborators || null,
+        visibility: promptData.visibility || 'private',
+        deleted: promptData.deleted || false,
+        collections: promptData.collections || null,
+        isOwner: promptData.user_id === user.id,
+        isFavorite: promptData.is_favorite || false,
+        isSaved: promptData.is_saved || false,
+        isDeleted: promptData.deleted || false
       }
       
+      console.log('Transformed prompt:', transformedPrompt)
       selectPrompt(transformedPrompt)
       setPromptFound(true)
       setIsLoading(false)
@@ -62,12 +222,11 @@ export default function PromptSlugPage({ slug, promptData }: PromptSlugPageProps
 
     // Fallback to client-side lookup if no server data
     if (slug && prompts.length > 0 && !loading) {
-      const prompt = prompts.find(p => p.slug === slug)
+      const prompt = prompts.find(p => p.id === slug) // Using id instead of slug
       if (prompt) {
         selectPrompt(prompt)
         
         // Only set filter if we're currently on 'all' (direct URL access)
-        // This preserves the user's current filter when navigating from a filtered list
         if (activeFilter === 'all') {
           // Determine appropriate filter based on prompt characteristics
           if (prompt.isDeleted) {
@@ -93,7 +252,7 @@ export default function PromptSlugPage({ slug, promptData }: PromptSlugPageProps
       setPromptFound(false)
       setIsLoading(false)
     }
-  }, [slug, prompts, selectPrompt, activeFilter, setActiveFilter, isOwner, loading, promptData])
+  }, [slug, prompts, activeFilter, loading, promptData, user.id])
 
   // Loading skeleton
   if (isLoading) {
@@ -163,11 +322,11 @@ export default function PromptSlugPage({ slug, promptData }: PromptSlugPageProps
   return (
     <PromptEdit
       selectedPrompt={selectedPrompt}
-      onToggleFavorite={toggleFavorite}
-      onCopy={copyToClipboard}
-      onSave={savePrompt}
-      onDelete={deletePrompt}
-      onRestore={restorePrompt}
+      onToggleFavorite={handleToggleFavorite}
+      onCopy={handleCopyToClipboard}
+      onSave={handleSavePrompt}
+      onDelete={handleDeletePrompt}
+      onRestore={handleRestorePrompt}
       onUpdatePrompt={updatePrompt}
       isOwner={isOwner}
       currentFilter={activeFilter}

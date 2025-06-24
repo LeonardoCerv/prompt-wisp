@@ -3,49 +3,51 @@ import { createClient } from "@/lib/utils/supabase/server";
 // Core Prompt interface matching Supabase schema
 export interface PromptData {
     id: string;
-    slug: string;
     title: string;
-    description: string | null;
     content: string;
+    description: string | null;
     tags: string[];
-    is_public: boolean;
-    is_deleted: boolean;
-    user_id: string;
     created_at: string;
     updated_at: string;
-    last_used_at: string;
+    user_id: string;
+    images: string[] | null;
+    collaborators: string[] | null; // list of user IDs
+    visibility: 'public' | 'private' | 'unlisted';
+    deleted: boolean;
+    collections: string[] | null; // list of collection IDs
 }
 
 // Interface for creating new prompts
 export interface PromptInsert {
     id?: string;
-    slug: string;
     title: string;
-    description?: string | null;
     content: string;
+    description?: string | null;
     tags?: string[];
-    is_public?: boolean;
-    is_deleted?: boolean;
     user_id: string;
+    images?: string[] | null;
+    collaborators?: string[] | null;
+    visibility?: 'public' | 'private' | 'unlisted';
+    deleted?: boolean;
+    collections?: string[] | null;
     created_at?: string;
     updated_at?: string;
-    last_used_at?: string;
 }
 
 // Interface for updating existing prompts
 export interface PromptUpdate {
     id?: string;
-    slug?: string;
     title?: string;
-    description?: string | null;
     content?: string;
+    description?: string | null;
     tags?: string[];
-    is_public?: boolean;
-    is_deleted?: boolean;
     user_id?: string;
-    created_at?: string;
+    images?: string[] | null;
+    collaborators?: string[] | null;
+    visibility?: 'public' | 'private' | 'unlisted';
+    deleted?: boolean;
+    collections?: string[] | null;
     updated_at?: string;
-    last_used_at?: string;
 }
 
 // Extended interface with user profile information
@@ -62,23 +64,6 @@ class Prompt {
     static async create(promptData: PromptInsert): Promise<PromptData> {
         try {
             const supabase = await createClient();
-
-            // Check if slug already exists
-            if (promptData.slug) {
-                const { data: existsResult, error: existsError } = await supabase
-                    .from('prompts')
-                    .select('slug')
-                    .eq('slug', promptData.slug)
-                    .single();
-
-                if (existsError && existsError.code !== 'PGRST116') { // PGRST116 = no rows returned
-                    throw new Error(`Error checking slug: ${existsError.message}`);
-                }
-
-                if (existsResult) {
-                    throw new Error(`A prompt with slug "${promptData.slug}" already exists`);
-                }
-            }
 
             const { data, error } = await supabase
                 .from('prompts')
@@ -107,7 +92,7 @@ class Prompt {
                 .order('created_at', { ascending: false });
 
             if (!includeDeleted) {
-                query = query.eq('is_deleted', false);
+                query = query.eq('deleted', false);
             }
 
             const { data, error } = await query;
@@ -131,7 +116,7 @@ class Prompt {
                 .from('prompts')
                 .select('*')
                 .eq('id', id)
-                .eq('is_deleted', false)
+                .eq('deleted', false)
                 .single();
 
             if (error) {
@@ -148,31 +133,6 @@ class Prompt {
         }
     }
 
-    // Get prompt by slug
-    static async findBySlug(slug: string): Promise<PromptData | null> {
-        try {
-            const supabase = await createClient();
-            const { data, error } = await supabase
-                .from('prompts')
-                .select('*')
-                .eq('slug', slug)
-                .eq('is_deleted', false)
-                .single();
-
-            if (error) {
-                if (error.code === 'PGRST116') { // No rows returned
-                    return null;
-                }
-                throw new Error(`Error getting prompt: ${error.message}`);
-            }
-
-            return data as PromptData;
-        } catch (error) {
-            console.error("Error getting prompt by slug:", error);
-            throw error;
-        }
-    }
-
     // Get all public prompts
     static async findPublic(): Promise<PromptData[]> {
         try {
@@ -180,8 +140,8 @@ class Prompt {
             const { data, error } = await supabase
                 .from('prompts')
                 .select('*')
-                .eq('is_public', true)
-                .eq('is_deleted', false)
+                .eq('visibility', 'public')
+                .eq('deleted', false)
                 .order('created_at', { ascending: false });
 
             if (error) {
@@ -209,8 +169,8 @@ class Prompt {
                         avatar_url
                     )
                 `)
-                .eq('is_public', true)
-                .eq('is_deleted', false)
+                .eq('visibility', 'public')
+                .eq('deleted', false)
                 .order('created_at', { ascending: false });
 
             if (error) {
@@ -225,18 +185,21 @@ class Prompt {
     }
 
     // Get prompts by user ID
-    static async findByUserId(userId: string, includePrivate: boolean = false): Promise<PromptData[]> {
+    static async findByUserId(userId: string, includePrivate: boolean = false, includeDeleted: boolean = false): Promise<PromptData[]> {
         try {
             const supabase = await createClient();
             let query = supabase
                 .from('prompts')
                 .select('*')
                 .eq('user_id', userId)
-                .eq('is_deleted', false)
                 .order('created_at', { ascending: false });
 
+            if (!includeDeleted) {
+                query = query.eq('deleted', false);
+            }
+
             if (!includePrivate) {
-                query = query.eq('is_public', true);
+                query = query.eq('visibility', 'public');
             }
 
             const { data, error } = await query;
@@ -269,7 +232,7 @@ class Prompt {
                 .order('created_at', { ascending: false });
 
             if (!includeDeleted) {
-                query = query.eq('is_deleted', false);
+                query = query.eq('deleted', false);
             }
 
             const { data, error } = await query;
@@ -293,12 +256,12 @@ class Prompt {
                 .from('prompts')
                 .select('*')
                 .contains('tags', [tag])
-                .eq('is_public', true)
-                .eq('is_deleted', false)
+                .eq('visibility', 'public')
+                .eq('deleted', false)
                 .order('created_at', { ascending: false });
 
             if (error) {
-                throw new Error(`Error getting prompts by tag: ${error.message}`);
+                throw new Error(`Error getting prompts by tag: \${error.message}`);
             }
 
             return data as PromptData[];
@@ -316,17 +279,61 @@ class Prompt {
                 .from('prompts')
                 .select('*')
                 .containedBy('tags', tags)
-                .eq('is_public', true)
-                .eq('is_deleted', false)
+                .eq('visibility', 'public')
+                .eq('deleted', false)
                 .order('created_at', { ascending: false });
 
             if (error) {
-                throw new Error(`Error getting prompts by tags: ${error.message}`);
+                throw new Error(`Error getting prompts by tags: \${error.message}`);
             }
 
             return data as PromptData[];
         } catch (error) {
             console.error("Error getting prompts by tags:", error);
+            throw error;
+        }
+    }
+
+    // Get prompts by collection ID
+    static async findByCollection(collectionId: string): Promise<PromptData[]> {
+        try {
+            const supabase = await createClient();
+            const { data, error } = await supabase
+                .from('prompts')
+                .select('*')
+                .contains('collections', [collectionId])
+                .eq('deleted', false)
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                throw new Error(`Error getting prompts by collection: \${error.message}`);
+            }
+
+            return data as PromptData[];
+        } catch (error) {
+            console.error("Error getting prompts by collection:", error);
+            throw error;
+        }
+    }
+
+    // Get prompts by collaborator
+    static async findByCollaborator(userId: string): Promise<PromptData[]> {
+        try {
+            const supabase = await createClient();
+            const { data, error } = await supabase
+                .from('prompts')
+                .select('*')
+                .contains('collaborators', [userId])
+                .eq('deleted', false)
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                throw new Error(`Error getting prompts by collaborator: \${error.message}`);
+            }
+
+            return data as PromptData[];
+        } catch (error) {
+            console.error("Error getting prompts by collaborator:", error);
             throw error;
         }
     }
@@ -338,13 +345,13 @@ class Prompt {
             const { data, error } = await supabase
                 .from('prompts')
                 .select('*')
-                .or(`title.ilike.%${query}%,description.ilike.%${query}%,content.ilike.%${query}%`)
-                .eq('is_public', true)
-                .eq('is_deleted', false)
+                .or(`title.ilike.%\${query}%,description.ilike.%\${query}%,content.ilike.%\${query}%`)
+                .eq('visibility', 'public')
+                .eq('deleted', false)
                 .order('created_at', { ascending: false });
 
             if (error) {
-                throw new Error(`Error searching prompts: ${error.message}`);
+                throw new Error(`Error searching prompts: \${error.message}`);
             }
 
             return data as PromptData[];
@@ -369,12 +376,12 @@ class Prompt {
                 .from('prompts')
                 .update(updateData)
                 .eq('id', id)
-                .eq('is_deleted', false)
+                .eq('deleted', false)
                 .select()
                 .single();
 
             if (error) {
-                throw new Error(`Error updating prompt: ${error.message}`);
+                throw new Error(`Error updating prompt: \${error.message}`);
             }
 
             return data as PromptData;
@@ -384,28 +391,77 @@ class Prompt {
         }
     }
 
-    // Update last used timestamp
-    static async updateLastUsed(id: string): Promise<PromptData> {
+    // Add collaborator to prompt
+    static async addCollaborator(id: string, userId: string): Promise<PromptData> {
         try {
             const supabase = await createClient();
+            
+            // First get the current prompt to update collaborators array
+            const prompt = await this.findById(id);
+            if (!prompt) {
+                throw new Error('Prompt not found');
+            }
+
+            const currentCollaborators = prompt.collaborators || [];
+            if (!currentCollaborators.includes(userId)) {
+                currentCollaborators.push(userId);
+            }
+
             const { data, error } = await supabase
                 .from('prompts')
                 .update({ 
-                    last_used_at: new Date().toISOString(),
+                    collaborators: currentCollaborators,
                     updated_at: new Date().toISOString()
                 })
                 .eq('id', id)
-                .eq('is_deleted', false)
+                .eq('deleted', false)
                 .select()
                 .single();
 
             if (error) {
-                throw new Error(`Error updating last used: ${error.message}`);
+                throw new Error(`Error adding collaborator: \${error.message}`);
             }
 
             return data as PromptData;
         } catch (error) {
-            console.error("Error updating last used:", error);
+            console.error("Error adding collaborator:", error);
+            throw error;
+        }
+    }
+
+    // Remove collaborator from prompt
+    static async removeCollaborator(id: string, userId: string): Promise<PromptData> {
+        try {
+            const supabase = await createClient();
+            
+            // First get the current prompt to update collaborators array
+            const prompt = await this.findById(id);
+            if (!prompt) {
+                throw new Error('Prompt not found');
+            }
+
+            const currentCollaborators = (prompt.collaborators || []).filter(
+                collaboratorId => collaboratorId !== userId
+            );
+
+            const { data, error } = await supabase
+                .from('prompts')
+                .update({ 
+                    collaborators: currentCollaborators,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('id', id)
+                .eq('deleted', false)
+                .select()
+                .single();
+
+            if (error) {
+                throw new Error(`Error removing collaborator: \${error.message}`);
+            }
+
+            return data as PromptData;
+        } catch (error) {
+            console.error("Error removing collaborator:", error);
             throw error;
         }
     }
@@ -417,7 +473,7 @@ class Prompt {
             const { data, error } = await supabase
                 .from('prompts')
                 .update({ 
-                    is_deleted: true,
+                    deleted: true,
                     updated_at: new Date().toISOString()
                 })
                 .eq('id', id)
@@ -425,7 +481,7 @@ class Prompt {
                 .single();
 
             if (error) {
-                throw new Error(`Error soft deleting prompt: ${error.message}`);
+                throw new Error(`Error soft deleting prompt: \${error.message}`);
             }
 
             return data as PromptData;
@@ -442,7 +498,7 @@ class Prompt {
             const { data, error } = await supabase
                 .from('prompts')
                 .update({ 
-                    is_deleted: false,
+                    deleted: false,
                     updated_at: new Date().toISOString()
                 })
                 .eq('id', id)
@@ -450,7 +506,7 @@ class Prompt {
                 .single();
 
             if (error) {
-                throw new Error(`Error restoring prompt: ${error.message}`);
+                throw new Error(`Error restoring prompt: \${error.message}`);
             }
 
             return data as PromptData;
@@ -470,7 +526,7 @@ class Prompt {
                 .eq('id', id);
 
             if (error) {
-                throw new Error(`Error hard deleting prompt: ${error.message}`);
+                throw new Error(`Error hard deleting prompt: \${error.message}`);
             }
         } catch (error) {
             console.error("Error hard deleting prompt:", error);
@@ -478,32 +534,45 @@ class Prompt {
         }
     }
 
-    // Get recently used prompts
-    static async findRecentlyUsed(userId?: string, limit: number = 10): Promise<PromptData[]> {
+    // Clean up prompts that have been soft deleted for more than 30 days
+    static async cleanupOldDeletedPrompts(): Promise<number> {
         try {
             const supabase = await createClient();
-            let query = supabase
+            
+            // Calculate date 30 days ago
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            
+            // Find prompts that are deleted and older than 30 days
+            const { data: promptsToDelete, error: selectError } = await supabase
                 .from('prompts')
-                .select('*')
-                .eq('is_deleted', false)
-                .order('last_used_at', { ascending: false })
-                .limit(limit);
+                .select('id')
+                .eq('deleted', true)
+                .lt('updated_at', thirtyDaysAgo.toISOString());
 
-            if (userId) {
-                query = query.eq('user_id', userId);
-            } else {
-                query = query.eq('is_public', true);
+            if (selectError) {
+                throw new Error(`Error finding old deleted prompts: ${selectError.message}`);
             }
 
-            const { data, error } = await query;
-
-            if (error) {
-                throw new Error(`Error getting recently used prompts: ${error.message}`);
+            if (!promptsToDelete || promptsToDelete.length === 0) {
+                return 0; // No prompts to delete
             }
 
-            return data as PromptData[];
+            // Hard delete the prompts
+            const { error: deleteError } = await supabase
+                .from('prompts')
+                .delete()
+                .eq('deleted', true)
+                .lt('updated_at', thirtyDaysAgo.toISOString());
+
+            if (deleteError) {
+                throw new Error(`Error permanently deleting old prompts: ${deleteError.message}`);
+            }
+
+            console.log(`Permanently deleted ${promptsToDelete.length} old prompts`);
+            return promptsToDelete.length;
         } catch (error) {
-            console.error("Error getting recently used prompts:", error);
+            console.error("Error cleaning up old deleted prompts:", error);
             throw error;
         }
     }
@@ -515,11 +584,11 @@ class Prompt {
             const { data, error } = await supabase
                 .from('prompts')
                 .select('tags')
-                .eq('is_public', true)
-                .eq('is_deleted', false);
+                .eq('visibility', 'public')
+                .eq('deleted', false);
 
             if (error) {
-                throw new Error(`Error getting tags: ${error.message}`);
+                throw new Error(`Error getting tags: \${error.message}`);
             }
 
             // Flatten and deduplicate tags
@@ -542,10 +611,10 @@ class Prompt {
                 .from('prompts')
                 .select('*', { count: 'exact', head: true })
                 .eq('user_id', userId)
-                .eq('is_deleted', false);
+                .eq('deleted', false);
 
             if (error) {
-                throw new Error(`Error getting prompts count: ${error.message}`);
+                throw new Error(`Error getting prompts count: \${error.message}`);
             }
 
             return count || 0;
@@ -562,11 +631,11 @@ class Prompt {
             const { count, error } = await supabase
                 .from('prompts')
                 .select('*', { count: 'exact', head: true })
-                .eq('is_public', true)
-                .eq('is_deleted', false);
+                .eq('visibility', 'public')
+                .eq('deleted', false);
 
             if (error) {
-                throw new Error(`Error getting public prompts count: ${error.message}`);
+                throw new Error(`Error getting public prompts count: \${error.message}`);
             }
 
             return count || 0;
@@ -574,15 +643,6 @@ class Prompt {
             console.error("Error getting public prompts count:", error);
             throw error;
         }
-    }
-
-    // Utility method to generate unique slug
-    static generateSlug(title: string): string {
-        return title
-            .toLowerCase()
-            .replace(/[^a-z0-9\s]/g, '')
-            .replace(/\s+/g, '-')
-            .substring(0, 50) + '-' + Date.now();
     }
 }
 

@@ -19,40 +19,79 @@ export async function GET() {
 // Create a new prompt
 export async function POST(req: NextRequest) {
   try {
+    console.log('POST /api/prompts called');
     const supabase = await createClient();
     
     // Get authenticated user
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     
     if (authError || !user) {
+      console.log('Auth error:', authError);
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    console.log('Authenticated user:', { id: user.id, email: user.email });
+
+    // Check if user has a profile
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('id', user.id)
+      .single();
+
+    console.log('Profile check:', { profile, profileError });
+
+    if (profileError && profileError.code === 'PGRST116') {
+      // Profile doesn't exist, create one
+      console.log('Creating profile for user:', user.id);
+      const { error: createProfileError } = await supabase
+        .from('profiles')
+        .insert({
+          id: user.id,
+          username: user.email?.split('@')[0] || 'user',
+          full_name: user.user_metadata?.full_name || null,
+          avatar_url: user.user_metadata?.avatar_url || null
+        });
+
+      if (createProfileError) {
+        console.error('Error creating profile:', createProfileError);
+        return NextResponse.json({ 
+          error: 'Failed to create user profile' 
+        }, { status: 500 });
+      }
+    }
+
     const data = await req.json();
-    const { title, description, content, tags, is_public } = data;
+    console.log('Request data:', data);
+    const { title, description, content, tags, visibility, images, collaborators, collections } = data;
 
     // Basic validation
-    if (!title || !content) {
+    if (!title?.trim() || !content?.trim()) {
+      console.log('Validation failed:', { title: title?.trim(), content: content?.trim() });
       return NextResponse.json(
         { error: "Title and content are required" },
         { status: 400 }
       );
     }
 
-    // Generate unique slug
-    const generatedSlug = Prompt.generateSlug(title);
-
     const promptData: PromptInsert = {
       title,
-      slug: generatedSlug,
       description: description || null,
       content,
       tags: tags || [],
-      is_public: is_public || false,
-      user_id: user.id
+      visibility: visibility || 'private',
+      user_id: user.id,
+      images: images || null,
+      collaborators: collaborators || null,
+      collections: collections || null
     };
 
+    console.log('Creating prompt with data:', promptData);
+
+    console.log('Creating prompt with data:', promptData);
+
     const newPrompt = await Prompt.create(promptData);
+    console.log('Prompt created successfully:', newPrompt);
 
     return NextResponse.json(newPrompt, { status: 201 });
   } catch (error) {
@@ -101,7 +140,7 @@ export async function PUT(req: NextRequest) {
     if (updates.description !== undefined) updateData.description = updates.description;
     if (updates.content) updateData.content = updates.content;
     if (updates.tags) updateData.tags = updates.tags;
-    if (updates.is_public !== undefined) updateData.is_public = updates.is_public;
+    if (updates.visibility !== undefined) updateData.visibility = updates.visibility;
 
     const updatedPrompt = await Prompt.update(id, updateData);
 

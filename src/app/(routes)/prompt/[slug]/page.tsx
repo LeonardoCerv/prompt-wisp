@@ -10,54 +10,47 @@ interface PromptSlugProps {
   }>
 }
 
-// Helper function to get prompt by slug
-async function getPromptBySlug(slug: string, userId?: string) {
+// Helper function to get prompt by ID (treating slug as ID since we removed slug)
+async function getPromptById(id: string, userId?: string) {
   try {
-    const prompt = await Prompt.findBySlug(slug)
+    const prompt = await Prompt.findById(id)
     
     if (!prompt) {
       return null
     }
     
     // Check if user has access to this prompt
-    if (!prompt.is_public && prompt.user_id !== userId) {
+    if (prompt.visibility !== 'public' && prompt.user_id !== userId) {
       return null
     }
     
     // Add additional metadata for the component
     const supabase = await createClient()
     
-    // Check if user has favorited this prompt
+    // Check if user has favorited this prompt (stored in user favorites array)
     let isFavorite = false
     let isSaved = false
     
     if (userId) {
-      const { data: favorite } = await supabase
-        .from('user_favorite_prompts')
-        .select('id')
-        .eq('user_id', userId)
-        .eq('prompt_id', prompt.id)
+      // Get user data to check favorites and bought items
+      const { data: userData } = await supabase
+        .from('users')
+        .select('favorites, bought')
+        .eq('id', userId)
         .single()
       
-      isFavorite = !!favorite
+      isFavorite = userData?.favorites?.includes(prompt.id) || false
       
-      // Check if saved (only for prompts not owned by user)
+      // For non-owned prompts, check if it's in user's saved/bought prompts
       if (prompt.user_id !== userId) {
-        const { data: saved } = await supabase
-          .from('user_saved_prompts')
-          .select('id')
-          .eq('user_id', userId)
-          .eq('prompt_id', prompt.id)
-          .single()
-        
-        isSaved = !!saved
+        isSaved = userData?.bought?.includes(prompt.id) || false
       }
     }
     
-    // Get profile information
+    // Get profile information from users table
     const { data: profile } = await supabase
-      .from('profiles')
-      .select('username, full_name, avatar_url')
+      .from('users')
+      .select('username, name, profile_picture')
       .eq('id', prompt.user_id)
       .single()
     
@@ -66,7 +59,11 @@ async function getPromptBySlug(slug: string, userId?: string) {
       is_favorite: isFavorite,
       is_saved: isSaved,
       is_owner: prompt.user_id === userId,
-      profile
+      profile: profile ? {
+        username: profile.username,
+        full_name: profile.name,
+        avatar_url: profile.profile_picture
+      } : null
     }
   } catch (error) {
     console.error('Error fetching prompt:', error)
@@ -79,9 +76,9 @@ export async function generateMetadata({ params }: PromptSlugProps): Promise<Met
   const { slug } = await params
   
   try {
-    const prompt = await getPromptBySlug(slug)
+    const prompt = await getPromptById(slug)
     
-    if (!prompt || prompt.is_deleted) {
+    if (!prompt || prompt.deleted) {
       return {
         title: 'Prompt Not Found | Prompt Wisp',
         description: 'The requested prompt could not be found',
@@ -103,7 +100,7 @@ export async function generateMetadata({ params }: PromptSlugProps): Promise<Met
 export default async function PromptSlug({ params }: PromptSlugProps) {
   const { slug } = await params
   
-  // Validate slug format if needed
+  // Validate slug format - treating it as prompt ID
   if (!slug || typeof slug !== 'string') {
     notFound()
   }
@@ -112,11 +109,11 @@ export default async function PromptSlug({ params }: PromptSlugProps) {
   const { data: { user } } = await supabase.auth.getUser()
 
   // Get prompt data from database
-  const promptData = await getPromptBySlug(slug, user?.id)
+  const promptData = await getPromptById(slug, user?.id)
 
   if (!promptData) {
     notFound()
   }
 
-  return <PromptSlugPage slug={slug} promptData={promptData} />
+  return <PromptSlugPage slug={slug} promptData={promptData} user={{ id: user?.id || '', email: user?.email }} />
 }

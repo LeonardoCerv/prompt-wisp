@@ -13,85 +13,67 @@ export async function GET() {
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    // Get user's prompts (including private ones)
-    const userPrompts = await Prompt.findByUserId(user.id, true);
-    
-    // Get user's saved prompts (public prompts they've saved)
-    const { data: savedPrompts, error: savedError } = await supabase
-      .from('user_saved_prompts')
-      .select(`
-        prompt_id,
-        prompts!inner (
-          *,
-          profiles:user_id (
-            username,
-            full_name,
-            avatar_url
-          )
-        )
-      `)
-      .eq('user_id', user.id);
 
-    if (savedError) {
-      console.error("Error getting saved prompts:", savedError);
+    // Get user's own prompts (including private and deleted ones)
+    const userPrompts = await Prompt.findByUserId(user.id, true, true);
+    
+    // Get user data to check favorites and bought items
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('favorites, bought')
+      .eq('id', user.id)
+      .single();
+
+    if (userError) {
+      console.error("Error getting user data:", userError);
     }
 
-    // Get user's favorite prompts
-    const { data: favoritePrompts, error: favError } = await supabase
-      .from('user_favorite_prompts')
-      .select(`
-        prompt_id,
-        prompts!inner (
-          *,
-          profiles:user_id (
-            username,
-            full_name,
-            avatar_url
-          )
-        )
-      `)
-      .eq('user_id', user.id);
+    const favoriteIds = userData?.favorites || [];
+    const boughtIds = userData?.bought || [];
 
-    if (favError) {
-      console.error("Error getting favorite prompts:", favError);
+    // Get saved/bought prompts (public prompts they've purchased)
+    let savedPrompts: any[] = [];
+    if (boughtIds.length > 0) {
+      savedPrompts = await Prompt.findPublicWithProfiles();
+      savedPrompts = savedPrompts.filter(prompt => 
+        boughtIds.includes(prompt.id) && prompt.user_id !== user.id
+      );
     }
 
-    // Combine and transform data
-    const savedPromptIds = new Set(savedPrompts?.map(sp => sp.prompt_id) || []);
-    const favoritePromptIds = new Set(favoritePrompts?.map(fp => fp.prompt_id) || []);
-    
+    // Get favorite prompts (that aren't owned by user)
+    let favoritePrompts: any[] = [];
+    if (favoriteIds.length > 0) {
+      favoritePrompts = await Prompt.findPublicWithProfiles();
+      favoritePrompts = favoritePrompts.filter(prompt => 
+        favoriteIds.includes(prompt.id) && 
+        prompt.user_id !== user.id &&
+        !boughtIds.includes(prompt.id) // Don't duplicate with saved prompts
+      );
+    }
+
     // Transform user's own prompts
     const transformedUserPrompts = userPrompts.map(prompt => ({
       ...prompt,
-      isFavorite: favoritePromptIds.has(prompt.id),
+      isFavorite: favoriteIds.includes(prompt.id),
       isSaved: false, // User can't save their own prompts
       isOwner: true,
     }));
 
     // Transform saved prompts
-    const transformedSavedPrompts = (savedPrompts?.map(sp => {
-      const prompt = Array.isArray(sp.prompts) ? sp.prompts[0] : sp.prompts;
-      return {
-        ...prompt,
-        isFavorite: favoritePromptIds.has(prompt.id),
-        isSaved: true,
-        isOwner: false,
-      };
-    }) || []);
+    const transformedSavedPrompts = savedPrompts.map(prompt => ({
+      ...prompt,
+      isFavorite: favoriteIds.includes(prompt.id),
+      isSaved: true,
+      isOwner: false,
+    }));
 
-    // Transform favorite prompts (that aren't already included)
-    const transformedFavoritePrompts = (favoritePrompts?.map(fp => {
-      const prompt = Array.isArray(fp.prompts) ? fp.prompts[0] : fp.prompts;
-      return {
-        ...prompt,
-        isFavorite: true,
-        isSaved: savedPromptIds.has(prompt.id),
-        isOwner: prompt.user_id === user.id,
-      };
-    }).filter(prompt => 
-      !transformedUserPrompts.some(up => up.id === prompt.id) &&
-      !transformedSavedPrompts.some(sp => sp.id === prompt.id)
-    ) || []);
+    // Transform favorite prompts
+    const transformedFavoritePrompts = favoritePrompts.map(prompt => ({
+      ...prompt,
+      isFavorite: true,
+      isSaved: false,
+      isOwner: false,
+    }));
 
     // Combine all prompts
     const allUserPrompts = [

@@ -42,7 +42,7 @@ export default function PromptCard({
   }
 
   const getStatusIcon = () => {
-    if (prompt.is_deleted) {
+    if (prompt.deleted) {
       return <Trash2 size={14} className="text-[var(--ash-grey)]" />
     }
     
@@ -50,7 +50,7 @@ export default function PromptCard({
       return <Bookmark size={14} className="text-[var(--ash-grey)]" />
     }
     
-    if (isOwner && prompt.is_public) {
+    if (isOwner && prompt.visibility === 'public') {
       return <Globe size={14} className="text-[var(--ash-grey)]" />
     }
     

@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
     // Verify user owns the prompt and it's deleted
     const { data: existingPrompt, error: findError } = await supabase
       .from('prompts')
-      .select('id, user_id, is_deleted')
+      .select('id, user_id, deleted')
       .eq('id', promptId)
       .single();
 
@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
-    if (!existingPrompt.is_deleted) {
+    if (!existingPrompt.deleted) {
       return NextResponse.json({ error: "Prompt is not deleted" }, { status: 400 });
     }
 

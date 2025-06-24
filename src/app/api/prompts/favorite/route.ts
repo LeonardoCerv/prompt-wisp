@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/utils/supabase/server";
+import Prompt from "@/lib/models/prompt";
 
 // Toggle favorite status for a prompt
 export async function POST(req: NextRequest) {
@@ -20,61 +21,52 @@ export async function POST(req: NextRequest) {
     }
 
     // Check if prompt exists and is accessible
-    const { data: prompt, error: promptError } = await supabase
-      .from('prompts')
-      .select('id, user_id, is_public, is_deleted')
-      .eq('id', promptId)
-      .eq('is_deleted', false)
-      .single();
+    const prompt = await Prompt.findById(promptId);
 
-    if (promptError || !prompt) {
+    if (!prompt) {
       return NextResponse.json({ error: "Prompt not found" }, { status: 404 });
     }
 
     // Check if user has access to this prompt
-    if (!prompt.is_public && prompt.user_id !== user.id) {
+    if (prompt.visibility !== 'public' && prompt.user_id !== user.id) {
       return NextResponse.json({ error: "Access denied" }, { status: 403 });
     }
 
-    // Check if already favorited
-    const { data: existingFavorite, error: checkError } = await supabase
-      .from('user_favorite_prompts')
-      .select('id')
-      .eq('user_id', user.id)
-      .eq('prompt_id', promptId)
+    // Get current user favorites
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('favorites')
+      .eq('id', user.id)
       .single();
 
-    if (checkError && checkError.code !== 'PGRST116') {
-      throw checkError;
+    if (userError) {
+      throw userError;
     }
 
-    let isFavorite = false;
+    const currentFavorites = userData?.favorites || [];
+    const isCurrentlyFavorite = currentFavorites.includes(promptId);
+    
+    let newFavorites: string[];
+    let isFavorite: boolean;
 
-    if (existingFavorite) {
+    if (isCurrentlyFavorite) {
       // Remove from favorites
-      const { error: deleteError } = await supabase
-        .from('user_favorite_prompts')
-        .delete()
-        .eq('user_id', user.id)
-        .eq('prompt_id', promptId);
-
-      if (deleteError) {
-        throw deleteError;
-      }
+      newFavorites = currentFavorites.filter((id: string) => id !== promptId);
       isFavorite = false;
     } else {
       // Add to favorites
-      const { error: insertError } = await supabase
-        .from('user_favorite_prompts')
-        .insert({
-          user_id: user.id,
-          prompt_id: promptId
-        });
-
-      if (insertError) {
-        throw insertError;
-      }
+      newFavorites = [...currentFavorites, promptId];
       isFavorite = true;
+    }
+
+    // Update user favorites
+    const { error: updateError } = await supabase
+      .from('users')
+      .update({ favorites: newFavorites })
+      .eq('id', user.id);
+
+    if (updateError) {
+      throw updateError;
     }
 
     return NextResponse.json({ isFavorite });
