@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { type User } from '@supabase/supabase-js'
 import PromptSidebar from '@/components/promptSidebar'
 import PromptMidbar from '@/components/promptMidbar'
+import NewCollection from '@/components/newCollection'
 import { toast } from 'sonner';
 import { PromptData } from '@/lib/models/prompt'
 
@@ -320,6 +321,7 @@ export default function Navbar({ user, children, initialPrompts = [] }: NavbarPr
   const [tagsExpanded, setTagsExpanded] = useState(false)
   const [libraryExpanded, setLibraryExpanded] = useState(false)
   const [searchInputRef, setSearchInputRef] = useState<HTMLInputElement | null>(null)
+  const [isNewCollectionOpen, setIsNewCollectionOpen] = useState(false)
 
   // Add the missing state variables
   const [prompts, setPrompts] = useState<ExtendedPromptData[]>(initialPrompts)
@@ -330,6 +332,8 @@ export default function Navbar({ user, children, initialPrompts = [] }: NavbarPr
   const [selectedPrompt, setSelectedPrompt] = useState<ExtendedPromptData | null>(null)
   const [allTags, setAllTags] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
+  const [collections, setCollections] = useState<any[]>([])
+  const [selectedCollection, setSelectedCollection] = useState<string | undefined>(undefined)
 
   // Load prompts from API
   const refreshPromptsInternal = useCallback(async () => {
@@ -354,13 +358,27 @@ export default function Navbar({ user, children, initialPrompts = [] }: NavbarPr
     }
   }, [])
 
+  // Load collections from API
+  const loadCollections = useCallback(async () => {
+    try {
+      const response = await fetch('/api/collections')
+      if (response.ok) {
+        const data = await response.json()
+        setCollections(data.collections || [])
+      }
+    } catch (error) {
+      console.error('Error loading collections:', error)
+    }
+  }, [])
+
   // Initial load
   useEffect(() => {
     if (initialPrompts.length === 0) {
       refreshPromptsInternal()
     }
     loadTagsInternal()
-  }, [refreshPromptsInternal, loadTagsInternal, initialPrompts.length])
+    loadCollections()
+  }, [refreshPromptsInternal, loadTagsInternal, loadCollections, initialPrompts.length])
 
   // Filter prompts based on active filter, search term, and selected tags
   useEffect(() => {
@@ -388,6 +406,51 @@ export default function Navbar({ user, children, initialPrompts = [] }: NavbarPr
     return getPromptFilterCount(prompts, filter)
   }, [prompts])
 
+  const handleCreateCollection = useCallback(async (collectionData: {
+    title: string
+    description: string
+    tags: string
+    visibility: 'public' | 'private' | 'unlisted'
+    images: string[]
+    collaborators: { id: string; name: string; username: string; email: string; profile_picture?: string; display: string }[]
+    prompts: { id: string; title: string; description?: string; content: string; tags: string[] }[]
+  }) => {
+    try {
+      const requestBody = {
+        title: collectionData.title.trim(),
+        description: collectionData.description.trim() || null,
+        tags: collectionData.tags.split(',').map(tag => tag.trim()).filter(Boolean),
+        visibility: collectionData.visibility,
+        images: collectionData.images.length > 0 ? collectionData.images : null,
+        collaborators: collectionData.collaborators.length > 0 ? collectionData.collaborators.map(c => c.id) : null,
+        prompts: collectionData.prompts.length > 0 ? collectionData.prompts.map(p => p.id) : [],
+        user_id: user.id
+      }
+
+      const response = await fetch('/api/collections', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody)
+      })
+
+      if (response.ok) {
+        const createdCollection = await response.json()
+        toast.success('Collection created successfully')
+        // Refresh collections list
+        loadCollections()
+        return createdCollection
+      } else {
+        const errorData = await response.json()
+        toast.error(errorData.error || 'Failed to create collection')
+        throw new Error(errorData.error || 'Failed to create collection')
+      }
+    } catch (error) {
+      console.error('Error creating collection:', error)
+      toast.error('Failed to create collection')
+      throw error
+    }
+  }, [user.id])
+
   return (
     <div className="min-h-screen bg-[var(--black)] w-full">
       <div className="h-screen">
@@ -411,6 +474,10 @@ export default function Navbar({ user, children, initialPrompts = [] }: NavbarPr
               libraryExpanded={libraryExpanded}
               setLibraryExpanded={setLibraryExpanded}
               onHomeClick={() => setActiveFilter('all')}
+              onCreateCollection={() => setIsNewCollectionOpen(true)}
+              collections={collections}
+              selectedCollection={selectedCollection}
+              onCollectionSelect={setSelectedCollection}
             />
           </div>
 
@@ -427,6 +494,20 @@ export default function Navbar({ user, children, initialPrompts = [] }: NavbarPr
           </div>
         </div>
       </div>
+
+      {/* New Collection Dialog */}
+      <NewCollection
+        open={isNewCollectionOpen}
+        onOpenChange={setIsNewCollectionOpen}
+        onSubmit={handleCreateCollection}
+        availablePrompts={prompts.filter(p => !p.deleted).map(p => ({
+          id: p.id,
+          title: p.title,
+          description: p.description || undefined,
+          content: p.content,
+          tags: p.tags
+        }))}
+      />
     </div>
   )
 }

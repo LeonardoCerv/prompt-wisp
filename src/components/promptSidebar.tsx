@@ -9,11 +9,19 @@ import {
   Edit,
   Archive,
   Trash2,
-  BookOpen
+  BookOpen,
+  Plus
 } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { FilterType } from '../components/pages/prompt/navbar'
+
+interface Collection {
+  id: string
+  title: string
+  description?: string
+  visibility: 'public' | 'private' | 'unlisted'
+}
 
 interface PromptSidebarProps {
   activeFilter: FilterType
@@ -30,6 +38,10 @@ interface PromptSidebarProps {
   libraryExpanded: boolean
   setLibraryExpanded: (expanded: boolean) => void
   onHomeClick?: () => void
+  onCreateCollection?: () => void
+  collections?: Collection[]
+  selectedCollection?: string
+  onCollectionSelect?: (collectionId: string) => void
 }
 
 export default function PromptSidebar({
@@ -46,7 +58,11 @@ export default function PromptSidebar({
   setTagsExpanded,
   libraryExpanded,
   setLibraryExpanded,
-  onHomeClick
+  onHomeClick,
+  onCreateCollection,
+  collections = [],
+  selectedCollection,
+  onCollectionSelect
 }: PromptSidebarProps) {
   return (
     <div className="bg-[var(--black)] h-screen w-[240px] max-w-[240px] pl-6 pr-4 py-6 border-r border-[var(--moonlight-silver-dim)]/30 flex flex-col fixed top-0 left-0 z-50">
@@ -167,37 +183,51 @@ export default function PromptSidebar({
 
         {/* Collections Section */}
         <div className="space-y-2">
-          <h3 
-            className="text-[10px] font-medium text-[var(--wisp-blue)] uppercase tracking-wider mb-3 cursor-pointer transition-colors flex items-center justify-between"
-            onClick={() => setCollectionsExpanded(!collectionsExpanded)}
-          >
-            Collections
-            {collectionsExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-          </h3>
+          <div className="flex items-center justify-between">
+            <h3 
+              className="text-[10px] font-medium text-[var(--wisp-blue)] uppercase tracking-wider cursor-pointer transition-colors flex items-center gap-2"
+              onClick={() => setCollectionsExpanded(!collectionsExpanded)}
+            >
+              Collections
+              {collectionsExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+            </h3>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 w-6 p-0 text-[var(--wisp-blue)]/60 hover:text-[var(--wisp-blue)] hover:bg-[var(--wisp-blue)]/10 transition-all duration-200"
+              title="Create New Collection"
+              onClick={(e) => {
+                e.stopPropagation()
+                onCreateCollection?.()
+              }}
+            >
+              <Plus size={12} />
+            </Button>
+          </div>
           
           {collectionsExpanded && (
             <div className="space-y-1">
-              <Button
-                variant="ghost"
-                className="w-full justify-start text-sm text-[var(--moonlight-silver)] rounded-lg py-1.5 px-3"
-                title="My Collection 1"
-              >
-                <span className="truncate">My Collection 1</span>
-              </Button>
-              <Button
-                variant="ghost"
-                className="w-full justify-start text-sm text-[var(--moonlight-silver)] rounded-lg py-1.5 px-3"
-                title="Marketing Templates"
-              >
-                <span className="truncate">Marketing Templates</span>
-              </Button>
-              <Button
-                variant="ghost"
-                className="w-full justify-start text-sm text-[var(--moonlight-silver)] rounded-lg py-1.5 px-3"
-                title="Development Helpers"
-              >
-                <span className="truncate">Development Helpers</span>
-              </Button>
+              {collections.length > 0 ? (
+                collections.map((collection) => (
+                  <Button
+                    key={collection.id}
+                    variant="ghost"
+                    className={`w-full justify-start text-sm rounded-lg py-1.5 px-3 ${
+                      selectedCollection === collection.id
+                        ? 'bg-[var(--wisp-blue)]/20 text-[var(--wisp-blue)]'
+                        : 'text-[var(--moonlight-silver)] hover:text-white hover:bg-white/5'
+                    }`}
+                    onClick={() => onCollectionSelect?.(collection.id)}
+                    title={collection.title}
+                  >
+                    <span className="truncate">{collection.title}</span>
+                  </Button>
+                ))
+              ) : (
+                <div className="text-xs text-[var(--moonlight-silver)]/60 px-3 py-2">
+                  No collections yet. Click + to create one!
+                </div>
+              )}
             </div>
           )}
         </div>

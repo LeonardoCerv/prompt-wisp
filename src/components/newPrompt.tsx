@@ -20,13 +20,12 @@ import {
   Globe,
   Hash,
   Plus,
-  ArrowRight,
   ArrowLeft,
   Check,
-  ChevronRight,
   Save,
   Upload,
-  X
+  X,
+  BotMessageSquare
 } from 'lucide-react'
 
 interface User {
@@ -199,45 +198,36 @@ export default function NewPromptPage({ onSubmit, onCancel }: NewPromptPageProps
       {/* Header with progress steps */}
       <div className="flex-shrink-0 pb-6">
         <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <Sparkles className="w-5 h-5 text-[var(--flare-cyan)]" />
-            <h3 className="text-lg font-semibold text-white">
-              Create New Prompt
-            </h3>
+            <div className="flex items-center justify-center gap-4 mb-6">
+            <div className="w-12 h-12 bg-[var(--wisp-blue)]/20 rounded-full flex items-center justify-center">
+              <BotMessageSquare className="w-6 h-6 text-[var(--wisp-blue)]" />
+            </div>
+            <div>
+              <h3 className="text-xl font-semibold text-white">Create New Prompt</h3>
+              <p className="text-sm text-[var(--flare-cyan)]/80">
+                Step {currentStep} of {steps.length}
+              </p>
+            </div>
           </div>
           
           {/* Compact Progress Steps */}
           <div className="flex items-center gap-3">
             {steps.map((step, index) => (
               <div key={step.id} className="flex items-center">
-                <div className="flex items-center gap-2">
-                  <div className={`
-                    flex items-center justify-center w-7 h-7 rounded-full transition-all duration-300
-                    ${currentStep === step.id 
-                      ? 'shadow-[0_0_12px_rgba(14,165,233,0.8),0_0_24px_rgba(14,165,233,0.4)] text-[#0ea5e9] bg-[#0ea5e9]/10' 
-                      : currentStep > step.id
-                      ? 'text-white/90 shadow-[0_0_6px_rgba(255,255,255,0.3)] bg-white/5'
-                      : 'text-white/50'
-                    }
-                  `}>
-                    <step.icon className="w-3.5 h-3.5" />
+                  <div
+                    className={`relative flex items-center justify-center w-10 h-10 rounded-full border-2 transition-all duration-300 bg-none ${
+                      currentStep === step.id
+                        ? 'border-[var(--wisp-blue)] text-[var(--wisp-blue)]'
+                        : 'border-[var(--moonlight-silver)]/10 text-[var(--moonlight-silver)]/50'
+                    }`}
+                  >
+                    <step.icon size={18} />
                   </div>
-                  <span className={`text-xs font-medium transition-all duration-300 ${
-                    currentStep === step.id 
-                      ? 'text-[#0ea5e9] font-semibold drop-shadow-[0_0_4px_rgba(14,165,233,0.6)]' 
-                      : currentStep > step.id 
-                      ? 'text-white/90' 
-                      : 'text-white/60'
-                  }`}>
-                    {step.title}
-                  </span>
+                  {index < steps.length - 1 && (
+                    <div className={`w-8 h-0.5 mx-2 transition-colors duration-300 ${'bg-[var(--moonlight-silver)]/20'
+                    }`} />
+                  )}
                 </div>
-                {index < steps.length - 1 && (
-                  <ChevronRight className={`w-3 h-3 mx-2 transition-all duration-300 ${
-                    currentStep > index + 1 ? 'text-white/60' : 'text-white/30'
-                  }`} />
-                )}
-              </div>
             ))}
           </div>
         </div>
