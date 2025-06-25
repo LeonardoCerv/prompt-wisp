@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/utils/supabase/server'
 import Collection from '@/lib/models/collection'
+import Prompt, { PromptData } from '@/lib/models/prompt'
 
 export async function POST(request: NextRequest) {
   try {
@@ -37,10 +38,17 @@ export async function POST(request: NextRequest) {
     }
 
     const newCollection = await Collection.create(collectionData);
-    console.log('Prompt created successfully:', newCollection);
+    console.log('Collection created successfully:', newCollection);
+
+    if (prompts && prompts.length > 0) {
+      // Ensure prompts are in the correct format
+      for (const prompt of prompts) {
+        await Prompt.updateCollection(prompt, newCollection.id)
+        console.log(`Updated prompt ${prompt} with new collection ${newCollection.id}`)
+      }
+    }
 
     return NextResponse.json(newCollection, { status: 201 });
-
   } catch (error) {
     console.error('Error in collections API:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

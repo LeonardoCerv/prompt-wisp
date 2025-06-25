@@ -1,5 +1,5 @@
 
-import Navbar from '@/components/pages/prompt/navbar';
+import Navbar from '@/components/navbar';
 import { createClient } from '../../../lib/utils/supabase/server'
 
 export default async function PromptLayout({

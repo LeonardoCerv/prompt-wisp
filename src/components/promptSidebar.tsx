@@ -14,14 +14,8 @@ import {
 } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { FilterType } from '../components/pages/prompt/navbar'
-
-interface Collection {
-  id: string
-  title: string
-  description?: string
-  visibility: 'public' | 'private' | 'unlisted'
-}
+import { FilterType } from './navbar'
+import { CollectionData } from '@/lib/models'
 
 interface PromptSidebarProps {
   activeFilter: FilterType
@@ -39,7 +33,7 @@ interface PromptSidebarProps {
   setLibraryExpanded: (expanded: boolean) => void
   onHomeClick?: () => void
   onCreateCollection?: () => void
-  collections?: Collection[]
+  collections?: CollectionData[]
   selectedCollection?: string
   onCollectionSelect?: (collectionId: string) => void
 }
@@ -115,7 +109,7 @@ export default function PromptSidebar({
 
       {/* Scrollable middle section */}
       <div className="flex-1 overflow-y-auto space-y-6 pr-2">
-                {/* Library Section */}
+        {/* Library Section */}
         <div className="space-y-2">
           <h3 
             className="text-[10px] font-medium text-[var(--flare-cyan)] uppercase tracking-wider mb-3 cursor-pointer hover:text-[var(--flare-cyan)]/70 transition-colors flex items-center justify-between"
@@ -183,30 +177,29 @@ export default function PromptSidebar({
 
         {/* Collections Section */}
         <div className="space-y-2">
-          <div className="flex items-center justify-between">
             <h3 
-              className="text-[10px] font-medium text-[var(--wisp-blue)] uppercase tracking-wider cursor-pointer transition-colors flex items-center gap-2"
+              className="text-[10px] font-medium text-[var(--wisp-blue)] uppercase tracking-wider cursor-pointer transition-colors flex justify-between gap-2"
               onClick={() => setCollectionsExpanded(!collectionsExpanded)}
             >
               Collections
               {collectionsExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
             </h3>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-6 w-6 p-0 text-[var(--wisp-blue)]/60 hover:text-[var(--wisp-blue)] hover:bg-[var(--wisp-blue)]/10 transition-all duration-200"
-              title="Create New Collection"
-              onClick={(e) => {
-                e.stopPropagation()
-                onCreateCollection?.()
-              }}
-            >
-              <Plus size={12} />
-            </Button>
-          </div>
+                     
           
           {collectionsExpanded && (
             <div className="space-y-1">
+               <Button
+                variant="ghost"
+                onClick={(e) => {
+                e.stopPropagation()
+                onCreateCollection?.()
+              }}
+                className="w-full justify-start gap-3 text-sm text-[var(--wisp-blue)] rounded-lg py-2 px-3 hover:bg-[var(--wisp-blue)]/20 hover:text-[var(--wisp-blue)] border border-dashed border-[var(--wisp-blue)]/40"
+                title="Create new collection"
+              >
+                <Plus size={14} className="flex-shrink-0" />
+                <span className="truncate">Create Collection</span>
+              </Button>
               {collections.length > 0 ? (
                 collections.map((collection) => (
                   <Button
@@ -217,7 +210,7 @@ export default function PromptSidebar({
                         ? 'bg-[var(--wisp-blue)]/20 text-[var(--wisp-blue)]'
                         : 'text-[var(--moonlight-silver)] hover:text-white hover:bg-white/5'
                     }`}
-                    onClick={() => onCollectionSelect?.(collection.id)}
+                    onClick={() => onFilterChange(collection)}
                     title={collection.title}
                   >
                     <span className="truncate">{collection.title}</span>

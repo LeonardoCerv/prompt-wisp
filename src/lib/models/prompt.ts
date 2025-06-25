@@ -108,6 +108,43 @@ class Prompt {
         }
     }
 
+    static async updateCollection(promptId: string, collection: string): Promise<PromptData | null> {
+        try {
+            const supabase = await createClient();
+
+            // Get the current prompt to update collections array
+            const prompt = await this.findById(promptId);
+            if (!prompt) {
+            throw new Error('Prompt not found');
+            }
+
+            const currentCollections = prompt.collections || [];
+            // Only add if not already present
+            if (!currentCollections.includes(collection)) {
+            currentCollections.push(collection);
+            }
+
+            const { data, error } = await supabase
+            .from('prompts')
+            .update({ 
+                collections: currentCollections,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', promptId)
+            .eq('deleted', false)
+            .select()
+            .single();
+
+            if (error) {
+            throw new Error(`Error updating prompt collection: ${error.message}`);
+            }
+            return data as PromptData;
+        } catch (error) {
+            console.error("Error updating prompt collection:", error);
+            throw error;
+        }
+    }
+
     // Get prompt by ID
     static async findById(id: string): Promise<PromptData | null> {
         try {

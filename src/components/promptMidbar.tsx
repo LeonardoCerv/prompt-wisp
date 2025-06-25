@@ -9,10 +9,7 @@ import { PlusCircle, Copy, Trash2, RotateCcw, BookOpen } from 'lucide-react'
 import PromptCard from './promptCard'
 import { useRouter } from 'next/navigation'
 import { PromptData } from '@/lib/models/prompt'
-import { savePrompt, deletePrompt, restorePrompt, copyToClipboard, createNewPrompt } from './pages/prompt/navbar'
-
-// Import the ExtendedPromptData type from navbar
-import { type FilterType } from './pages/prompt/navbar'
+import { savePrompt, deletePrompt, restorePrompt, copyToClipboard, createNewPrompt } from './navbar'
 
 // Define the extended interface locally or import from navbar
 interface ExtendedPromptData extends PromptData {
@@ -171,7 +168,7 @@ export default function PromptMidbar({
                 visibility: prompt.visibility,
                 images: prompt.images,
                 collaborators: prompt.collaborators.map(user => user.id),
-                collections: prompt.collections.map(collection => collection.id)
+                collections: prompt.collections.map(collection => collection)
               }
               
               await createNewPrompt(transformedPrompt, (promptId) => {

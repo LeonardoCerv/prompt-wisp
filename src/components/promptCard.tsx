@@ -9,7 +9,7 @@ import {
   Trash2
 } from 'lucide-react'
 import { PromptData } from '@/lib/models/prompt'
-import { toggleFavorite }from './pages/prompt/navbar'
+import { toggleFavorite }from './navbar'
 
 interface PromptCardProps {
   prompt: PromptData

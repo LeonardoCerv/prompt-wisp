@@ -7,9 +7,10 @@ import PromptMidbar from '@/components/promptMidbar'
 import NewCollection from '@/components/newCollection'
 import { toast } from 'sonner';
 import { PromptData } from '@/lib/models/prompt'
+import { CollectionData } from '@/lib/models'
 
 // Define FilterType
-export type FilterType = 'all' | 'all-prompts' | 'your-prompts' | 'favorites' | 'saved' | 'deleted'
+export type FilterType = 'all' | 'all-prompts' | 'your-prompts' | 'favorites' | 'saved' | 'deleted' | CollectionData
 
 // Extended interface for transformed prompt data
 interface ExtendedPromptData extends PromptData {
@@ -199,9 +200,10 @@ export async function loadTags() {
 // Utility functions for filtering and counting prompts
 export function filterPrompts(
   prompts: ExtendedPromptData[], 
-  filter: FilterType, 
+  filter: FilterType,
   searchTerm: string = '', 
-  selectedTags: string[] = []
+  selectedTags: string[] = [],
+  collection: CollectionData 
 ): ExtendedPromptData[] {
   let filtered = prompts
 
@@ -225,6 +227,11 @@ export function filterPrompts(
     case 'deleted':
       filtered = prompts.filter(p => p.deleted && p.isOwner)
       break
+  }
+
+  // filter by collections
+  if (collection) {
+    filtered = filtered.filter(p => p.collections && p.collections.includes(collection.id))
   }
 
   // Apply search
@@ -382,7 +389,7 @@ export default function Navbar({ user, children, initialPrompts = [] }: NavbarPr
 
   // Filter prompts based on active filter, search term, and selected tags
   useEffect(() => {
-    const filtered = filterPrompts(prompts, activeFilter, searchTerm, selectedTags)
+    const filtered = filterPrompts(prompts, activeFilter, searchTerm, selectedTags, selectedCollection ? collections.find(c => c.id === selectedCollection) : undefined)
     setFilteredPrompts(filtered)
   }, [prompts, activeFilter, searchTerm, selectedTags])
 
@@ -394,13 +401,6 @@ export default function Navbar({ user, children, initialPrompts = [] }: NavbarPr
     )
   }, [])
 
-  const selectPrompt = useCallback((prompt: ExtendedPromptData | null) => {
-    setSelectedPrompt(prompt)
-  }, [])
-
-  const isOwner = useCallback((prompt: ExtendedPromptData) => {
-    return checkIsOwner(prompt, user.id)
-  }, [user.id])
 
   const getFilterCount = useCallback((filter: FilterType) => {
     return getPromptFilterCount(prompts, filter)

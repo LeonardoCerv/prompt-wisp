@@ -79,9 +79,8 @@ export default function NewCollection({ open, onOpenChange, onSubmit, availableP
   const steps = [
     { id: 1, title: 'Essentials', icon: Star, required: true },
     { id: 2, title: 'Details', icon: FileText, required: false },
-    { id: 3, title: 'Prompts', icon: Plus, required: false },
-    { id: 4, title: 'Advanced', icon: Users, required: false },
-    { id: 5, title: 'Ready', icon: Check, required: false }
+    { id: 3, title: 'Advanced', icon: Users, required: false },
+    { id: 4, title: 'Ready', icon: Check, required: false }
   ]
 
   const resetForm = () => {
@@ -220,9 +219,9 @@ export default function NewCollection({ open, onOpenChange, onSubmit, availableP
       isOpen={open} 
       onClose={handleClose} 
       title=""
-      maxWidth="max-w-2xl"
+      maxWidth="max-w-3xl"
     >
-      <div className="max-h-[75vh] flex flex-col -m-4">
+      <div className="max-h-[85vh] flex flex-col">
         {/* Header */}
         <div className="flex-shrink-0 p-6 pb-4">
           <div className="flex items-center justify-between">
@@ -295,21 +294,85 @@ export default function NewCollection({ open, onOpenChange, onSubmit, availableP
                     />
                   </div>
 
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <FileText className="w-4 h-4 text-[var(--warning-amber)]" />
-                      <Label htmlFor="description" className="text-sm font-medium text-white">
-                        Description
-                      </Label>
+                  {availablePrompts.length > 0 ? (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <Plus className="w-4 h-4 text-[var(--warning-amber)]" />
+                          <Label className="text-sm font-medium text-white">
+                            Available Prompts
+                          </Label>
+                        </div>
+                        <span className="text-xs text-[var(--flare-cyan)]/70">
+                          {formData.prompts.length} selected
+                        </span>
+                      </div>
+                      
+                      <div className="max-h-80 overflow-y-auto space-y-2 bg-white/5 rounded-lg p-3 border border-[var(--flare-cyan)]/20">
+                        {availablePrompts.map((prompt) => {
+                          const isSelected = formData.prompts.some(p => p.id === prompt.id)
+                          return (
+                            <div
+                              key={prompt.id}
+                              className={`p-3 rounded-lg border cursor-pointer transition-all duration-200 ${
+                                isSelected 
+                                  ? 'bg-[var(--wisp-blue)]/20 border-[var(--wisp-blue)]/40 text-white' 
+                                  : 'bg-white/5 border-white/10 text-white/80 hover:bg-white/10 hover:border-white/20'
+                              }`}
+                              onClick={() => {
+                                if (isSelected) {
+                                  handleChange('prompts', formData.prompts.filter(p => p.id !== prompt.id))
+                                } else {
+                                  handleChange('prompts', [...formData.prompts, prompt])
+                                }
+                              }}
+                            >
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1 min-w-0">
+                                  <h5 className="font-medium text-sm truncate mb-1">{prompt.title}</h5>
+                                  {prompt.description && (
+                                    <p className="text-xs opacity-70 line-clamp-2 mb-2">{prompt.description}</p>
+                                  )}
+                                  {prompt.tags.length > 0 && (
+                                    <div className="flex flex-wrap gap-1">
+                                      {prompt.tags.slice(0, 3).map((tag, index) => (
+                                        <span 
+                                          key={index} 
+                                          className="text-xs bg-[var(--flare-cyan)]/20 text-[var(--flare-cyan)] px-2 py-0.5 rounded"
+                                        >
+                                          #{tag}
+                                        </span>
+                                      ))}
+                                      {prompt.tags.length > 3 && (
+                                        <span className="text-xs text-white/50">+{prompt.tags.length - 3} more</span>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                                <div className={`ml-3 w-5 h-5 rounded border-2 flex items-center justify-center ${
+                                  isSelected 
+                                    ? 'bg-[var(--wisp-blue)] border-[var(--wisp-blue)]' 
+                                    : 'border-white/30'
+                                }`}>
+                                  {isSelected && <Check className="w-3 h-3 text-white" />}
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                      
+                      <p className="text-xs text-[var(--flare-cyan)]/70">
+                        Click on prompts to add or remove them from this collection
+                      </p>
                     </div>
-                    <Textarea
-                      id="description"
-                      value={formData.description}
-                      onChange={(e) => handleChange('description', e.target.value)}
-                      placeholder="Describe what this collection is about..."
-                      className="min-h-[80px] bg-white/10 border-[var(--flare-cyan)]/40 text-white placeholder:text-white/70 focus:border-[var(--wisp-blue)] focus:ring-1 focus:ring-[var(--wisp-blue)]/50 transition-all duration-300 resize-none"
-                    />
-                  </div>
+                  ) : (
+                    <div className="text-center py-8 text-[var(--moonlight-silver)]/60">
+                      <Plus className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                      <p className="text-sm">No prompts available</p>
+                      <p className="text-xs mt-1">Create some prompts first to add them to collections</p>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -325,6 +388,23 @@ export default function NewCollection({ open, onOpenChange, onSubmit, availableP
                     Add tags and images to enhance your collection
                   </p>
                 </div>
+
+
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-[var(--warning-amber)]" />
+                      <Label htmlFor="description" className="text-sm font-medium text-white">
+                        Description
+                      </Label>
+                    </div>
+                    <Textarea
+                      id="description"
+                      value={formData.description}
+                      onChange={(e) => handleChange('description', e.target.value)}
+                      placeholder="Describe what this collection is about..."
+                      className="min-h-[80px] bg-white/10 border-[var(--flare-cyan)]/40 text-white placeholder:text-white/70 focus:border-[var(--wisp-blue)] focus:ring-1 focus:ring-[var(--wisp-blue)]/50 transition-all duration-300 resize-none"
+                    />
+                  </div>
 
                 <div className="space-y-4">
                   <div className="space-y-2">
@@ -460,104 +540,8 @@ export default function NewCollection({ open, onOpenChange, onSubmit, availableP
               </div>
             )}
 
-            {/* Step 3: Prompts */}
+            {/* Step 3: Advanced */}
             {currentStep === 3 && (
-              <div className="space-y-6">
-                <div className="text-center mb-6">
-                  <h4 className="text-lg font-medium text-white mb-2">
-                    Add Prompts
-                  </h4>
-                  <p className="text-sm text-[var(--flare-cyan)]/80">
-                    Select prompts to include in this collection
-                  </p>
-                </div>
-
-                <div className="space-y-4">
-                  {availablePrompts.length > 0 ? (
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                          <Plus className="w-4 h-4 text-[var(--warning-amber)]" />
-                          <Label className="text-sm font-medium text-white">
-                            Available Prompts
-                          </Label>
-                        </div>
-                        <span className="text-xs text-[var(--flare-cyan)]/70">
-                          {formData.prompts.length} selected
-                        </span>
-                      </div>
-                      
-                      <div className="max-h-80 overflow-y-auto space-y-2 bg-white/5 rounded-lg p-3 border border-[var(--flare-cyan)]/20">
-                        {availablePrompts.map((prompt) => {
-                          const isSelected = formData.prompts.some(p => p.id === prompt.id)
-                          return (
-                            <div
-                              key={prompt.id}
-                              className={`p-3 rounded-lg border cursor-pointer transition-all duration-200 ${
-                                isSelected 
-                                  ? 'bg-[var(--wisp-blue)]/20 border-[var(--wisp-blue)]/40 text-white' 
-                                  : 'bg-white/5 border-white/10 text-white/80 hover:bg-white/10 hover:border-white/20'
-                              }`}
-                              onClick={() => {
-                                if (isSelected) {
-                                  handleChange('prompts', formData.prompts.filter(p => p.id !== prompt.id))
-                                } else {
-                                  handleChange('prompts', [...formData.prompts, prompt])
-                                }
-                              }}
-                            >
-                              <div className="flex items-start justify-between">
-                                <div className="flex-1 min-w-0">
-                                  <h5 className="font-medium text-sm truncate mb-1">{prompt.title}</h5>
-                                  {prompt.description && (
-                                    <p className="text-xs opacity-70 line-clamp-2 mb-2">{prompt.description}</p>
-                                  )}
-                                  {prompt.tags.length > 0 && (
-                                    <div className="flex flex-wrap gap-1">
-                                      {prompt.tags.slice(0, 3).map((tag, index) => (
-                                        <span 
-                                          key={index} 
-                                          className="text-xs bg-[var(--flare-cyan)]/20 text-[var(--flare-cyan)] px-2 py-0.5 rounded"
-                                        >
-                                          #{tag}
-                                        </span>
-                                      ))}
-                                      {prompt.tags.length > 3 && (
-                                        <span className="text-xs text-white/50">+{prompt.tags.length - 3} more</span>
-                                      )}
-                                    </div>
-                                  )}
-                                </div>
-                                <div className={`ml-3 w-5 h-5 rounded border-2 flex items-center justify-center ${
-                                  isSelected 
-                                    ? 'bg-[var(--wisp-blue)] border-[var(--wisp-blue)]' 
-                                    : 'border-white/30'
-                                }`}>
-                                  {isSelected && <Check className="w-3 h-3 text-white" />}
-                                </div>
-                              </div>
-                            </div>
-                          )
-                        })}
-                      </div>
-                      
-                      <p className="text-xs text-[var(--flare-cyan)]/70">
-                        Click on prompts to add or remove them from this collection
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="text-center py-8 text-[var(--moonlight-silver)]/60">
-                      <Plus className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                      <p className="text-sm">No prompts available</p>
-                      <p className="text-xs mt-1">Create some prompts first to add them to collections</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Step 4: Advanced */}
-            {currentStep === 4 && (
               <div className="space-y-6">
                 <div className="text-center mb-6">
                   <h4 className="text-lg font-medium text-white mb-2">
@@ -630,7 +614,7 @@ export default function NewCollection({ open, onOpenChange, onSubmit, availableP
             )}
 
             {/* Step 5: Confirmation */}
-            {currentStep === 5 && (
+            {currentStep === 4 && (
               <div className="space-y-6">
                 <div className="text-center mb-8">
                   <div className="flex justify-center mb-6">

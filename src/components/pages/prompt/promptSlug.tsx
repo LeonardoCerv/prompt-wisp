@@ -15,7 +15,7 @@ import {
   toggleFavorite,
   refreshPrompts,
   type FilterType
-} from '@/components/pages/prompt/navbar'
+} from '@/components/navbar'
 import { PromptData } from '@/lib/models/prompt'
 
 // Extended interface for transformed prompt data

@@ -2,18 +2,12 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
-import { X, ChevronDown, FolderOpen, Search, Plus } from 'lucide-react'
-
-interface Collection {
-  id: string
-  name: string
-  description?: string
-}
+import { X, FolderOpen, Search, Plus } from 'lucide-react'
+import { CollectionData } from '@/lib/models'
 
 interface CollectionSearchDropdownProps {
-  selectedCollections: Collection[]
-  onCollectionsChange: (collections: Collection[]) => void
+  selectedCollections: string[]
+  onCollectionsChange: (collections: CollectionData[]) => void
   placeholder?: string
   className?: string
 }
@@ -26,8 +20,8 @@ export default function CollectionSearchDropdown({
 }: CollectionSearchDropdownProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
-  const [allCollections, setAllCollections] = useState<Collection[]>([])
-  const [filteredCollections, setFilteredCollections] = useState<Collection[]>([])
+  const [allCollections, setAllCollections] = useState<CollectionData[]>([])
+  const [filteredCollections, setFilteredCollections] = useState<CollectionData[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -71,20 +65,27 @@ export default function CollectionSearchDropdown({
   // Filter collections based on search query
   useEffect(() => {
     const filtered = allCollections.filter((collection) => 
-      collection.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
-      !selectedCollections.some(selected => selected.id === collection.id)
+      collection.title.toLowerCase().includes(searchQuery.toLowerCase()) &&
+      !selectedCollections.some(selected => selected === collection.id)
     )
     setFilteredCollections(filtered)
   }, [searchQuery, allCollections, selectedCollections])
 
-  const handleSelectCollection = (collection: Collection) => {
-    onCollectionsChange([...selectedCollections, collection])
+  const handleSelectCollection = (collection: CollectionData) => {
+    // Find all selected CollectionData objects
+    const selectedCollectionObjects = [
+      ...allCollections.filter(c => selectedCollections.includes(c.id)),
+      collection
+    ]
+    onCollectionsChange(selectedCollectionObjects)
     setSearchQuery('')
     setIsOpen(false)
   }
 
   const handleRemoveCollection = (collectionId: string) => {
-    onCollectionsChange(selectedCollections.filter(collection => collection.id !== collectionId))
+    const updatedCollectionIds = selectedCollections.filter(collection => collection !== collectionId)
+    const updatedCollectionObjects = allCollections.filter(c => updatedCollectionIds.includes(c.id))
+    onCollectionsChange(updatedCollectionObjects)
   }
 
   const handleInputFocus = () => {
@@ -95,39 +96,10 @@ export default function CollectionSearchDropdown({
     setIsCreating(true)
   }
 
-  const handleCreateCollection = async () => {
-    if (!searchQuery.trim()) return
-
-    try {
-      const response = await fetch('/api/collections', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: searchQuery.trim(),
-          description: ''
-        })
-      })
-
-      const data = await response.json()
-      
-      if (response.ok) {
-        const newCollection = data.collection
-        setAllCollections(prev => [...prev, newCollection])
-        onCollectionsChange([...selectedCollections, newCollection])
-        setSearchQuery('')
-        setIsCreating(false)
-        setIsOpen(false)
-      }
-    } catch (error) {
-      console.error('Failed to create collection:', error)
-    }
+  const getCollectionTitle = (collectionId: string) => {
+    const collection = allCollections.find(c => c.id === collectionId)
+    return collection ? collection.title : 'Unknown Collection'
   }
-
-  const canCreateNew = searchQuery.trim().length > 0 && 
-    !allCollections.some(c => c.name.toLowerCase() === searchQuery.toLowerCase()) &&
-    !selectedCollections.some(c => c.name.toLowerCase() === searchQuery.toLowerCase())
 
   return (
     <div ref={dropdownRef} className={`relative ${className}`}>
@@ -135,20 +107,22 @@ export default function CollectionSearchDropdown({
       {selectedCollections.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-2">
           {selectedCollections.map((collection) => (
-            <div
-              key={collection.id}
+            (<div
+              key={collection}
               className="flex items-center gap-2 bg-[var(--warning-amber)]/20 border border-[var(--warning-amber)]/40 rounded-md px-2 py-1 text-xs"
             >
               <FolderOpen className="w-4 h-4 text-[var(--warning-amber)]" />
-              <span className="text-white">{collection.name}</span>
+              <span className="text-white">{getCollectionTitle(collection)}</span>
               <button
                 type="button"
-                onClick={() => handleRemoveCollection(collection.id)}
+                onClick={() => handleRemoveCollection(collection)}
                 className="text-white/70 hover:text-white"
               >
                 <X className="w-3 h-3" />
               </button>
             </div>
+            )
+            
           ))}
         </div>
       )}
@@ -186,7 +160,7 @@ export default function CollectionSearchDropdown({
                   <FolderOpen className="w-4 h-4 text-[var(--warning-amber)]" />
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-medium text-white truncate">
-                      {collection.name}
+                      {collection.title}
                     </div>
                     {collection.description && (
                       <div className="text-xs text-white/70 truncate">
@@ -197,27 +171,9 @@ export default function CollectionSearchDropdown({
                 </button>
               ))}
 
-              {/* Create New Option */}
-              {canCreateNew && (
-                <button
-                  type="button"
-                  onClick={handleCreateCollection}
-                  className="w-full px-3 py-2 text-left hover:bg-[var(--flare-cyan)]/20 transition-colors duration-200 flex items-center gap-2 border-t border-[var(--flare-cyan)]/20"
-                >
-                  <Plus className="w-4 h-4 text-[var(--flare-cyan)]" />
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-[var(--flare-cyan)]">
-                      Create "{searchQuery}"
-                    </div>
-                    <div className="text-xs text-white/70">
-                      Create new collection
-                    </div>
-                  </div>
-                </button>
-              )}
-
+             
               {/* No Results */}
-              {filteredCollections.length === 0 && !canCreateNew && searchQuery.length > 0 && (
+              {filteredCollections.length === 0 && searchQuery.length > 0 && (
                 <div className="px-3 py-2 text-sm text-white/70">
                   No collections found
                 </div>

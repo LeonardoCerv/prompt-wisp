@@ -27,6 +27,7 @@ import {
   X,
   BotMessageSquare
 } from 'lucide-react'
+import CollectionData from '@/lib/models/collection'
 
 interface User {
   id: string
@@ -37,12 +38,6 @@ interface User {
   display: string
 }
 
-interface Collection {
-  id: string
-  name: string
-  description?: string
-}
-
 interface NewPrompt {
   title: string
   description: string
@@ -51,8 +46,9 @@ interface NewPrompt {
   visibility: 'public' | 'private' | 'unlisted'
   images: string[]
   collaborators: User[]
-  collections: Collection[]
+  collections: string[]
 }
+
 
 interface NewPromptPageProps {
   onSubmit: (prompt: NewPrompt) => Promise<void>
@@ -101,7 +97,7 @@ export default function NewPromptPage({ onSubmit, onCancel }: NewPromptPageProps
     }
   }
 
-  const handleChange = (field: keyof NewPrompt, value: string | string[] | User[] | Collection[]) => {
+  const handleChange = (field: keyof NewPrompt, value: string | string[] | User[] | CollectionData[]) => {
     setFormData(prev => ({ ...prev, [field]: value }))
   }
 
