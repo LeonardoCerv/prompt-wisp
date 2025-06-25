@@ -162,7 +162,19 @@ export default function PromptMidbar({
         <NewPromptPage
           onSubmit={async (prompt) => {
             try {
-              await createNewPrompt(prompt, (promptId) => {
+              // Transform the data to match the API format
+              const transformedPrompt = {
+                title: prompt.title,
+                description: prompt.description,
+                tags: prompt.tags,
+                content: prompt.content,
+                visibility: prompt.visibility,
+                images: prompt.images,
+                collaborators: prompt.collaborators.map(user => user.id),
+                collections: prompt.collections.map(collection => collection.id)
+              }
+              
+              await createNewPrompt(transformedPrompt, (promptId) => {
                 router.push(`/prompt/${promptId}`)
               })
               setShowCreateDialog(false)

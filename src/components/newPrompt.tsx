@@ -1,15 +1,16 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
-import { Checkbox } from '@/components/ui/checkbox'
+import UserSearchDropdown from '@/components/userSearchDropdown'
+import CollectionSearchDropdown from '@/components/collectionSearchDropdown'
 import { 
   Sparkles, 
-  Star, 
-  Zap, 
+  Star,
+  FileText, 
   Wand2, 
   Camera, 
   Users, 
@@ -17,13 +18,31 @@ import {
   Lock,
   Link,
   Globe,
+  Hash,
   Plus,
   ArrowRight,
   ArrowLeft,
   Check,
   ChevronRight,
-  Save
+  Save,
+  Upload,
+  X
 } from 'lucide-react'
+
+interface User {
+  id: string
+  name: string
+  username: string
+  email: string
+  profile_picture?: string
+  display: string
+}
+
+interface Collection {
+  id: string
+  name: string
+  description?: string
+}
 
 interface NewPrompt {
   title: string
@@ -32,8 +51,8 @@ interface NewPrompt {
   content: string
   visibility: 'public' | 'private' | 'unlisted'
   images: string[]
-  collaborators: string[]
-  collections: string[]
+  collaborators: User[]
+  collections: Collection[]
 }
 
 interface NewPromptPageProps {
@@ -55,10 +74,13 @@ export default function NewPromptPage({ onSubmit, onCancel }: NewPromptPageProps
   
   const [currentStep, setCurrentStep] = useState(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const steps = [
     { id: 1, title: 'Essentials', icon: Star, required: true },
-    { id: 2, title: 'Details', icon: Zap, required: false },
+    { id: 2, title: 'Details', icon: FileText, required: false },
     { id: 3, title: 'Advanced', icon: Wand2, required: false },
     { id: 4, title: 'Ready', icon: Check, required: false }
   ]
@@ -80,13 +102,67 @@ export default function NewPromptPage({ onSubmit, onCancel }: NewPromptPageProps
     }
   }
 
-  const handleChange = (field: keyof NewPrompt, value: string | string[]) => {
+  const handleChange = (field: keyof NewPrompt, value: string | string[] | User[] | Collection[]) => {
     setFormData(prev => ({ ...prev, [field]: value }))
   }
 
-  const handleArrayChange = (field: 'images' | 'collaborators' | 'collections', value: string) => {
-    const arrayValue = value.split(',').map(item => item.trim()).filter(Boolean)
-    setFormData(prev => ({ ...prev, [field]: arrayValue }))
+  const handleImageUpload = async (files: FileList | null) => {
+    if (!files || files.length === 0) return
+
+    setIsUploading(true)
+    setUploadError(null)
+
+    try {
+      const uploadPromises = Array.from(files).map(async (file) => {
+        const formData = new FormData()
+        formData.append('file', file)
+
+        const response = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData
+        })
+
+        if (!response.ok) {
+          const error = await response.json()
+          throw new Error(error.error || 'Upload failed')
+        }
+
+        const result = await response.json()
+        return result.url
+      })
+
+      const uploadedUrls = await Promise.all(uploadPromises)
+      
+      setFormData(prev => ({
+        ...prev,
+        images: [...prev.images, ...uploadedUrls]
+      }))
+
+    } catch (error) {
+      console.error('Upload error:', error)
+      setUploadError(error instanceof Error ? error.message : 'Upload failed')
+    } finally {
+      setIsUploading(false)
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+    }
+  }
+
+  const removeImage = (indexToRemove: number) => {
+    setFormData(prev => ({
+      ...prev,
+      images: prev.images.filter((_, index) => index !== indexToRemove)
+    }))
+  }
+
+  const addImageUrl = (url: string) => {
+    if (url.trim()) {
+      setFormData(prev => ({
+        ...prev,
+        images: [...prev.images, url.trim()]
+      }))
+    }
   }
 
   const isValid = formData.title.trim() && formData.content.trim()
@@ -229,14 +305,14 @@ export default function NewPromptPage({ onSubmit, onCancel }: NewPromptPageProps
                   Additional Details
                 </h4>
                 <p className="text-sm text-[var(--flare-cyan)]/80">
-                  Enhance your prompt with description, tags, and visibility settings
+                  Add description, tags, and images to enhance your prompt
                 </p>
               </div>
 
               <div className="space-y-4">
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <Zap className="w-4 h-4 text-[var(--warning-amber)]" />
+                    <FileText className="w-4 h-4 text-[var(--warning-amber)]" />
                     <Label htmlFor="description" className="text-sm font-medium text-white">
                       Description
                     </Label>
@@ -252,7 +328,7 @@ export default function NewPromptPage({ onSubmit, onCancel }: NewPromptPageProps
 
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <Plus className="w-4 h-4 text-[var(--warning-amber)]" />
+                    <Hash className="w-4 h-4 text-[var(--warning-amber)]" />
                     <Label htmlFor="tags" className="text-sm font-medium text-white">
                       Tags
                     </Label>
@@ -269,6 +345,133 @@ export default function NewPromptPage({ onSubmit, onCancel }: NewPromptPageProps
                   </p>
                 </div>
 
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Camera className="w-4 h-4 text-[var(--warning-amber)]" />
+                    <Label htmlFor="images" className="text-sm font-medium text-white">
+                      Images
+                    </Label>
+                  </div>
+                  
+                  {/* Upload Section */}
+                  <div className="space-y-3">
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={isUploading}
+                        className="flex items-center gap-2 border-[var(--flare-cyan)]/50 text-[var(--flare-cyan)]/70 hover:bg-[var(--flare-cyan)]/10 hover:border-[var(--flare-cyan)] hover:text-[var(--flare-cyan)] transition-all duration-300"
+                      >
+                        <Upload className="w-4 h-4" />
+                        {isUploading ? 'Uploading...' : 'Upload Images'}
+                      </Button>
+                      <Input
+                        ref={fileInputRef}
+                        type="file"
+                        multiple
+                        accept="image/*"
+                        onChange={(e) => handleImageUpload(e.target.files)}
+                        className="hidden"
+                      />
+                    </div>
+                    
+                    {uploadError && (
+                      <p className="text-xs text-red-400">
+                        {uploadError}
+                      </p>
+                    )}
+                    
+                    {/* URL Input */}
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Or paste image URL..."
+                        className="bg-white/10 border-[var(--flare-cyan)]/40 text-white placeholder:text-white/70 focus:border-[var(--wisp-blue)] focus:ring-1 focus:ring-[var(--wisp-blue)]/40 transition-all duration-300"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault()
+                            const input = e.target as HTMLInputElement
+                            addImageUrl(input.value)
+                            input.value = ''
+                          }
+                        }}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={(e) => {
+                          const input = (e.target as HTMLElement).parentElement?.querySelector('input') as HTMLInputElement
+                          if (input) {
+                            addImageUrl(input.value)
+                            input.value = ''
+                          }
+                        }}
+                        className="border-[var(--flare-cyan)]/50 text-[var(--flare-cyan)]/70 hover:bg-[var(--flare-cyan)]/10 hover:border-[var(--flare-cyan)] hover:text-[var(--flare-cyan)] transition-all duration-300"
+                      >
+                        <Plus className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  {/* Image Preview */}
+                  {formData.images.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-xs text-[var(--flare-cyan)]/70">
+                        {formData.images.length} image{formData.images.length !== 1 ? 's' : ''} added:
+                      </p>
+                      <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto dialog-scroll">
+                        {formData.images.map((url, index) => (
+                          <div key={index} className="relative group">
+                            <img
+                              src={url}
+                              alt={`Upload ${index + 1}`}
+                              className="w-full h-16 object-cover rounded border border-[var(--flare-cyan)]/30"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement
+                                target.style.display = 'none'
+                                const parent = target.parentElement
+                                if (parent) {
+                                  const errorDiv = document.createElement('div')
+                                  errorDiv.className = 'w-full h-16 bg-white/5 border border-red-400/50 rounded flex items-center justify-center text-xs text-red-400'
+                                  errorDiv.textContent = 'Failed to load'
+                                  parent.appendChild(errorDiv)
+                                }
+                              }}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => removeImage(index)}
+                              className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  <p className="text-xs text-[var(--flare-cyan)]/70">
+                    Upload images or add URLs to include visual references (max 5MB per file)
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Step 3: Advanced */}
+          {currentStep === 3 && (
+            <div className="space-y-6">
+              <div className="text-center mb-6">
+                <h4 className="text-lg font-medium text-white mb-2">
+                  Advanced Options
+                </h4>
+                <p className="text-sm text-[var(--flare-cyan)]/80">
+                  Set visibility, add collaborators, and organize into collections
+                </p>
+              </div>
+
+              <div className="space-y-4">
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
                     <Globe className="w-4 h-4 text-[var(--warning-amber)]" />
@@ -307,41 +510,6 @@ export default function NewPromptPage({ onSubmit, onCancel }: NewPromptPageProps
                     )}
                   </div>
                 </div>
-              </div>
-            </div>
-          )}
-
-          {/* Step 3: Advanced */}
-          {currentStep === 3 && (
-            <div className="space-y-6">
-              <div className="text-center mb-6">
-                <h4 className="text-lg font-medium text-white mb-2">
-                  Advanced Options
-                </h4>
-                <p className="text-sm text-[var(--flare-cyan)]/80">
-                  Add images, collaborators, and organize into collections
-                </p>
-              </div>
-
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Camera className="w-4 h-4 text-[var(--warning-amber)]" />
-                    <Label htmlFor="images" className="text-sm font-medium text-white">
-                      Images
-                    </Label>
-                  </div>
-                  <Input
-                    id="images"
-                    value={formData.images.join(', ')}
-                    onChange={(e) => handleArrayChange('images', e.target.value)}
-                    placeholder="https://example.com/image1.jpg, https://example.com/image2.jpg"
-                    className="bg-white/10 border-[var(--flare-cyan)]/40 text-white placeholder:text-white/70 focus:border-[var(--wisp-blue)] focus:ring-1 focus:ring-[var(--wisp-blue)]/40 transition-all duration-300"
-                  />
-                  <p className="text-xs text-[var(--flare-cyan)]/70">
-                    Add image URLs to include visual references
-                  </p>
-                </div>
 
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
@@ -350,11 +518,10 @@ export default function NewPromptPage({ onSubmit, onCancel }: NewPromptPageProps
                       Collaborators
                     </Label>
                   </div>
-                  <Input
-                    id="collaborators"
-                    value={formData.collaborators.join(', ')}
-                    onChange={(e) => handleArrayChange('collaborators', e.target.value)}
-                    placeholder="Enter usernames or email addresses"
+                  <UserSearchDropdown
+                    selectedUsers={formData.collaborators}
+                    onUsersChange={(users) => handleChange('collaborators', users)}
+                    placeholder="Search for collaborators..."
                     className="bg-white/10 border-[var(--flare-cyan)]/40 text-white placeholder:text-white/70 focus:border-[var(--wisp-blue)] focus:ring-1 focus:ring-[var(--wisp-blue)]/40 transition-all duration-300"
                   />
                   <p className="text-xs text-[var(--flare-cyan)]/70">
@@ -369,11 +536,10 @@ export default function NewPromptPage({ onSubmit, onCancel }: NewPromptPageProps
                       Collections
                     </Label>
                   </div>
-                  <Input
-                    id="collections"
-                    value={formData.collections.join(', ')}
-                    onChange={(e) => handleArrayChange('collections', e.target.value)}
-                    placeholder="Enter collection names"
+                  <CollectionSearchDropdown
+                    selectedCollections={formData.collections}
+                    onCollectionsChange={(collections) => handleChange('collections', collections)}
+                    placeholder="Search for collections..."
                     className="bg-white/10 border-[var(--flare-cyan)]/40 text-white placeholder:text-white/70 focus:border-[var(--wisp-blue)] focus:ring-1 focus:ring-[var(--wisp-blue)]/40 transition-all duration-300"
                   />
                   <p className="text-xs text-[var(--flare-cyan)]/70">
@@ -426,7 +592,7 @@ export default function NewPromptPage({ onSubmit, onCancel }: NewPromptPageProps
                   {formData.description && (
                     <div className="flex items-start justify-between py-2 px-3 bg-white/5 rounded-lg border border-white/10">
                       <div className="flex items-center gap-2">
-                        <Zap className="w-4 h-4 text-[var(--warning-amber)] mt-0.5 flex-shrink-0" />
+                        <FileText className="w-4 h-4 text-[var(--warning-amber)] mt-0.5 flex-shrink-0" />
                         <span className="text-sm text-white/80">Description:</span>
                       </div>
                       <span className="text-sm text-white/90 max-w-[200px] text-right" title={formData.description}>
@@ -438,7 +604,7 @@ export default function NewPromptPage({ onSubmit, onCancel }: NewPromptPageProps
                   {formData.tags && (
                     <div className="flex items-center justify-between py-2 px-3 bg-white/5 rounded-lg border border-white/10">
                       <div className="flex items-center gap-2">
-                        <Plus className="w-4 h-4 text-[var(--warning-amber)]" />
+                        <Hash className="w-4 h-4 text-[var(--warning-amber)]" />
                         <span className="text-sm text-white/80">Tags:</span>
                       </div>
                       <span className="text-sm text-white/90 max-w-[200px] truncate" title={formData.tags}>
