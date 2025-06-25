@@ -9,7 +9,7 @@ import {
   Trash2
 } from 'lucide-react'
 import { PromptData } from '@/lib/models/prompt'
-import { toggleFavorite }from './navbar'
+import { toggleFavoritePrompt } from './actions'
 
 interface PromptCardProps {
   prompt: PromptData
@@ -76,9 +76,9 @@ export default function PromptCard({
               {prompt.title}
             </CardTitle>
             <button
-              onClick={(e) => {
+              onClick={async (e) => {
                 e.stopPropagation()
-                toggleFavorite(prompt.id)
+                await toggleFavoritePrompt(prompt.id, !isFavorite)
               }}
               className="p-0.5 transition-colors hover:bg-transparent ml-4"
             >

@@ -16,6 +16,8 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { CollectionData, PromptData, UserData } from '@/lib/models'
 import { useNavbar } from '../context/navbarContext'
+import NewCollection from './newCollection'
+import { useState } from 'react'
 
 interface PromptSidebarProps {
   prompts: PromptData[]
@@ -26,30 +28,66 @@ interface PromptSidebarProps {
   onTagToggle: (tag: string) => void
   allTags: string[]
   getFilterCount: (filter: string) => number
-  onSearchFocus: () => void
-  collectionsExpanded: boolean
-  setCollectionsExpanded: (expanded: boolean) => void
-  tagsExpanded: boolean
-  setTagsExpanded: (expanded: boolean) => void
-  libraryExpanded: boolean
-  setLibraryExpanded: (expanded: boolean) => void
-  onHomeClick: () => void
-  onCreateCollection: () => void
-  collections: CollectionData[]
-  selectedCollection: string | undefined
-  onCollectionSelect: (id: string | undefined) => void
 }
 
 export default function PromptSidebar({
   prompts, user,
   activeFilter, onFilterChange,
-  selectedTags, onTagToggle, allTags, getFilterCount, onSearchFocus,
-  collectionsExpanded, setCollectionsExpanded,
-  tagsExpanded, setTagsExpanded,
-  libraryExpanded, setLibraryExpanded,
-  onHomeClick, onCreateCollection,
-  collections, selectedCollection, onCollectionSelect
+  selectedTags, onTagToggle, allTags, getFilterCount
 }: PromptSidebarProps) {
+  // Use navbar context for sidebar state
+  const {
+    collectionsExpanded, setCollectionsExpanded,
+    tagsExpanded, setTagsExpanded,
+    libraryExpanded, setLibraryExpanded,
+    collections, selectedCollection, setSelectedCollection
+  } = useNavbar()
+
+  // Local state for NewCollection dialog
+  const [isNewCollectionOpen, setIsNewCollectionOpen] = useState(false)
+
+  // Prevent opening the create collection dialog if user is not loaded
+  const handleCreateCollectionClick = () => {
+    if (!user || !user.id) {
+      // Optionally show a toast or alert here
+      console.warn('User not loaded or not authenticated')
+      return
+    }
+    setIsNewCollectionOpen(true)
+  }
+
+  // Handle NewCollection submit
+  const handleCreateCollection = async (data: any) => {
+    if (!user || !user.id) return
+    try {
+      const requestBody = {
+        title: data.title.trim(),
+        description: data.description?.trim() || null,
+        tags: data.tags,
+        visibility: data.visibility || 'private',
+        images: data.images || [],
+        collaborators: data.collaborators?.map((c: any) => c.id) || [],
+        prompts: data.prompts?.map((p: any) => p.id) || [],
+        user_id: user.id
+      }
+      const response = await fetch('/api/collections', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody)
+      })
+      if (response.ok) {
+        // Optionally show a toast here
+        // Refresh collections
+        if (typeof window !== 'undefined') {
+          // Re-fetch collections via context
+          window.location.reload()
+        }
+      }
+    } catch (e) {
+      // Optionally show a toast here
+    }
+    setIsNewCollectionOpen(false)
+  }
 
   return (
     <div className="bg-[var(--black)] h-screen w-[240px] max-w-[240px] pl-6 pr-4 py-6 border-r border-[var(--moonlight-silver-dim)]/30 flex flex-col fixed top-0 left-0 z-50">
@@ -70,7 +108,7 @@ export default function PromptSidebar({
         <Button
           variant="ghost"
           className="w-full justify-start gap-3 text-[var(--moonlight-silver-bright)] rounded-lg py-2 px-3 mb-4"
-          onClick={onSearchFocus}
+          onClick={() => { /* Optionally use context for search focus */ }}
           title="Search"
         >
           <Search size={16} className="flex-shrink-0" />
@@ -89,7 +127,7 @@ export default function PromptSidebar({
             title="Home"
             onClick={() => {
               onFilterChange('all')
-              onHomeClick()
+              // Optionally use context for home click
             }}
           >
             <Home size={16} className="flex-shrink-0" />
@@ -185,9 +223,9 @@ export default function PromptSidebar({
                <Button
                 variant="ghost"
                 onClick={(e) => {
-                e.stopPropagation()
-                onCreateCollection?.()
-              }}
+                  e.stopPropagation()
+                  handleCreateCollectionClick()
+                }}
                 className="w-full justify-start gap-3 text-sm text-[var(--wisp-blue)] rounded-lg py-2 px-3 hover:bg-[var(--wisp-blue)]/20 hover:text-[var(--wisp-blue)] border border-dashed border-[var(--wisp-blue)]/40"
                 title="Create new collection"
               >
@@ -204,7 +242,10 @@ export default function PromptSidebar({
                         ? 'bg-[var(--wisp-blue)]/20 text-[var(--wisp-blue)]'
                         : 'text-[var(--moonlight-silver)] hover:text-white hover:bg-white/5'
                     }`}
-                    onClick={() => onCollectionSelect(collection.id)}
+                    onClick={() => {
+                      setSelectedCollection(collection.id)
+                      onFilterChange('') // Clear activeFilter so collection filter takes precedence
+                    }}
                     title={collection.title}
                   >
                     <span className="truncate">{collection.title}</span>
@@ -267,6 +308,21 @@ export default function PromptSidebar({
           <span className="truncate">Recently Deleted</span>
         </Button>
       </div>
+
+      <NewCollection
+        open={isNewCollectionOpen}
+        onOpenChange={setIsNewCollectionOpen}
+        onSubmit={async (collection) => {
+          await handleCreateCollection(collection)
+        }}
+        availablePrompts={prompts.filter(p => !p.deleted).map(p => ({
+          id: p.id,
+          title: p.title,
+          description: p.description || undefined,
+          content: p.content,
+          tags: p.tags
+        }))}
+      />
     </div>
   )
 }

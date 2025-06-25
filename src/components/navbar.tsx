@@ -3,10 +3,10 @@
 import { useState, useEffect, useCallback } from 'react'
 import PromptSidebar from '@/components/promptSidebar'
 import PromptMidbar from '@/components/promptMidbar'
-import NewCollection from '@/components/newCollection'
 import { toast } from 'sonner';
 import { PromptData } from '@/lib/models/prompt'
 import { UserData } from '@/lib/models'
+import { createClient } from '@/lib/utils/supabase/client'
 
 // Utility: filterPrompts
 function filterPrompts(
@@ -57,6 +57,14 @@ export default function Navbar({children}: { children: React.ReactNode}) {
   useEffect(() => {
     async function fetchData() {
       try {
+        // Get user from supabase auth client
+        const supabase = createClient()
+        const { data: { user: authUser } } = await supabase.auth.getUser()
+        if (!authUser) {
+          setUser(null)
+          return
+        }
+        // Optionally fetch user profile from your API if needed
         const userRes = await fetch(`/api/users/`, { method: 'GET', cache: 'no-store' })
         const userData = await userRes.json()
         setUser(userData.user || userData)
@@ -222,18 +230,6 @@ export default function Navbar({children}: { children: React.ReactNode}) {
                 onTagToggle={toggleTag}
                 allTags={allTags}
                 getFilterCount={getFilterCount}
-                onSearchFocus={() => searchInputRef?.focus()}
-                collectionsExpanded={collectionsExpanded}
-                setCollectionsExpanded={setCollectionsExpanded}
-                tagsExpanded={tagsExpanded}
-                setTagsExpanded={setTagsExpanded}
-                libraryExpanded={libraryExpanded}
-                setLibraryExpanded={setLibraryExpanded}
-                onHomeClick={() => handleFilterChange('all')}
-                onCreateCollection={() => setIsNewCollectionOpen(true)}
-                collections={collections}
-                selectedCollection={selectedCollection}
-                onCollectionSelect={handleCollectionSelect}
               />
             </div>
 
@@ -252,21 +248,6 @@ export default function Navbar({children}: { children: React.ReactNode}) {
         </div>
       )}
 
-      {/* New Collection Dialog */}
-      {user && (
-        <NewCollection
-          open={isNewCollectionOpen}
-          onOpenChange={setIsNewCollectionOpen}
-          onSubmit={handleCreateCollection}
-          availablePrompts={localPrompts.filter(p => !p.deleted).map(p => ({
-            id: p.id,
-            title: p.title,
-            description: p.description || undefined,
-            content: p.content,
-            tags: p.tags
-          }))}
-        />
-      )}
     </div>
   )
 }

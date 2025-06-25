@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Home, FileX } from 'lucide-react'
 import Link from 'next/link'
-import { useNavbar } from '../../context/navbarContext'
+import { useNavbar } from '@/context/navbarContext'
 import { PromptData } from '@/lib/models/prompt'
 
 // Define FilterType locally

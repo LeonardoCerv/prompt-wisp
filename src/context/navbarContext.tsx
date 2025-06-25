@@ -2,7 +2,7 @@
 
 import { CollectionData, PromptData, User, UserData } from '@/lib/models';
 import { createClient } from '@/lib/utils/supabase/server';
-import { createContext, useCallback, useContext, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import { toast } from 'sonner';
 
 type NavbarType = {
@@ -51,10 +51,21 @@ type NavbarType = {
   restorePrompt: (id: string) => Promise<void>;
   toggleFavorite: (id: string) => Promise<void>;
 
+  // Sidebar UI state
+  collectionsExpanded: boolean
+  setCollectionsExpanded: (expanded: boolean) => void
+  tagsExpanded: boolean
+  setTagsExpanded: (expanded: boolean) => void
+  libraryExpanded: boolean
+  setLibraryExpanded: (expanded: boolean) => void
+  collections: CollectionData[]
+  setCollections: (collections: CollectionData[]) => void
+  selectedCollection: string | undefined
+  setSelectedCollection: (id: string | undefined) => void
 }
 
+// Provide all required properties for type safety
 const defaultNavbar: NavbarType = {
-
   // Custom hook to manage prompt state
   // This hook initializes and manages the state related to prompts, including filtering, searching, and
   // selecting prompts. It returns an object containing the state and functions to manipulate it.
@@ -65,49 +76,26 @@ const defaultNavbar: NavbarType = {
   //         searchTerm, setSearchTerm, activeFilter, setActiveFilter,
   //         selectedTags, setSelectedTags, selectedPrompt, setSelectedPrompt,
   //         allTags, setAllTags, loading, setLoading, toggleTag, select
-  usePromptState: (initialPrompts: PromptData[] = []) => {
-    const [prompts, setPrompts] = useState<PromptData[]>(initialPrompts)
-    const [filteredPrompts, setFilteredPrompts] = useState<PromptData[]>([])
-    const [searchTerm, setSearchTerm] = useState('')
-    const [activeFilter, setActiveFilter] = useState<string>('all')
-    const [selectedTags, setSelectedTags] = useState<string[]>([])
-    const [selectedPrompt, setSelectedPrompt] = useState<PromptData | null>(null)
-    const [allTags, setAllTags] = useState<string[]>([])
-    const [loading, setLoading] = useState(false)
-  
-    const toggleTag = useCallback((tag: string) => {
-      setSelectedTags(prev =>
-        prev.includes(tag)
-          ? prev.filter(t => t !== tag)
-          : [...prev, tag]
-      )
-    }, [])
-  
-    const selectPrompt = useCallback((prompt: PromptData | null) => {
-      setSelectedPrompt(prompt)
-    }, [])
-  
-    return {
-      prompts,
-      setPrompts,
-      filteredPrompts,
-      setFilteredPrompts,
-      searchTerm,
-      setSearchTerm,
-      activeFilter,
-      setActiveFilter,
-      selectedTags,
-      setSelectedTags,
-      selectedPrompt,
-      setSelectedPrompt,
-      allTags,
-      setAllTags,
-      loading,
-      setLoading,
-      toggleTag,
-      selectPrompt
-    }
-  },
+  usePromptState: () => ({
+    prompts: [],
+    setPrompts: () => {},
+    filteredPrompts: [],
+    setFilteredPrompts: () => {},
+    searchTerm: '',
+    setSearchTerm: () => {},
+    activeFilter: 'all',
+    setActiveFilter: () => {},
+    selectedTags: [],
+    setSelectedTags: () => {},
+    selectedPrompt: null,
+    setSelectedPrompt: () => {},
+    allTags: [],
+    setAllTags: () => {},
+    loading: false,
+    setLoading: () => {},
+    toggleTag: () => {},
+    selectPrompt: () => {},
+  }),
 
   // Function to save or unsave a prompt
   // This function sends a POST request to the server to toggle the saved state of a prompt
@@ -361,8 +349,91 @@ const defaultNavbar: NavbarType = {
 const NavbarContext = createContext<NavbarType>(defaultNavbar)
 
 export const NavbarProvider = ({children} : {children: React.ReactNode}) => {
-      return (
-    <NavbarContext.Provider value={defaultNavbar}>
+  // Sidebar UI state
+  const [collectionsExpanded, setCollectionsExpanded] = useState(true)
+  const [tagsExpanded, setTagsExpanded] = useState(true)
+  const [libraryExpanded, setLibraryExpanded] = useState(true)
+  const [collections, setCollections] = useState<CollectionData[]>([])
+  const [selectedCollection, setSelectedCollection] = useState<string | undefined>(undefined)
+
+  // Custom hook to manage prompt state
+  // This hook initializes and manages the state related to prompts, including filtering, searching, and
+  // selecting prompts. It returns an object containing the state and functions to manipulate it.
+  // Params: initialPrompts - An optional array of initial prompts to set the state
+  // Returns: an object containing the state and functions to manipulate it
+  // Example usage:
+  // const { prompts, setPrompts, filteredPrompts, setFilteredPrompts,
+  //         searchTerm, setSearchTerm, activeFilter, setActiveFilter,
+  //         selectedTags, setSelectedTags, selectedPrompt, setSelectedPrompt,
+  //         allTags, setAllTags, loading, setLoading, toggleTag, select
+  const [prompts, setPrompts] = useState<PromptData[]>([])
+  const [filteredPrompts, setFilteredPrompts] = useState<PromptData[]>([])
+  const [searchTerm, setSearchTerm] = useState('')
+  const [activeFilter, setActiveFilter] = useState<string>('all')
+  const [selectedTags, setSelectedTags] = useState<string[]>([])
+  const [selectedPrompt, setSelectedPrompt] = useState<PromptData | null>(null)
+  const [allTags, setAllTags] = useState<string[]>([])
+  const [loading, setLoading] = useState(false)
+
+  const toggleTag = useCallback((tag: string) => {
+    setSelectedTags(prev =>
+      prev.includes(tag)
+        ? prev.filter(t => t !== tag)
+        : [...prev, tag]
+    )
+  }, [])
+
+  const selectPrompt = useCallback((prompt: PromptData | null) => {
+    setSelectedPrompt(prompt)
+  }, [])
+
+  // Fetch collections from API on mount and when a new collection is created
+  const fetchCollections = async () => {
+    try {
+      const res = await fetch('/api/collections', { cache: 'no-store' })
+      if (res.ok) {
+        const data = await res.json()
+        setCollections(data.collections || data || [])
+      } else {
+        setCollections([])
+      }
+    } catch (e) {
+      setCollections([])
+    }
+  }
+
+  useEffect(() => {
+    fetchCollections()
+  }, [])
+
+  // Explicitly provide all required context values
+  const value: NavbarType = {
+    usePromptState: defaultNavbar.usePromptState,
+    filterPromptsByFavorites: defaultNavbar.filterPromptsByFavorites,
+    filterPromptsByOwner: defaultNavbar.filterPromptsByOwner,
+    filterPromptsBySaved: defaultNavbar.filterPromptsBySaved,
+    filterPromptsByCollections: defaultNavbar.filterPromptsByCollections,
+    filterPromptsByTags: defaultNavbar.filterPromptsByTags,
+    filterPromptsBySearch: defaultNavbar.filterPromptsBySearch,
+    checkIsOwner: defaultNavbar.checkIsOwner,
+    copyToClipboard: defaultNavbar.copyToClipboard,
+    isMidbarExpanded: defaultNavbar.isMidbarExpanded,
+    createNewPrompt: defaultNavbar.createNewPrompt,
+    refreshPrompts: defaultNavbar.refreshPrompts,
+    loadTags: defaultNavbar.loadTags,
+    savePrompt: defaultNavbar.savePrompt,
+    deletePrompt: defaultNavbar.deletePrompt,
+    restorePrompt: defaultNavbar.restorePrompt,
+    toggleFavorite: defaultNavbar.toggleFavorite,
+    collectionsExpanded, setCollectionsExpanded,
+    tagsExpanded, setTagsExpanded,
+    libraryExpanded, setLibraryExpanded,
+    collections, setCollections,
+    selectedCollection, setSelectedCollection,
+  }
+
+  return (
+    <NavbarContext.Provider value={value}>
       {children}
     </NavbarContext.Provider>
   )

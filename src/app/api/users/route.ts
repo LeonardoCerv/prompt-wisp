@@ -36,6 +36,7 @@ export async function GET(request: NextRequest) {
       display: `${user.name} (@${user.username})`
     }))
 
+    console.log('Users search results:', formattedUsers)
     return NextResponse.json({ users: formattedUsers })
 
   } catch (error) {
