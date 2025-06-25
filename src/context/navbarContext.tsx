@@ -6,7 +6,6 @@ import { createContext, useCallback, useContext, useState } from 'react'
 import { toast } from 'sonner';
 
 type NavbarType = {
-  getPrompts: () => Promise<PromptData[]>,
   usePromptState: (initialPrompts?: PromptData[] ) => {prompts: PromptData[],
     setPrompts: (prompts: PromptData[]) => void,
     filteredPrompts: PromptData[],
@@ -55,20 +54,6 @@ type NavbarType = {
 }
 
 const defaultNavbar: NavbarType = {
-  getPrompts: async() => {
-    const supabase = await createClient()
-    const { data, error } = await supabase
-      .from('prompts')
-      .select('*')
-      .eq('deleted', false)
-      .order('created_at', { ascending: false })
-
-    if (error) {
-      console.error('Error fetching prompts:', error)
-      return []
-    }
-    return data as PromptData[]
-  },
 
   // Custom hook to manage prompt state
   // This hook initializes and manages the state related to prompts, including filtering, searching, and
@@ -123,7 +108,6 @@ const defaultNavbar: NavbarType = {
       selectPrompt
     }
   },
-
 
   // Function to save or unsave a prompt
   // This function sends a POST request to the server to toggle the saved state of a prompt

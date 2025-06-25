@@ -14,16 +14,18 @@ import {
 } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { FilterType } from './navbar'
-import { CollectionData } from '@/lib/models'
+import { CollectionData, PromptData, UserData } from '@/lib/models'
+import { useNavbar } from '../context/navbarContext'
 
 interface PromptSidebarProps {
-  activeFilter: FilterType
-  onFilterChange: (filter: FilterType) => void
+  prompts: PromptData[]
+  user: UserData
+  activeFilter: string
+  onFilterChange: (filter: string) => void
   selectedTags: string[]
   onTagToggle: (tag: string) => void
   allTags: string[]
-  getFilterCount: (filter: FilterType) => number
+  getFilterCount: (filter: string) => number
   onSearchFocus: () => void
   collectionsExpanded: boolean
   setCollectionsExpanded: (expanded: boolean) => void
@@ -31,33 +33,24 @@ interface PromptSidebarProps {
   setTagsExpanded: (expanded: boolean) => void
   libraryExpanded: boolean
   setLibraryExpanded: (expanded: boolean) => void
-  onHomeClick?: () => void
-  onCreateCollection?: () => void
-  collections?: CollectionData[]
-  selectedCollection?: string
-  onCollectionSelect?: (collectionId: string) => void
+  onHomeClick: () => void
+  onCreateCollection: () => void
+  collections: CollectionData[]
+  selectedCollection: string | undefined
+  onCollectionSelect: (id: string | undefined) => void
 }
 
 export default function PromptSidebar({
-  activeFilter,
-  onFilterChange,
-  selectedTags,
-  onTagToggle,
-  allTags,
-  getFilterCount,
-  onSearchFocus,
-  collectionsExpanded,
-  setCollectionsExpanded,
-  tagsExpanded,
-  setTagsExpanded,
-  libraryExpanded,
-  setLibraryExpanded,
-  onHomeClick,
-  onCreateCollection,
-  collections = [],
-  selectedCollection,
-  onCollectionSelect
+  prompts, user,
+  activeFilter, onFilterChange,
+  selectedTags, onTagToggle, allTags, getFilterCount, onSearchFocus,
+  collectionsExpanded, setCollectionsExpanded,
+  tagsExpanded, setTagsExpanded,
+  libraryExpanded, setLibraryExpanded,
+  onHomeClick, onCreateCollection,
+  collections, selectedCollection, onCollectionSelect
 }: PromptSidebarProps) {
+
   return (
     <div className="bg-[var(--black)] h-screen w-[240px] max-w-[240px] pl-6 pr-4 py-6 border-r border-[var(--moonlight-silver-dim)]/30 flex flex-col fixed top-0 left-0 z-50">
       {/* Header - Fixed at top */}
@@ -85,10 +78,7 @@ export default function PromptSidebar({
         </Button>
 
         {/* Home */}
-        <Link href="/prompt/" onClick={() => {
-          onFilterChange('all')
-          onHomeClick?.()
-        }}>
+        <Link href="/prompt/">
           <Button
             variant={activeFilter === 'all' ? 'default' : 'ghost'}
             className={`w-full justify-start gap-3 rounded-lg py-2 px-3 mb-6 ${
@@ -97,6 +87,10 @@ export default function PromptSidebar({
                 : 'text-[var(--moonlight-silver-bright)]'
             }`}
             title="Home"
+            onClick={() => {
+              onFilterChange('all')
+              onHomeClick()
+            }}
           >
             <Home size={16} className="flex-shrink-0" />
             <span className="truncate">Home</span>
@@ -210,7 +204,7 @@ export default function PromptSidebar({
                         ? 'bg-[var(--wisp-blue)]/20 text-[var(--wisp-blue)]'
                         : 'text-[var(--moonlight-silver)] hover:text-white hover:bg-white/5'
                     }`}
-                    onClick={() => onFilterChange(collection)}
+                    onClick={() => onCollectionSelect(collection.id)}
                     title={collection.title}
                   >
                     <span className="truncate">{collection.title}</span>

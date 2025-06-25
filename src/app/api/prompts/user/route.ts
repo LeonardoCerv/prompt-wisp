@@ -51,35 +51,11 @@ export async function GET() {
       );
     }
 
-    // Transform user's own prompts
-    const transformedUserPrompts = userPrompts.map(prompt => ({
-      ...prompt,
-      isFavorite: favoriteIds.includes(prompt.id),
-      isSaved: false, // User can't save their own prompts
-      isOwner: true,
-    }));
-
-    // Transform saved prompts
-    const transformedSavedPrompts = savedPrompts.map(prompt => ({
-      ...prompt,
-      isFavorite: favoriteIds.includes(prompt.id),
-      isSaved: true,
-      isOwner: false,
-    }));
-
-    // Transform favorite prompts
-    const transformedFavoritePrompts = favoritePrompts.map(prompt => ({
-      ...prompt,
-      isFavorite: true,
-      isSaved: false,
-      isOwner: false,
-    }));
-
     // Combine all prompts
     const allUserPrompts = [
-      ...transformedUserPrompts,
-      ...transformedSavedPrompts,
-      ...transformedFavoritePrompts
+      ...userPrompts,
+      ...savedPrompts,
+      ...favoritePrompts
     ];
 
     return NextResponse.json(allUserPrompts);

@@ -1,4 +1,3 @@
-
 import Navbar from '@/components/navbar';
 import { createClient } from '../../../lib/utils/supabase/server'
 
@@ -10,10 +9,10 @@ export default async function PromptLayout({
   const supabase = await createClient()
 
   const {
-    data: { user },
+    data: { user: authUser },
   } = await supabase.auth.getUser()
 
-  if (!user) {
+  if (!authUser) {
     return (
       <div className="min-h-screen bg-[var(--black)] flex items-center justify-center">
         <div className="text-center">
@@ -29,7 +28,7 @@ export default async function PromptLayout({
       <div className="min-h-screen bg-[var(--black)] w-full">
         <div className="h-screen">
           <div className="flex gap-0 h-full">
-            <Navbar user={user}>
+            <Navbar>
               {children}
             </Navbar>
           </div>

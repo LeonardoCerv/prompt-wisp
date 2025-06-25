@@ -9,42 +9,36 @@ import { PlusCircle, Copy, Trash2, RotateCcw, BookOpen } from 'lucide-react'
 import PromptCard from './promptCard'
 import { useRouter } from 'next/navigation'
 import { PromptData } from '@/lib/models/prompt'
-import { savePrompt, deletePrompt, restorePrompt, copyToClipboard, createNewPrompt } from './navbar'
+import { useNavbar } from '../context/navbarContext'
+import { UserData } from '@/lib/models'
 
-// Define the extended interface locally or import from navbar
-interface ExtendedPromptData extends PromptData {
-  isOwner: boolean
-  isFavorite: boolean
-  isSaved: boolean
-  isDeleted?: boolean
-}
 
 interface PromptMidbarProps {
-  prompts: ExtendedPromptData[]
-  user: {
-    id: string
-    email?: string
-  }
+  prompts: PromptData[]
+  user: UserData
 }
 
 export default function PromptMidbar({
   prompts, user
 }: PromptMidbarProps) {
+  const { createNewPrompt, deletePrompt, savePrompt, restorePrompt, copyToClipboard } = useNavbar()
+
   const router = useRouter()
   const [showCreateDialog, setShowCreateDialog] = useState(false)
-  const [selectedPrompt, setSelectedPrompt] = useState<ExtendedPromptData | null>(null)
+  const [selectedPrompt, setSelectedPrompt] = useState<PromptData | null>(null)
 
-  const handlePromptSelect = (prompt: ExtendedPromptData) => {
+  const handlePromptSelect = (prompt: PromptData) => {
     setSelectedPrompt(prompt)
     router.push(`/prompt/${prompt.id}`) // Navigate to the edit page
   }
 
-  const isOwner = (prompt: ExtendedPromptData) => {
+  const isOwner = (prompt: PromptData) => {
     return prompt.user_id === user.id
   }
 
-  const isFavorite = (prompt: ExtendedPromptData) => {
-    return prompt.isFavorite
+  const isFavorite = (prompt: PromptData) => {
+    if (!user.favorites || !prompt) return false
+    return user.favorites.includes(prompt.id)
   }
 
   return (

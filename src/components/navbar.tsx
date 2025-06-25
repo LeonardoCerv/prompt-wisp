@@ -6,13 +6,75 @@ import PromptMidbar from '@/components/promptMidbar'
 import NewCollection from '@/components/newCollection'
 import { toast } from 'sonner';
 import { PromptData } from '@/lib/models/prompt'
-import { useNavbar } from '../context/navbarContext'
+import { UserData } from '@/lib/models'
 
-export default function Navbar({children }: { children: React.ReactNode}) {
+// Utility: filterPrompts
+function filterPrompts(
+  prompts: PromptData[],
+  activeFilter: string,
+  searchTerm: string,
+  selectedTags: string[],
+  selectedCollection: any,
+  user: UserData
+): PromptData[] {
+  let filtered = prompts
+  if (activeFilter === 'your-prompts') {
+    filtered = filtered.filter(p => p.user_id === user.id && !p.deleted)
+  } else if (activeFilter === 'saved') {
+    filtered = filtered.filter(p => user.favorites?.includes(p.id))
+  } else if (activeFilter === 'deleted') {
+    filtered = filtered.filter(p => p.deleted)
+  }
+  if (selectedCollection) {
+    filtered = filtered.filter(p => p.collections?.includes(selectedCollection.id))
+  }
+  if (selectedTags.length > 0) {
+    filtered = filtered.filter(p => selectedTags.every(tag => p.tags?.includes(tag)))
+  }
+  if (searchTerm) {
+    filtered = filtered.filter(p =>
+      p.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      p.description?.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+  }
+  return filtered
+}
 
-  const { refreshPrompts, loadTags, getUser, getPrompts} = useNavbar()
-  const user = getUser()
-  const initialPromptsPromise = getPrompts()
+// Utility: getPromptFilterCount
+function getPromptFilterCount(prompts: PromptData[], filter: string, user: UserData): number {
+  if (filter === 'all') return prompts.length
+  if (filter === 'your-prompts') return prompts.filter(p => p.user_id === user.id && !p.deleted).length
+  if (filter === 'saved') return prompts.filter(p => user.favorites?.includes(p.id)).length
+  if (filter === 'deleted') return prompts.filter(p => p.deleted).length
+  return prompts.length
+}
+
+export default function Navbar({children}: { children: React.ReactNode}) { 
+  // Fetch user profile and prompts from the API
+  const [user, setUser] = useState<UserData | null>(null)
+  const [prompts, setPrompts] = useState<PromptData[]>([])
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const userRes = await fetch(`/api/users/`, { method: 'GET', cache: 'no-store' })
+        const userData = await userRes.json()
+        setUser(userData.user || userData)
+
+        const promptsRes = await fetch(`/api/prompts/user/`, { method: 'GET', cache: 'no-store' })
+        const promptsData = await promptsRes.json()
+        const loadedPrompts = Array.isArray(promptsData.prompts)
+          ? promptsData.prompts
+          : Array.isArray(promptsData)
+            ? promptsData
+            : []
+        setPrompts(loadedPrompts)
+      } catch (error) {
+        console.error('Error fetching user or prompts:', error)
+      }
+    }
+    fetchData()
+  }, [])
 
   const [collectionsExpanded, setCollectionsExpanded] = useState(false)
   const [tagsExpanded, setTagsExpanded] = useState(false)
@@ -21,7 +83,7 @@ export default function Navbar({children }: { children: React.ReactNode}) {
   const [isNewCollectionOpen, setIsNewCollectionOpen] = useState(false)
 
   // Add the missing state variables
-  const [prompts, setPrompts] = useState<PromptData[]>([])
+  const [localPrompts, setLocalPrompts] = useState<PromptData[]>([])
   const [filteredPrompts, setFilteredPrompts] = useState<PromptData[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [activeFilter, setActiveFilter] = useState<string>('all')
@@ -31,29 +93,6 @@ export default function Navbar({children }: { children: React.ReactNode}) {
   const [loading, setLoading] = useState(false)
   const [collections, setCollections] = useState<any[]>([])
   const [selectedCollection, setSelectedCollection] = useState<string | undefined>(undefined)
-
-  // Load prompts from API
-  const refreshPromptsInternal = useCallback(async () => {
-    setLoading(true)
-    try {
-      const userPrompts = await refreshPrompts()
-      setPrompts(userPrompts)
-    } catch (error) {
-      console.error('Error loading prompts:', error)
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  // Load tags from API
-  const loadTagsInternal = useCallback(async () => {
-    try {
-      const tags = await loadTags()
-      setAllTags(tags)
-    } catch (error) {
-      console.error('Error loading tags:', error)
-    }
-  }, [])
 
   // Load collections from API
   const loadCollections = useCallback(async () => {
@@ -71,19 +110,25 @@ export default function Navbar({children }: { children: React.ReactNode}) {
   // Initial load
   useEffect(() => {
     let isMounted = true
-    initialPromptsPromise.then((data: PromptData[]) => {
-      if (isMounted) setPrompts(data)
-    })
-    loadTagsInternal()
+    // Use the prompts state for initial load, but only if user is loaded
+    if (user) setLocalPrompts(prompts)
     loadCollections()
     return () => { isMounted = false }
-  }, [refreshPromptsInternal, loadTagsInternal, loadCollections, initialPromptsPromise])
+  }, [prompts, user, loadCollections])
 
-  // Filter prompts based on active filter, search term, and selected tags
+  // Filter prompts based on active filter, search term, selected tags, and selected collection
   useEffect(() => {
-    const filtered = filterPrompts(prompts, activeFilter, searchTerm, selectedTags, selectedCollection ? collections.find(c => c.id === selectedCollection) : undefined)
+    if (!user) return
+    const filtered = filterPrompts(
+      localPrompts,
+      activeFilter,
+      searchTerm,
+      selectedTags,
+      selectedCollection ? collections.find(c => c.id === selectedCollection) : undefined,
+      user
+    )
     setFilteredPrompts(filtered)
-  }, [prompts, activeFilter, searchTerm, selectedTags])
+  }, [localPrompts, activeFilter, searchTerm, selectedTags, selectedCollection, collections, user])
 
   const toggleTag = useCallback((tag: string) => {
     setSelectedTags(prev =>
@@ -95,8 +140,9 @@ export default function Navbar({children }: { children: React.ReactNode}) {
 
 
   const getFilterCount = useCallback((filter: string) => {
-    return getPromptFilterCount(prompts, filter)
-  }, [prompts])
+    if (!user) return 0
+    return getPromptFilterCount(localPrompts, filter, user)
+  }, [localPrompts, user])
 
   const handleCreateCollection = useCallback(async (collectionData: {
     title: string
@@ -107,6 +153,10 @@ export default function Navbar({children }: { children: React.ReactNode}) {
     collaborators: { id: string; name: string; username: string; email: string; profile_picture?: string; display: string }[]
     prompts: { id: string; title: string; description?: string; content: string; tags: string[] }[]
   }) => {
+    if (!user) {
+      toast.error('User not loaded. Please wait and try again.')
+      return
+    }
     try {
       const requestBody = {
         title: collectionData.title.trim(),
@@ -141,65 +191,82 @@ export default function Navbar({children }: { children: React.ReactNode}) {
       toast.error('Failed to create collection')
       throw error
     }
-  }, [user.id])
+  }, [user?.id])
+
+  // Only one of library or collection can be selected at a time
+  const handleFilterChange = (filter: string) => {
+    setActiveFilter(filter)
+    setSelectedCollection(undefined)
+  }
+
+  const handleCollectionSelect = (collectionId: string | undefined) => {
+    setSelectedCollection(collectionId)
+    setActiveFilter('') // Deselect library filter
+  }
 
   return (
     <div className="min-h-screen bg-[var(--black)] w-full">
-      <div className="h-screen">
-        {/* Three Column Layout */}
-        <div className="flex gap-0 h-full">
+      {/* Only render children if user is loaded */}
+      {user && (
+        <div className="h-screen">
+          {/* Three Column Layout */}
+          <div className="flex gap-0 h-full">
+            {/* Left Column - Filters */}
+            <div className="w-[240px] flex-shrink-0 h-full">
+              <PromptSidebar
+                prompts={localPrompts}
+                user={user}
+                activeFilter={activeFilter}
+                onFilterChange={handleFilterChange}
+                selectedTags={selectedTags}
+                onTagToggle={toggleTag}
+                allTags={allTags}
+                getFilterCount={getFilterCount}
+                onSearchFocus={() => searchInputRef?.focus()}
+                collectionsExpanded={collectionsExpanded}
+                setCollectionsExpanded={setCollectionsExpanded}
+                tagsExpanded={tagsExpanded}
+                setTagsExpanded={setTagsExpanded}
+                libraryExpanded={libraryExpanded}
+                setLibraryExpanded={setLibraryExpanded}
+                onHomeClick={() => handleFilterChange('all')}
+                onCreateCollection={() => setIsNewCollectionOpen(true)}
+                collections={collections}
+                selectedCollection={selectedCollection}
+                onCollectionSelect={handleCollectionSelect}
+              />
+            </div>
 
-          {/* Left Column - Filters */}
-          <div className="w-[240px] flex-shrink-0 h-full">
-            <PromptSidebar
-              activeFilter={activeFilter}
-              onFilterChange={setActiveFilter}
-              selectedTags={selectedTags}
-              onTagToggle={toggleTag}
-              allTags={allTags}
-              getFilterCount={getFilterCount}
-              onSearchFocus={() => searchInputRef?.focus()}
-              collectionsExpanded={collectionsExpanded}
-              setCollectionsExpanded={setCollectionsExpanded}
-              tagsExpanded={tagsExpanded}
-              setTagsExpanded={setTagsExpanded}
-              libraryExpanded={libraryExpanded}
-              setLibraryExpanded={setLibraryExpanded}
-              onHomeClick={() => setActiveFilter('all')}
-              onCreateCollection={() => setIsNewCollectionOpen(true)}
-              collections={collections}
-              selectedCollection={selectedCollection}
-              onCollectionSelect={setSelectedCollection}
-            />
-          </div>
+            {/* Center Column - Prompt List */}
+            <div className={`h-full flex flex-col ${activeFilter === 'all' ? 'hidden' : 'w-[300px]'}`}> 
+              <PromptMidbar
+                prompts={filteredPrompts}
+                user={user}
+              />
+            </div>
 
-          {/* Center Column - Prompt List */}
-          <div className={`h-full flex flex-col ${activeFilter === 'all' ? 'hidden' : 'w-[300px]'}`}> 
-            <PromptMidbar
-              prompts={filteredPrompts}
-              user={{ id: user.id, email: user.email }}
-            />
-          </div>
-
-          <div className="flex-1 h-full">
-            {children}
+            <div className="flex-1 h-full">
+              {children}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* New Collection Dialog */}
-      <NewCollection
-        open={isNewCollectionOpen}
-        onOpenChange={setIsNewCollectionOpen}
-        onSubmit={handleCreateCollection}
-        availablePrompts={prompts.filter(p => !p.deleted).map(p => ({
-          id: p.id,
-          title: p.title,
-          description: p.description || undefined,
-          content: p.content,
-          tags: p.tags
-        }))}
-      />
+      {user && (
+        <NewCollection
+          open={isNewCollectionOpen}
+          onOpenChange={setIsNewCollectionOpen}
+          onSubmit={handleCreateCollection}
+          availablePrompts={localPrompts.filter(p => !p.deleted).map(p => ({
+            id: p.id,
+            title: p.title,
+            description: p.description || undefined,
+            content: p.content,
+            tags: p.tags
+          }))}
+        />
+      )}
     </div>
   )
 }

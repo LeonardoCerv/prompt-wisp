@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/utils/supabase/server";
 import Prompt, { PromptInsert, PromptUpdate, PromptWithProfile } from "@/lib/models/prompt";
 
-// Get all prompts with user profile information
+// Get all prompts
 export async function GET() {
     try {
         const prompts: PromptWithProfile[] = await Prompt.findPublicWithProfiles();
