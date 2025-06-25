@@ -388,7 +388,7 @@ export const NavbarProvider = ({children} : {children: React.ReactNode}) => {
   }, [])
 
   // Fetch collections from API on mount and when a new collection is created
-  const fetchCollections = async () => {
+  const fetchCollections = useCallback(async () => {
     try {
       const res = await fetch('/api/collections', { cache: 'no-store' })
       if (res.ok) {
@@ -400,15 +400,28 @@ export const NavbarProvider = ({children} : {children: React.ReactNode}) => {
     } catch (e) {
       setCollections([])
     }
-  }
+  }, [])
 
   useEffect(() => {
     fetchCollections()
-  }, [])
+  }, [fetchCollections])
 
-  // Explicitly provide all required context values
-  const value: NavbarType = {
-    usePromptState: defaultNavbar.usePromptState,
+  // Expose fetchCollections in context for sidebar to call after creating a collection
+  // Do NOT add prompts, setPrompts, etc. to the context value, as they are not part of NavbarType
+  const value: NavbarType & { fetchCollections?: () => Promise<void> } = {
+    ...defaultNavbar,
+    collectionsExpanded, setCollectionsExpanded,
+    tagsExpanded, setTagsExpanded,
+    libraryExpanded, setLibraryExpanded,
+    collections, setCollections,
+    selectedCollection, setSelectedCollection,
+    savePrompt: defaultNavbar.savePrompt,
+    deletePrompt: defaultNavbar.deletePrompt,
+    restorePrompt: defaultNavbar.restorePrompt,
+    toggleFavorite: defaultNavbar.toggleFavorite,
+    createNewPrompt: defaultNavbar.createNewPrompt,
+    refreshPrompts: defaultNavbar.refreshPrompts,
+    loadTags: defaultNavbar.loadTags,
     filterPromptsByFavorites: defaultNavbar.filterPromptsByFavorites,
     filterPromptsByOwner: defaultNavbar.filterPromptsByOwner,
     filterPromptsBySaved: defaultNavbar.filterPromptsBySaved,
@@ -418,19 +431,9 @@ export const NavbarProvider = ({children} : {children: React.ReactNode}) => {
     checkIsOwner: defaultNavbar.checkIsOwner,
     copyToClipboard: defaultNavbar.copyToClipboard,
     isMidbarExpanded: defaultNavbar.isMidbarExpanded,
-    createNewPrompt: defaultNavbar.createNewPrompt,
-    refreshPrompts: defaultNavbar.refreshPrompts,
-    loadTags: defaultNavbar.loadTags,
-    savePrompt: defaultNavbar.savePrompt,
-    deletePrompt: defaultNavbar.deletePrompt,
-    restorePrompt: defaultNavbar.restorePrompt,
-    toggleFavorite: defaultNavbar.toggleFavorite,
-    collectionsExpanded, setCollectionsExpanded,
-    tagsExpanded, setTagsExpanded,
-    libraryExpanded, setLibraryExpanded,
-    collections, setCollections,
-    selectedCollection, setSelectedCollection,
   }
+  // Attach fetchCollections as a property on the value object
+  value.fetchCollections = fetchCollections
 
   return (
     <NavbarContext.Provider value={value}>
@@ -439,4 +442,4 @@ export const NavbarProvider = ({children} : {children: React.ReactNode}) => {
   )
 }
 
-export const useNavbar = () => useContext(NavbarContext);
+export const useNavbar = () => useContext(NavbarContext)

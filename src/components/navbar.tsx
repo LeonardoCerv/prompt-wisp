@@ -6,7 +6,7 @@ import PromptMidbar from '@/components/promptMidbar'
 import { toast } from 'sonner';
 import { PromptData } from '@/lib/models/prompt'
 import { UserData } from '@/lib/models'
-import { createClient } from '@/lib/utils/supabase/client'
+import { useNavbar } from '@/context/navbarContext'
 
 // Utility: filterPrompts
 function filterPrompts(
@@ -49,82 +49,29 @@ function getPromptFilterCount(prompts: PromptData[], filter: string, user: UserD
   return prompts.length
 }
 
-export default function Navbar({children}: { children: React.ReactNode}) { 
+export default function Navbar({children, user}: { children: React.ReactNode, user: UserData }) { 
   // Fetch user profile and prompts from the API
-  const [user, setUser] = useState<UserData | null>(null)
   const [prompts, setPrompts] = useState<PromptData[]>([])
 
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        // Get user from supabase auth client
-        const supabase = createClient()
-        const { data: { user: authUser } } = await supabase.auth.getUser()
-        if (!authUser) {
-          setUser(null)
-          return
-        }
-        // Optionally fetch user profile from your API if needed
-        const userRes = await fetch(`/api/users/`, { method: 'GET', cache: 'no-store' })
-        const userData = await userRes.json()
-        setUser(userData.user || userData)
+  // Use sidebar context for collections and selection
+  const {
+    collections,
+    selectedCollection,
+    setSelectedCollection
+  } = useNavbar();
 
-        const promptsRes = await fetch(`/api/prompts/user/`, { method: 'GET', cache: 'no-store' })
-        const promptsData = await promptsRes.json()
-        const loadedPrompts = Array.isArray(promptsData.prompts)
-          ? promptsData.prompts
-          : Array.isArray(promptsData)
-            ? promptsData
-            : []
-        setPrompts(loadedPrompts)
-      } catch (error) {
-        console.error('Error fetching user or prompts:', error)
-      }
-    }
-    fetchData()
-  }, [])
-
-  const [collectionsExpanded, setCollectionsExpanded] = useState(false)
-  const [tagsExpanded, setTagsExpanded] = useState(false)
-  const [libraryExpanded, setLibraryExpanded] = useState(false)
-  const [searchInputRef, setSearchInputRef] = useState<HTMLInputElement | null>(null)
-  const [isNewCollectionOpen, setIsNewCollectionOpen] = useState(false)
-
-  // Add the missing state variables
+  // Local state for prompt filters and tags
   const [localPrompts, setLocalPrompts] = useState<PromptData[]>([])
   const [filteredPrompts, setFilteredPrompts] = useState<PromptData[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [activeFilter, setActiveFilter] = useState<string>('all')
   const [selectedTags, setSelectedTags] = useState<string[]>([])
-  const [selectedPrompt, setSelectedPrompt] = useState<PromptData | null>(null)
   const [allTags, setAllTags] = useState<string[]>([])
-  const [loading, setLoading] = useState(false)
-  const [collections, setCollections] = useState<any[]>([])
-  const [selectedCollection, setSelectedCollection] = useState<string | undefined>(undefined)
 
-  // Load collections from API
-  const loadCollections = useCallback(async () => {
-    try {
-      const response = await fetch('/api/collections')
-      if (response.ok) {
-        const data = await response.json()
-        setCollections(data.collections || [])
-      }
-    } catch (error) {
-      console.error('Error loading collections:', error)
-    }
-  }, [])
-
-  // Initial load
   useEffect(() => {
-    let isMounted = true
-    // Use the prompts state for initial load, but only if user is loaded
     if (user) setLocalPrompts(prompts)
-    loadCollections()
-    return () => { isMounted = false }
-  }, [prompts, user, loadCollections])
+  }, [prompts, user])
 
-  // Filter prompts based on active filter, search term, selected tags, and selected collection
   useEffect(() => {
     if (!user) return
     const filtered = filterPrompts(
@@ -145,7 +92,6 @@ export default function Navbar({children}: { children: React.ReactNode}) {
         : [...prev, tag]
     )
   }, [])
-
 
   const getFilterCount = useCallback((filter: string) => {
     if (!user) return 0
@@ -187,7 +133,6 @@ export default function Navbar({children}: { children: React.ReactNode}) {
         const createdCollection = await response.json()
         toast.success('Collection created successfully')
         // Refresh collections list
-        loadCollections()
         return createdCollection
       } else {
         const errorData = await response.json()

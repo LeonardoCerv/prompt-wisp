@@ -47,10 +47,12 @@ export default function PromptSidebar({
   const [isNewCollectionOpen, setIsNewCollectionOpen] = useState(false)
 
   // Prevent opening the create collection dialog if user is not loaded
-  const handleCreateCollectionClick = () => {
+  const handleCreateCollectionClick = (e?: React.MouseEvent) => {
+    setIsNewCollectionOpen(true)
+    if (e) e.stopPropagation();
     if (!user || !user.id) {
       // Optionally show a toast or alert here
-      console.warn('User not loaded or not authenticated')
+      console.log('User not loaded or not authenticated')
       return
     }
     setIsNewCollectionOpen(true)
@@ -222,10 +224,7 @@ export default function PromptSidebar({
             <div className="space-y-1">
                <Button
                 variant="ghost"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  handleCreateCollectionClick()
-                }}
+                onClick={handleCreateCollectionClick}
                 className="w-full justify-start gap-3 text-sm text-[var(--wisp-blue)] rounded-lg py-2 px-3 hover:bg-[var(--wisp-blue)]/20 hover:text-[var(--wisp-blue)] border border-dashed border-[var(--wisp-blue)]/40"
                 title="Create new collection"
               >
