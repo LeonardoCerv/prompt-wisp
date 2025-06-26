@@ -11,11 +11,9 @@ interface PromptActionsProps {
 }
 
 export function PromptActions({ onCreatePrompt }: PromptActionsProps) {
-  const { state, actions } = useApp()
+  const { state, actions, utils } = useApp()
   const { selectedPrompt } = state.ui
   const { user } = state
-
-  const isOwner = (prompt: any) => prompt?.user_id === user?.id
 
   const copyToClipboard = (content: string, title: string) => {
     navigator.clipboard
@@ -32,7 +30,7 @@ export function PromptActions({ onCreatePrompt }: PromptActionsProps) {
     if (!selectedPrompt) return
 
     try {
-      if (!isOwner(selectedPrompt)) {
+      if (!utils.isOwner(selectedPrompt)) {
         await actions.savePrompt(selectedPrompt.id)
         toast.success("Prompt unsaved")
       } else {
@@ -86,7 +84,7 @@ export function PromptActions({ onCreatePrompt }: PromptActionsProps) {
             size="sm"
             variant="icon"
             onClick={handleRestore}
-            disabled={!selectedPrompt || !selectedPrompt.deleted || !isOwner(selectedPrompt)}
+            disabled={!selectedPrompt || !selectedPrompt.deleted || !utils.isOwner(selectedPrompt)}
             className="h-10 w-10 hover:text-green-400 disabled:opacity-30 disabled:cursor-not-allowed text-green-400/70"
             title="Restore prompt"
           >
@@ -97,9 +95,9 @@ export function PromptActions({ onCreatePrompt }: PromptActionsProps) {
             size="sm"
             variant="icon"
             onClick={handleDelete}
-            disabled={!selectedPrompt || selectedPrompt.deleted || !isOwner(selectedPrompt)}
+            disabled={!selectedPrompt || selectedPrompt.deleted || !utils.isOwner(selectedPrompt)}
             className="h-10 w-10 hover:text-red-400 disabled:opacity-30 disabled:cursor-not-allowed text-red-400/70"
-            title={selectedPrompt && !isOwner(selectedPrompt) ? "Unsave prompt" : "Delete prompt"}
+            title={selectedPrompt && !utils.isOwner(selectedPrompt) ? "Unsave prompt" : "Delete prompt"}
           >
             <Trash2 size={22} />
           </Button>

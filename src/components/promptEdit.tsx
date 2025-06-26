@@ -18,6 +18,7 @@ import Link from 'next/link'
 
 import { PromptData } from '@/lib/models/prompt'
 import { useApp } from '@/contexts/appContext'
+import { toast } from 'sonner'
 
 
 interface PromptEditProps {
@@ -52,7 +53,7 @@ export default function PromptEdit({
   const contentRef = useRef<HTMLTextAreaElement>(null)
 
 
-  const { utils } = useApp()
+  const { utils, actions } = useApp()
 
   // Update local state when selectedPrompt changes
   useEffect(() => {
@@ -85,6 +86,25 @@ export default function PromptEdit({
   }
 
   // Handle saving changes
+  const handleSaveChanges = async () => {
+    if (!selectedPrompt) return
+
+    try {
+      
+      await actions.savePromptChanges(selectedPrompt.id, {
+        title: editedTitle,
+        content: editedContent,
+        description: editedDescription,
+        tags: editedTags
+      })
+      
+      toast.success("Prompt updated successfully")
+    } catch (error) {
+      console.error("Error updating prompt:", error)
+      toast.error("Failed to update prompt")
+    }
+  }
+
   const handleSave = useCallback(async () => {
     if (!selectedPrompt || !onUpdatePrompt || !hasUnsavedChanges) return
     
@@ -112,13 +132,13 @@ export default function PromptEdit({
       // Cmd/Ctrl + S to save
       if ((event.metaKey || event.ctrlKey) && event.key === 's') {
         event.preventDefault()
-        handleSave()
+        handleSaveChanges()
       }
     }
 
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [selectedPrompt, handleSave])
+  }, [selectedPrompt, handleSaveChanges])
 
   // Auto-focus title on mount
   useEffect(() => {
@@ -188,7 +208,7 @@ export default function PromptEdit({
               {hasUnsavedChanges && (
                 <Button
                   size="sm"
-                  onClick={handleSave}
+                  onClick={handleSaveChanges}
                   disabled={isSaving}
                   className="bg-blue-600 hover:bg-blue-700 text-white p-1.5"
                 >

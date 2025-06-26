@@ -122,6 +122,8 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: "ID is required" }, { status: 400 });
     }
 
+    console.log(id, updates)
+
     // Verify user owns the prompt
     const existingPrompt = await Prompt.findById(id);
     

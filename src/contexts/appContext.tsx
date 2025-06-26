@@ -155,6 +155,7 @@ interface AppContextType {
     restorePrompt: (id: string) => Promise<void>
     toggleFavorite: (id: string) => Promise<void>
     savePrompt: (id: string) => Promise<void>
+    savePromptChanges: (id: string, updates: Partial<PromptData>) => Promise<void>
 
     // Collection operations
     createCollection: (collection: any) => Promise<CollectionData>
@@ -373,6 +374,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [loadUser],
   )
 
+  const savePromptChanges = useCallback(async (id: string, updates: Partial<PromptData>) => {
+    const response = await fetch(`/api/prompts/`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, updates }),
+    })
+
+    if (!response.ok) {
+      throw new Error("Failed to update prompt")
+    }
+
+    const updatedPrompt = await response.json()
+    dispatch({ type: "UPDATE_PROMPT", payload: updatedPrompt })
+  }, [])
+
   const createCollection = useCallback(async (collectionData: any): Promise<CollectionData> => {
     const response = await fetch("/api/collections", {
       method: "POST",
@@ -542,6 +558,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       restorePrompt,
       toggleFavorite,
       savePrompt,
+      savePromptChanges,
       createCollection,
       setFilter,
       setSelectedPrompt,
@@ -559,6 +576,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       restorePrompt,
       toggleFavorite,
       savePrompt,
+      savePromptChanges,
       createCollection,
       setFilter,
       setSelectedPrompt,
