@@ -9,7 +9,8 @@ import {
   Trash2
 } from 'lucide-react'
 import { PromptData } from '@/lib/models/prompt'
-import { toggleFavoritePrompt } from './actions'
+import { useApp } from '@/contexts/appContext'
+import { toast } from 'sonner'
 
 interface PromptCardProps {
   prompt: PromptData
@@ -30,6 +31,16 @@ export default function PromptCard({
   isOwner,
   isFavorite
 }: PromptCardProps) {
+    const { actions } = useApp()
+    const handleToggleFavorite = async (id: string) => {
+    try {
+      await actions.toggleFavorite(id)
+      toast.success("Favorite status updated")
+    } catch (error) {
+      toast.error("Failed to update favorite status")
+    }
+  }
+  
   const getBorderClass = () => {
     if (isSelected) {
       return 'bg-[var(--flare-cyan)]/30 border-transparent shadow-sm rounded-sm px-3'
@@ -78,7 +89,7 @@ export default function PromptCard({
             <button
               onClick={async (e) => {
                 e.stopPropagation()
-                await toggleFavoritePrompt(prompt.id, !isFavorite)
+                handleToggleFavorite(prompt.id)
               }}
               className="p-0.5 transition-colors hover:bg-transparent ml-4"
             >

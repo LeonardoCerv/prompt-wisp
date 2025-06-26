@@ -17,15 +17,8 @@ import {
 import Link from 'next/link'
 import { PromptData } from '@/lib/models/prompt'
 
-interface ExtendedPromptData extends PromptData {
-  isOwner: boolean
-  isFavorite: boolean
-  isSaved: boolean
-  isDeleted?: boolean
-}
-
 interface PromptEditProps {
-  selectedPrompt: ExtendedPromptData | null
+  selectedPrompt: PromptData | null
   onToggleFavorite: (id: string) => void
   onCopy: (content: string, title: string) => void
   onSave: (id: string) => void

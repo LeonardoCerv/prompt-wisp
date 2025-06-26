@@ -1,5 +1,6 @@
 import Navbar from '@/components/navbar';
 import { createClient } from '../../../lib/utils/supabase/server'
+import { AppProvider } from '@/contexts/appContext';
 
 export default async function PromptLayout({
   children,
@@ -28,9 +29,11 @@ export default async function PromptLayout({
       <div className="min-h-screen bg-[var(--black)] w-full">
         <div className="h-screen">
           <div className="flex gap-0 h-full">
+            <AppProvider>
             <Navbar>
               {children}
             </Navbar>
+            </AppProvider>
           </div>
         </div>
       </div>

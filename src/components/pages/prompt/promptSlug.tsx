@@ -1,274 +1,126 @@
-'use client'
+"use client"
 
-import { useEffect, useState } from 'react'
-import PromptEdit from '@/components/promptEdit'
-import PromptSlugPreview from '@/components/promptPreview'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import { Home, FileX } from 'lucide-react'
-import Link from 'next/link'
-import { 
-  savePrompt, 
-  deletePrompt, 
-  restorePrompt, 
-  copyToClipboard, 
-  toggleFavorite,
-  refreshPrompts,
-} from '@/components/navbar'
-import { PromptData } from '@/lib/models/prompt'
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
+import PromptEdit from "@/components/promptEdit"
+import PromptPreview from "@/components/promptPreview"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
+import { Home, FileX } from "lucide-react"
+import Link from "next/link"
+import { toast } from "sonner"
+import { useApp } from "@/contexts/appContext"
+import type { PromptData } from "@/lib/models/prompt"
+import { UserData } from "@/lib/models"
 
-// Extended interface for transformed prompt data
-interface ExtendedPromptData extends PromptData {
-  isOwner: boolean
-  isFavorite: boolean
-  isSaved: boolean
-  isDeleted?: boolean
-}
+export default function PromptSlugPage({ slug, promptData, user }: { slug: string, promptData: PromptData, user: UserData}) {
+  const router = useRouter()
+  const { state, actions } = useApp()
+  const { prompts } = state
 
-interface PromptSlugPageProps {
-  slug: string
-  promptData?: any // eslint-disable-line @typescript-eslint/no-explicit-any
-  user: {
-    id: string
-    email?: string
-  }
-}
-
-export default function PromptSlugPage({ slug, promptData, user }: PromptSlugPageProps) {
-  const [prompts, setPrompts] = useState<ExtendedPromptData[]>([])
-  const [selectedPrompt, setSelectedPrompt] = useState<ExtendedPromptData | null>(null)
-  const [activeFilter, setActiveFilter] = useState<string>('all')
-  const [loading, setLoading] = useState(false)
+  const [selectedPrompt, setSelectedPrompt] = useState<PromptData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [promptFound, setPromptFound] = useState(false)
 
-  // Helper function to safely parse dates
-  const safeParseDate = (dateString: any): string => {
-    if (!dateString) return new Date().toISOString()
-    
-    try {
-      console.log('Original date input:', dateString, 'Type:', typeof dateString)
-      
-      // If it's already a valid ISO string, return it
-      if (typeof dateString === 'string' && dateString.includes('T') && dateString.includes('Z')) {
-        const testDate = new Date(dateString)
-        if (!isNaN(testDate.getTime())) {
-          console.log('Already valid ISO string:', dateString)
-          return dateString
-        }
-      }
-      
-      let parsedDate: Date
-      
-      if (typeof dateString === 'string') {
-        // Handle PostgreSQL timestamp format: "2025-06-24 20:19:11.559614+00"
-        let normalizedDate = dateString.trim()
-        
-        // If it has timezone offset like +00 or -05, convert to proper format
-        if (normalizedDate.includes('+') || normalizedDate.match(/-\d{2}$/)) {
-          // Replace space with T for ISO format
-          normalizedDate = normalizedDate.replace(' ', 'T')
-          
-          // Handle timezone: +00 -> Z, +05:30 -> +05:30, etc.
-          if (normalizedDate.endsWith('+00')) {
-            normalizedDate = normalizedDate.replace('+00', 'Z')
-          } else if (normalizedDate.match(/[+-]\d{2}$/)) {
-            // Add :00 to timezone if missing (e.g., +05 -> +05:00)
-            normalizedDate = normalizedDate + ':00'
-          }
-        } else if (!normalizedDate.includes('T')) {
-          // If no timezone info, assume UTC and add Z
-          normalizedDate = normalizedDate.replace(' ', 'T') + 'Z'
-        }
-        
-        // Trim microseconds to 3 digits (milliseconds) if they exist
-        normalizedDate = normalizedDate.replace(/(\.\d{3})\d{3}/, '$1')
-        
-        console.log('Normalized date:', normalizedDate)
-        parsedDate = new Date(normalizedDate)
-      } else {
-        // Try direct parsing for non-string inputs
-        parsedDate = new Date(dateString)
-      }
-      
-      if (isNaN(parsedDate.getTime())) {
-        console.warn('Failed to parse date:', dateString, 'Using current date as fallback')
-        return new Date().toISOString()
-      }
-      
-      const result = parsedDate.toISOString()
-      console.log('Successfully parsed date. Final result:', result)
-      return result
-    } catch (error) {
-      console.error('Error parsing date:', dateString, 'Error:', error)
-      return new Date().toISOString()
-    }
-  }
-
-  // Helper functions
-  const selectPrompt = (prompt: ExtendedPromptData | null) => {
-    setSelectedPrompt(prompt)
-  }
-
+  // Helper functions using context actions
   const isOwner = (prompt: PromptData) => {
     return prompt.user_id === user.id
   }
 
   const updatePrompt = async (id: string, updates: Partial<PromptData>) => {
     try {
-      // Update the prompt via API
-      const response = await fetch(`/api/prompts`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, updates })
-      })
+      await actions.updatePrompt(id, updates)
 
-      if (response.ok) {
-        const updated = await response.json()
-        if (selectedPrompt) {
-          setSelectedPrompt({ ...selectedPrompt, ...updated })
-        }
-        // Refresh prompts list
-        loadPrompts()
+      // Update local selected prompt
+      if (selectedPrompt) {
+        setSelectedPrompt({ ...selectedPrompt, ...updates })
       }
+
+      toast.success("Prompt updated successfully")
     } catch (error) {
-      console.error('Error updating prompt:', error)
+      console.error("Error updating prompt:", error)
+      toast.error("Failed to update prompt")
     }
   }
 
-  // Wrapper functions for navbar functions to match expected signatures
-  const handleToggleFavorite = (id: string) => {
-    toggleFavorite(id)
-    loadPrompts() // Refresh to get updated data
+  const handleToggleFavorite = async (id: string) => {
+    try {
+      await actions.toggleFavorite(id)
+      toast.success("Favorite status updated")
+    } catch (error) {
+      toast.error("Failed to update favorite status")
+    }
   }
 
   const handleCopyToClipboard = (content: string, title: string) => {
-    copyToClipboard(content, title)
+    navigator.clipboard
+      .writeText(content)
+      .then(() => {
+        toast.success(`"${title}" copied to clipboard`)
+      })
+      .catch(() => {
+        toast.error("Failed to copy to clipboard")
+      })
   }
 
-  const handleSavePrompt = (id: string) => {
-    savePrompt(id)
-    loadPrompts() // Refresh to get updated data
-  }
-
-  const handleDeletePrompt = (id: string) => {
-    deletePrompt(id)
-    loadPrompts() // Refresh to get updated data
-  }
-
-  const handleRestorePrompt = (id: string) => {
-    restorePrompt(id)
-    loadPrompts() // Refresh to get updated data
-  }
-
-  const loadPrompts = async () => {
-    setLoading(true)
+  const handleSavePrompt = async (id: string) => {
     try {
-      const userPrompts = await refreshPrompts()
-      // Transform prompts to ExtendedPromptData format
-      const transformedPrompts = userPrompts.map((prompt: any) => ({
-        ...prompt,
-        created_at: safeParseDate(prompt.created_at),
-        updated_at: safeParseDate(prompt.updated_at),
-        isOwner: prompt.user_id === user.id,
-        isFavorite: prompt.is_favorite || false,
-        isSaved: prompt.is_saved || false,
-        isDeleted: prompt.deleted || false
-      }))
-      setPrompts(transformedPrompts)
+      await actions.savePrompt(id)
+      toast.success("Prompt saved")
     } catch (error) {
-      console.error('Error loading prompts:', error)
-    } finally {
-      setLoading(false)
+      toast.error("Failed to save prompt")
     }
   }
 
-  useEffect(() => {
-    // Load prompts first
-    loadPrompts()
-  }, [user.id]) // Add user.id as dependency
+  const handleDeletePrompt = async (id: string) => {
+    try {
+      await actions.deletePrompt(id)
+      toast.success("Prompt moved to Recently Deleted")
+      // Navigate back to prompts list since this prompt is now deleted
+      router.push("/prompt")
+    } catch (error) {
+      toast.error("Failed to delete prompt")
+    }
+  }
 
+  const handleRestorePrompt = async (id: string) => {
+    try {
+      await actions.restorePrompt(id)
+      toast.success("Prompt restored")
+    } catch (error) {
+      toast.error("Failed to restore prompt")
+    }
+  }
+
+  // Initialize prompt data
   useEffect(() => {
     // If we have server-side data, use it immediately
-    if (promptData) {
-      const transformedPrompt: ExtendedPromptData = {
-        id: promptData.id,
-        title: promptData.title,
-        description: promptData.description || null,
-        content: promptData.content,
-        tags: promptData.tags || [],
-        created_at: safeParseDate(promptData.created_at),
-        updated_at: safeParseDate(promptData.updated_at),
-        user_id: promptData.user_id,
-        images: promptData.images || null,
-        collaborators: promptData.collaborators || null,
-        visibility: promptData.visibility || 'private',
-        deleted: promptData.deleted || false,
-        collections: promptData.collections || null,
-        isOwner: promptData.user_id === user.id,
-        isFavorite: promptData.is_favorite || false,
-        isSaved: promptData.is_saved || false,
-        isDeleted: promptData.deleted || false
-      }
-      
-      selectPrompt(transformedPrompt)
-      
-      // Set appropriate filter based on prompt characteristics for direct URL access
-      if (activeFilter === 'all') {
-        if (transformedPrompt.isDeleted) {
-          setActiveFilter('deleted')
-        } else if (transformedPrompt.isFavorite) {
-          setActiveFilter('favorites')
-        } else if (isOwner(transformedPrompt)) {
-          setActiveFilter('your-prompts')
-        } else if (transformedPrompt.isSaved) {
-          setActiveFilter('saved')
-        } else {
-          setActiveFilter('all-prompts')
-        }
-      }
-      
+    if (promptData && !selectedPrompt) {
+      setSelectedPrompt(promptData)
       setPromptFound(true)
       setIsLoading(false)
       return
     }
 
     // Fallback to client-side lookup if no server data
-    if (slug && prompts.length > 0 && !loading) {
-      const prompt = prompts.find(p => p.id === slug) // Using id instead of slug
+    if (slug && prompts.length > 0 && !selectedPrompt) {
+      const prompt = prompts.find((p) => p.id === slug)
       if (prompt) {
-        selectPrompt(prompt)
-        
-        // Only set filter if we're currently on 'all' (direct URL access)
-        if (activeFilter === 'all') {
-          // Determine appropriate filter based on prompt characteristics
-          if (prompt.isDeleted) {
-            setActiveFilter('deleted')
-          } else if (prompt.isFavorite) {
-            setActiveFilter('favorites')
-          } else if (isOwner(prompt)) {
-            setActiveFilter('your-prompts')
-          } else if (prompt.isSaved) {
-            setActiveFilter('saved')
-          } else {
-            setActiveFilter('all-prompts')
-          }
-        }
-        
+        setSelectedPrompt(prompt)
         setPromptFound(true)
       } else {
         setPromptFound(false)
       }
       setIsLoading(false)
-    } else if (slug && !loading && prompts.length === 0) {
+    } else if (slug && !state.loading.prompts && prompts.length === 0 && !selectedPrompt) {
       // No prompts loaded and not loading - prompt not found
       setPromptFound(false)
       setIsLoading(false)
     }
-  }, [slug, prompts, activeFilter, loading, promptData, user.id])
+  }, [slug, prompts, promptData, user.id, state.loading.prompts, selectedPrompt])
 
   // Loading skeleton
-  if (isLoading) {
+  if (isLoading || state.loading.prompts) {
     return (
       <div className="flex flex-col bg-[var(--prompts)] h-screen p-6">
         <div className="animate-pulse">
@@ -283,7 +135,7 @@ export default function PromptSlugPage({ slug, promptData, user }: PromptSlugPag
               <div className="h-9 bg-[var(--slate-grey)]/30 rounded w-20"></div>
             </div>
           </div>
-          
+
           {/* Content skeleton */}
           <div className="space-y-4">
             <div className="h-4 bg-[var(--slate-grey)]/20 rounded w-3/4"></div>
@@ -309,14 +161,12 @@ export default function PromptSlugPage({ slug, promptData, user }: PromptSlugPag
                   <FileX className="h-8 w-8 text-[var(--moonlight-silver)]" />
                 </div>
               </div>
-              <h3 className="text-xl font-semibold text-[var(--moonlight-silver-bright)] mb-2">
-                Prompt Not Found
-              </h3>
+              <h3 className="text-xl font-semibold text-[var(--moonlight-silver-bright)] mb-2">Prompt Not Found</h3>
               <p className="text-[var(--moonlight-silver)]/80 mb-6">
                 The prompt you&apos;re looking for doesn&apos;t exist or may have been removed.
               </p>
               <Link href="/prompt">
-                <Button 
+                <Button
                   size="lg"
                   className="bg-[var(--wisp-blue)] hover:bg-[var(--wisp-blue)]/90 text-white font-semibold gap-2"
                 >
@@ -335,10 +185,10 @@ export default function PromptSlugPage({ slug, promptData, user }: PromptSlugPag
   // Check if user can edit this prompt:
   // - User must be the owner OR a collaborator
   // - Prompt must NOT be soft deleted
-  const canEdit = selectedPrompt && (
-    isOwner(selectedPrompt) || 
-    (selectedPrompt.collaborators && selectedPrompt.collaborators.includes(user.id))
-  ) && !selectedPrompt.deleted
+  const canEdit =
+    selectedPrompt &&
+    (isOwner(selectedPrompt) || (selectedPrompt.collaborators && selectedPrompt.collaborators.includes(user.id))) &&
+    !selectedPrompt.deleted
 
   // Show edit component for users with edit permissions
   if (canEdit) {
@@ -352,22 +202,22 @@ export default function PromptSlugPage({ slug, promptData, user }: PromptSlugPag
         onRestore={handleRestorePrompt}
         onUpdatePrompt={updatePrompt}
         isOwner={isOwner}
-        currentFilter={activeFilter}
+        currentFilter={state.filters.selectedFilter}
       />
     )
   }
 
   // Show preview component for read-only access:
-  // - Non-owners/non-collaborators  
+  // - Non-owners/non-collaborators
   // - Owners viewing soft-deleted prompts
   // - Any user viewing public/shared prompts
   return (
-    <PromptSlugPreview
+    <PromptPreview
       selectedPrompt={selectedPrompt}
       onToggleFavorite={handleToggleFavorite}
       onCopy={handleCopyToClipboard}
       onSave={handleSavePrompt}
-      currentFilter={activeFilter}
+      currentFilter={state.filters.selectedFilter}
       user={user}
     />
   )
