@@ -40,8 +40,6 @@ export default function Navbar({ children }: NavbarProps) {
         user_id: user?.id,
       }
 
-      await actions.createCollection(requestBody)
-
       console.log("Creating collection with data:", requestBody)
 
       const newCollection = await actions.createCollection(requestBody)
