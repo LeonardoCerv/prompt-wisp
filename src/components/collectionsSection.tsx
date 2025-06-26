@@ -32,14 +32,9 @@ export function CollectionsSection({ onCreateCollection }: CollectionsSectionPro
               e.stopPropagation()
               onCreateCollection()
             }}
-            className="w-full justify-start gap-3 text-sm text-[var(--wisp-blue)] rounded-lg py-2 px-3 hover:bg-[var(--wisp-blue)]/20 hover:text-[var(--wisp-blue)] border border-dashed border-[var(--wisp-blue)]/40"
-            title="Create new collection"            disabled={loading.collections}
+            className="w-full justify-start gap-3 text-sm justify-center text-[var(--wisp-blue)] rounded-lg py-2 px-3 hover:bg-[var(--wisp-blue)]/20 hover:text-[var(--wisp-blue)] border border-dashed border-[var(--wisp-blue)]/40"
+            title="Create new collection"
           >
-            {loading.collections ? (
-              <Loader2 size={14} className="flex-shrink-0 animate-spin" />
-            ) : (
-              <Plus size={14} className="flex-shrink-0" />
-            )}
             <Plus size={14} className="flex-shrink-0" />
             <span className="truncate">Create Collection</span>
           </Button>

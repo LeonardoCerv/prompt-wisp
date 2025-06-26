@@ -2,11 +2,11 @@
 
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { BookOpen, PlusCircle } from "lucide-react"
+import { BookOpen, Plus, PlusCircle } from "lucide-react"
 import { useApp } from "@/contexts/appContext"
 import { useFilteredPrompts } from "@/hooks/useFilteredPrompts"
 import { PromptActions } from "./promptActions"
-// Import the updated PromptCard
+
 import PromptCard from "@/components/promptCard"
 import { useRouter } from "next/navigation"
 
@@ -36,9 +36,6 @@ export function PromptList({ onCreatePrompt }: PromptListProps) {
     router.push(`/prompt/${prompt.id}`)
   }
 
-  const isOwner = (prompt: any) => prompt.user_id === user?.id
-  const isFavorite = (prompt: any) => user?.favorites?.includes(prompt.id) || false
-
   if (selectedFilter === "home") {
     return null
   }
@@ -49,6 +46,16 @@ export function PromptList({ onCreatePrompt }: PromptListProps) {
         <PromptActions onCreatePrompt={onCreatePrompt} />
 
         <div className="flex-1 overflow-y-auto px-3">
+          <Button
+            variant="ghost"
+            onClick={onCreatePrompt}
+            className="w-full gap-3 mb-3 py-6 text-sm text-[var(--wisp-blue)] rounded-lg hover:bg-[var(--wisp-blue)]/20 hover:text-[var(--wisp-blue)] border border-dashed border-[var(--wisp-blue)]/40"
+            title="Create new prompt"
+          >
+              <Plus size={14} className="flex-shrink-0" />
+            <span className="truncate">Create new prompt</span>
+          </Button>
+
           {prompts.length === 0 ? (
             <Card className="bg-[var(--deep-charcoal)] border-[var(--moonlight-silver-dim)] text-center py-8">
               <CardContent>
@@ -79,9 +86,6 @@ export function PromptList({ onCreatePrompt }: PromptListProps) {
                     isLast={isLast}
                     isBeforeSelected={isBeforeSelected}
                     onSelect={() => handlePromptSelect(prompt)}
-                    isOwner={isOwner(prompt)}
-                    isFavorite={isFavorite(prompt)} // Pass the favorite status
-                    // Remove the isFavorite prop since we're calculating it in the component
                   />
                 </div>
               )

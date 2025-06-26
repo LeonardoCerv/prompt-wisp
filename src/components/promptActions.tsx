@@ -1,7 +1,7 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { PlusCircle, Copy, Trash2, RotateCcw, StarIcon } from "lucide-react"
+import { PlusCircle, Copy, Trash2, RotateCcw, StarIcon, Plus } from "lucide-react"
 import { Star } from "lucide-react"
 import { useApp } from "@/contexts/appContext"
 import { toast } from "sonner"
@@ -68,16 +68,7 @@ export function PromptActions({ onCreatePrompt }: PromptActionsProps) {
 
   return (
     <div className="sticky top-0 z-10">
-      <div className="flex justify-end items-center gap-2 bg-[var(--blackblack)] p-2">
-        <Button
-          size="sm"
-          variant="icon"
-          onClick={onCreatePrompt}
-          className="h-10 w-10 p-0 hover:text-[var(--glow-ember)] text-[var(--glow-ember)]/70"
-          title="Create new prompt"
-        >
-          <PlusCircle size={22} />
-        </Button>
+      <div className="flex justify-between items-center gap-2 bg-[var(--blackblack)] p-2">
 
         <Button
           size="sm"
@@ -88,25 +79,6 @@ export function PromptActions({ onCreatePrompt }: PromptActionsProps) {
           title="Copy prompt"
         >
           <Copy size={22} />
-        </Button>
-
-        <Button
-          size="sm"
-          variant="icon"
-          onClick={() => selectedPrompt && handleToggleFavorite(selectedPrompt.id)}
-          disabled={!selectedPrompt}
-          className={`h-10 w-10 p-0 disabled:opacity-50 disabled:cursor-not-allowed ${
-            selectedPrompt && user?.favorites?.includes(selectedPrompt.id)
-              ? "text-yellow-400 hover:text-yellow-500"
-              : "text-[var(--glow-ember)]/70 hover:text-[var(--glow-ember)]"
-          }`}
-          title="Toggle favorite"
-        >
-          {selectedPrompt && user?.favorites?.includes(selectedPrompt.id) ? (
-            <Star size={22} className="fill-current" />
-          ) : (
-            <StarIcon size={22} />
-          )}
         </Button>
 
         {selectedPrompt?.deleted ? (

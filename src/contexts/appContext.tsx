@@ -165,6 +165,24 @@ interface AppContextType {
     toggleCollectionsExpanded: () => void
     toggleTagsExpanded: () => void
   }
+  utils: {
+    // Prompt status utilities
+    isOwner: (prompt: PromptData, userId?: string) => boolean
+    isFavorite: (promptId: string) => boolean
+    isSaved: (promptId: string) => boolean
+    isDeleted: (prompt: PromptData) => boolean
+    isCollaborator: (prompt: PromptData, userId?: string) => boolean
+    canEdit: (prompt: PromptData, userId?: string) => boolean
+    canView: (prompt: PromptData, userId?: string) => boolean
+
+    // Collection utilities
+    getCollectionPrompts: (collectionId: string) => PromptData[]
+    getPromptCollections: (promptId: string) => CollectionData[]
+
+    // General utilities
+    formatDate: (dateString: string) => string
+    truncateText: (text: string, maxLength: number) => string
+  }
 }
 
 const AppContext = createContext<AppContextType | null>(null)
@@ -418,6 +436,99 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     loadTags()
   }, [loadPrompts, loadCollections, loadUser, loadTags])
 
+  // Utility functions
+  const utils = useMemo(
+    () => ({
+      // Prompt status utilities
+      isOwner: (prompt: PromptData, userId?: string) => {
+        const currentUserId = userId || state.user?.id
+        return prompt.user_id === currentUserId
+      },
+
+      isFavorite: (promptId: string) => {
+        return state.user?.favorites?.includes(promptId) || false
+      },
+
+      isSaved: (promptId: string) => {
+        return state.user?.bought?.includes(promptId) || false
+      },
+
+      isDeleted: (prompt: PromptData) => {
+        return prompt.deleted || false
+      },
+
+      isCollaborator: (prompt: PromptData, userId?: string) => {
+        const currentUserId = userId || state.user?.id
+        if (!currentUserId) return false
+        return prompt.collaborators?.includes(currentUserId) || false
+      },
+
+      canEdit: (prompt: PromptData, userId?: string) => {
+        const currentUserId = userId || state.user?.id
+        if (!currentUserId) return false
+
+        const isOwner = prompt.user_id === currentUserId
+        const isCollaborator = prompt.collaborators?.includes(currentUserId) || false
+        const isNotDeleted = !prompt.deleted
+
+        return (isOwner || isCollaborator) && isNotDeleted
+      },
+
+      canView: (prompt: PromptData, userId?: string) => {
+        const currentUserId = userId || state.user?.id
+
+        // Public prompts can be viewed by anyone
+        if (prompt.visibility === "public") return true
+
+        // If no user, can only view public prompts
+        if (!currentUserId) return false
+
+        // Owner can always view
+        if (prompt.user_id === currentUserId) return true
+
+        // Collaborators can view
+        if (prompt.collaborators?.includes(currentUserId)) return true
+
+        // Users who have saved/bought the prompt can view
+        if (state.user?.bought?.includes(prompt.id)) return true
+
+        return false
+      },
+
+      // Collection utilities
+      getCollectionPrompts: (collectionId: string) => {
+        return state.prompts.filter((prompt) => prompt.collections?.includes(collectionId) && !prompt.deleted)
+      },
+
+      getPromptCollections: (promptId: string) => {
+        const prompt = state.prompts.find((p) => p.id === promptId)
+        if (!prompt?.collections) return []
+
+        return state.collections.filter((collection) => prompt.collections?.includes(collection.id))
+      },
+
+      // General utilities
+      formatDate: (dateString: string) => {
+        try {
+          const date = new Date(dateString)
+          return date.toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+          })
+        } catch {
+          return "Unknown date"
+        }
+      },
+
+      truncateText: (text: string, maxLength: number) => {
+        if (text.length <= maxLength) return text
+        return text.substring(0, maxLength) + "..."
+      },
+    }),
+    [state.user, state.prompts, state.collections],
+  )
+
   // Memoize the actions object to prevent infinite re-renders
   const contextActions = useMemo(
     () => ({
@@ -460,8 +571,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     () => ({
       state,
       actions: contextActions,
+      utils,
     }),
-    [state, contextActions],
+    [state, contextActions, utils],
   )
 
   return <AppContext.Provider value={contextValue}>{children}</AppContext.Provider>

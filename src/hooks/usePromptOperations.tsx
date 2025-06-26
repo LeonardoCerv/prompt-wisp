@@ -110,7 +110,6 @@ export function usePromptOperations() {
     [actions, isFavorite],
   )
 
-
   return {
     copyToClipboard,
     toggleFavorite,

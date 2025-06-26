@@ -18,20 +18,15 @@ interface PromptCardProps {
   isLast: boolean
   isBeforeSelected: boolean
   onSelect: () => void
-  isOwner: boolean
-  isFavorite: boolean
 }
 
-export default function PromptCard({ 
-  prompt, 
-  isSelected,
-  isLast,
-  isBeforeSelected,
-  onSelect,
-  isOwner,
-  isFavorite
-}: PromptCardProps) {
-    const { actions } = useApp()
+export default function PromptCard({ prompt, isSelected, isLast, isBeforeSelected, onSelect }: PromptCardProps) {
+  const { utils, actions } = useApp()
+
+  // Use utility functions from context
+  const isFavorite = utils.isFavorite(prompt.id)
+  const isOwner = utils.isOwner(prompt)
+
     const handleToggleFavorite = async (id: string) => {
     try {
       await actions.toggleFavorite(id)

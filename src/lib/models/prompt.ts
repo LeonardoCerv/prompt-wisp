@@ -615,13 +615,14 @@ class Prompt {
     }
 
     // Get all unique tags
-    static async getAllTags(): Promise<string[]> {
+    static async getAllTags(id: string): Promise<string[]> {
         try {
             const supabase = await createClient();
+         
             const { data, error } = await supabase
                 .from('prompts')
                 .select('tags')
-                .eq('visibility', 'public')
+                .eq('user_id', id)
                 .eq('deleted', false);
 
             if (error) {

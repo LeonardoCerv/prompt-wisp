@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import PromptEdit from "@/components/promptEdit"
-import PromptPreview from "@/components/promptPreview"
+import PromptSlugPreview from "@/components/promptPreview"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Home, FileX } from "lucide-react"
@@ -11,21 +11,92 @@ import Link from "next/link"
 import { toast } from "sonner"
 import { useApp } from "@/contexts/appContext"
 import type { PromptData } from "@/lib/models/prompt"
-import { UserData } from "@/lib/models"
 
-export default function PromptSlugPage({ slug, promptData, user }: { slug: string, promptData: PromptData, user: UserData}) {
+interface PromptSlugPageProps {
+  slug: string
+  promptData?: any
+  user: {
+    id: string
+    email?: string
+  }
+}
+
+// Helper function to safely parse dates
+const safeParseDate = (dateString: any): string => {
+  if (!dateString) return new Date().toISOString()
+
+  try {
+    let parsedDate: Date
+
+    if (typeof dateString === "string") {
+      // Handle PostgreSQL timestamp format: "2025-06-24 20:19:11.559614+00"
+      let normalizedDate = dateString.trim()
+
+      // If it has timezone offset like +00 or -05, convert to proper format
+      if (normalizedDate.includes("+") || normalizedDate.match(/-\d{2}$/)) {
+        // Replace space with T for ISO format
+        normalizedDate = normalizedDate.replace(" ", "T")
+
+        // Handle timezone: +00 -> Z, +05:30 -> +05:30, etc.
+        if (normalizedDate.endsWith("+00")) {
+          normalizedDate = normalizedDate.replace("+00", "Z")
+        } else if (normalizedDate.match(/[+-]\d{2}$/)) {
+          // Add :00 to timezone if missing (e.g., +05 -> +05:00)
+          normalizedDate = normalizedDate + ":00"
+        }
+      } else if (!normalizedDate.includes("T")) {
+        // If no timezone info, assume UTC and add Z
+        normalizedDate = normalizedDate.replace(" ", "T") + "Z"
+      }
+
+      // Trim microseconds to 3 digits (milliseconds) if they exist
+      normalizedDate = normalizedDate.replace(/(\.\d{3})\d{3}/, "$1")
+
+      parsedDate = new Date(normalizedDate)
+    } else {
+      // Try direct parsing for non-string inputs
+      parsedDate = new Date(dateString)
+    }
+
+    if (isNaN(parsedDate.getTime())) {
+      console.warn("Failed to parse date:", dateString, "Using current date as fallback")
+      return new Date().toISOString()
+    }
+
+    return parsedDate.toISOString()
+  } catch (error) {
+    console.error("Error parsing date:", dateString, "Error:", error)
+    return new Date().toISOString()
+  }
+}
+
+// Transform prompt data to standard PromptData format
+const transformPromptData = (prompt: any): PromptData => {
+  return {
+    id: prompt.id,
+    title: prompt.title,
+    description: prompt.description || null,
+    content: prompt.content,
+    tags: prompt.tags || [],
+    created_at: safeParseDate(prompt.created_at),
+    updated_at: safeParseDate(prompt.updated_at),
+    user_id: prompt.user_id,
+    images: prompt.images || null,
+    collaborators: prompt.collaborators || null,
+    visibility: prompt.visibility || "private",
+    deleted: prompt.deleted || false,
+    collections: prompt.collections || null,
+  }
+}
+
+export default function PromptSlugPage({ slug, promptData, user }: PromptSlugPageProps) {
   const router = useRouter()
-  const { state, actions } = useApp()
+  const { state, actions, utils } = useApp()
   const { prompts } = state
 
   const [selectedPrompt, setSelectedPrompt] = useState<PromptData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [promptFound, setPromptFound] = useState(false)
-
-  // Helper functions using context actions
-  const isOwner = (prompt: PromptData) => {
-    return prompt.user_id === user.id
-  }
 
   const updatePrompt = async (id: string, updates: Partial<PromptData>) => {
     try {
@@ -96,7 +167,8 @@ export default function PromptSlugPage({ slug, promptData, user }: { slug: strin
   useEffect(() => {
     // If we have server-side data, use it immediately
     if (promptData && !selectedPrompt) {
-      setSelectedPrompt(promptData)
+      const transformedPrompt = transformPromptData(promptData)
+      setSelectedPrompt(transformedPrompt)
       setPromptFound(true)
       setIsLoading(false)
       return
@@ -117,7 +189,7 @@ export default function PromptSlugPage({ slug, promptData, user }: { slug: strin
       setPromptFound(false)
       setIsLoading(false)
     }
-  }, [slug, prompts, promptData, user.id, state.loading.prompts, selectedPrompt])
+  }, [slug, prompts, promptData, state.loading.prompts, selectedPrompt])
 
   // Loading skeleton
   if (isLoading || state.loading.prompts) {
@@ -181,14 +253,10 @@ export default function PromptSlugPage({ slug, promptData, user }: { slug: strin
     )
   }
 
-  // Render the appropriate component based on user permissions
-  // Check if user can edit this prompt:
-  // - User must be the owner OR a collaborator
-  // - Prompt must NOT be soft deleted
-  const canEdit =
-    selectedPrompt &&
-    (isOwner(selectedPrompt) || (selectedPrompt.collaborators && selectedPrompt.collaborators.includes(user.id))) &&
-    !selectedPrompt.deleted
+  if (!selectedPrompt) return null
+
+  // Use utility functions to check permissions
+  const canEdit = utils.canEdit(selectedPrompt, user.id)
 
   // Show edit component for users with edit permissions
   if (canEdit) {
@@ -201,18 +269,15 @@ export default function PromptSlugPage({ slug, promptData, user }: { slug: strin
         onDelete={handleDeletePrompt}
         onRestore={handleRestorePrompt}
         onUpdatePrompt={updatePrompt}
-        isOwner={isOwner}
+        isOwner={(prompt: PromptData) => utils.isOwner(prompt, user.id)}
         currentFilter={state.filters.selectedFilter}
       />
     )
   }
 
-  // Show preview component for read-only access:
-  // - Non-owners/non-collaborators
-  // - Owners viewing soft-deleted prompts
-  // - Any user viewing public/shared prompts
+  // Show preview component for read-only access
   return (
-    <PromptPreview
+    <PromptSlugPreview
       selectedPrompt={selectedPrompt}
       onToggleFavorite={handleToggleFavorite}
       onCopy={handleCopyToClipboard}

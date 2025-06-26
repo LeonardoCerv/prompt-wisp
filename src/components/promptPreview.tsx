@@ -11,26 +11,13 @@ import {
   Folder,
   Share,
   Eye,
-  User
 } from 'lucide-react'
 import Link from 'next/link'
-import { PromptData, PromptWithProfile } from '@/lib/models/prompt'
-
-// Extended interface for UI-specific prompt data
-interface ExtendedPromptData extends PromptData {
-  isOwner: boolean
-  isFavorite: boolean
-  isSaved: boolean
-  isDeleted?: boolean
-  profiles?: {
-    username: string | null
-    full_name: string | null
-    avatar_url: string | null
-  } | null
-}
+import { PromptData } from '@/lib/models/prompt'
+import { useApp } from '@/contexts/appContext'
 
 interface PromptSlugPreviewProps {
-  selectedPrompt: ExtendedPromptData | null
+  selectedPrompt: PromptData | null
   onToggleFavorite?: (id: string) => void
   onCopy: (content: string, title: string) => void
   onSave?: (id: string) => void
@@ -49,7 +36,11 @@ export default function PromptSlugPreview({
   currentFilter,
   user
 }: PromptSlugPreviewProps) {
+
+  const {utils} = useApp()
   const [showFullContent, setShowFullContent] = useState(false)
+
+
 
   // Auto-expand content if it's not too long
   useEffect(() => {
@@ -77,11 +68,11 @@ export default function PromptSlugPreview({
       category = filterMap[currentFilter]
     } else {
       // Fallback logic based on prompt properties
-      if (selectedPrompt.deleted || selectedPrompt.isDeleted) {
+      if (selectedPrompt.deleted || selectedPrompt.deleted) {
         category = 'Deleted'
-      } else if (selectedPrompt.isSaved && selectedPrompt.user_id !== user?.id) {
+      } else if (utils.isSaved(selectedPrompt.id) && selectedPrompt.user_id !== user?.id) {
         category = 'Saved'
-      } else if (selectedPrompt.isFavorite) {
+      } else if (utils.isFavorite(selectedPrompt.id)) {
         category = 'Favorites'
       } else if (selectedPrompt.user_id === user?.id) {
         category = 'Your Prompts'
@@ -94,7 +85,7 @@ export default function PromptSlugPreview({
   const getStatusBadge = () => {
     if (!selectedPrompt) return null
     
-    if (selectedPrompt.deleted || selectedPrompt.isDeleted) {
+    if (selectedPrompt.deleted || selectedPrompt.deleted) {
       return (
         <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-900/20 text-red-400 border border-red-800/30">
           Deleted
@@ -152,12 +143,12 @@ export default function PromptSlugPreview({
                   variant="ghost"
                   onClick={() => onToggleFavorite(selectedPrompt.id)}
                   className={`p-1.5 ${
-                    selectedPrompt.isFavorite 
+                    utils.isFavorite(selectedPrompt.id)
                       ? 'text-[var(--glow-ember)] hover:text-[var(--glow-ember)]/80' 
                       : 'text-[var(--moonlight-silver)] hover:text-[var(--moonlight-silver-bright)]'
                   }`}
                 >
-                  <Star size={16} className={selectedPrompt.isFavorite ? 'fill-current' : ''} />
+                  <Star size={16} className={utils.isFavorite(selectedPrompt.id) ? 'fill-current' : ''} />
                 </Button>
               )}
 
@@ -194,13 +185,14 @@ export default function PromptSlugPreview({
                 {selectedPrompt.title || 'Untitled Prompt'}
               </h1>
               
-              {/* Author info */}
+              {/* Author info 
               <div className="flex items-center gap-2 text-sm text-[var(--moonlight-silver)]">
                 <User size={14} />
                 <span>Created by {selectedPrompt.profiles?.full_name || selectedPrompt.profiles?.username || 'Anonymous'}</span>
                 <span>•</span>
                 <span>{new Date(selectedPrompt.created_at).toLocaleDateString()}</span>
               </div>
+              */}
             </div>
 
             {/* Description */}
@@ -295,19 +287,19 @@ export default function PromptSlugPreview({
               </Link>
 
               <div className="flex items-center gap-2">
-                {onSave && selectedPrompt.user_id !== user?.id && !selectedPrompt.isDeleted && (
+                {onSave && selectedPrompt.user_id !== user?.id && !selectedPrompt.deleted && (
                   <Button
                     size="sm"
                     variant="outline"
                     onClick={() => onSave(selectedPrompt.id)}
                     className={`text-xs border-[var(--moonlight-silver-dim)] ${
-                      selectedPrompt.isSaved 
+                      utils.isSaved(selectedPrompt.id)
                         ? 'text-[var(--glow-ember)] border-[var(--glow-ember)]/50' 
                         : 'text-[var(--moonlight-silver-bright)] hover:bg-[var(--slate-grey)]'
                     }`}
                   >
                     <Save size={12} className="mr-1" />
-                    {selectedPrompt.isSaved ? 'Saved' : 'Save'}
+                    {utils.isSaved(selectedPrompt.id) ? 'Saved' : 'Save'}
                   </Button>
                 )}
               </div>

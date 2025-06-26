@@ -13,10 +13,8 @@ export async function GET() {
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    console.log('Authenticated user:', { id: user.id, email: user.email });
 
     const userData: UserData = await User.findById(user.id);
-    console.log('User data:', userData);
 
     return NextResponse.json(userData);
   } catch (error) {

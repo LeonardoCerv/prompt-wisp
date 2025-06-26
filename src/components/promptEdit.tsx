@@ -15,7 +15,10 @@ import {
   Share
 } from 'lucide-react'
 import Link from 'next/link'
+
 import { PromptData } from '@/lib/models/prompt'
+import { useApp } from '@/contexts/appContext'
+
 
 interface PromptEditProps {
   selectedPrompt: PromptData | null
@@ -36,7 +39,6 @@ export default function PromptEdit({
   onSave,
   onDelete,
   onRestore,
-  isOwner,
   onUpdatePrompt,
   currentFilter
 }: PromptEditProps) {
@@ -48,6 +50,9 @@ export default function PromptEdit({
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const titleRef = useRef<HTMLTextAreaElement>(null)
   const contentRef = useRef<HTMLTextAreaElement>(null)
+
+
+  const { utils } = useApp()
 
   // Update local state when selectedPrompt changes
   useEffect(() => {
@@ -102,7 +107,7 @@ export default function PromptEdit({
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (!selectedPrompt || !isOwner(selectedPrompt)) return
+      if (!selectedPrompt || !utils.isOwner(selectedPrompt)) return
 
       // Cmd/Ctrl + S to save
       if ((event.metaKey || event.ctrlKey) && event.key === 's') {
@@ -113,7 +118,7 @@ export default function PromptEdit({
 
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [selectedPrompt, isOwner, handleSave])
+  }, [selectedPrompt, handleSave])
 
   // Auto-focus title on mount
   useEffect(() => {
@@ -147,13 +152,13 @@ export default function PromptEdit({
       category = filterMap[currentFilter]
     } else {
       // Fallback logic based on prompt properties
-      if (selectedPrompt.isDeleted) {
+      if (selectedPrompt.deleted) {
         category = 'Deleted'
-      } else if (selectedPrompt.isSaved && !isOwner(selectedPrompt)) {
+      } else if (selectedPrompt && !utils.isOwner(selectedPrompt)) {
         category = 'Saved'
-      } else if (selectedPrompt.isFavorite) {
+      } else if (utils.isFavorite(selectedPrompt.id)) {
         category = 'Favorites'
-      } else if (isOwner(selectedPrompt)) {
+      } else if (utils.isOwner(selectedPrompt)) {
         category = 'Your Prompts'
       }
     }
@@ -196,12 +201,12 @@ export default function PromptEdit({
                 variant="ghost"
                 onClick={() => onToggleFavorite(selectedPrompt.id)}
                 className={`p-1.5 ${
-                  selectedPrompt.isFavorite 
+                  utils.isFavorite(selectedPrompt.id)
                     ? 'text-[var(--glow-ember)] hover:text-[var(--glow-ember)]/80' 
                     : 'text-[var(--moonlight-silver)] hover:text-[var(--moonlight-silver-bright)]'
                 }`}
               >
-                <Star size={16} className={selectedPrompt.isFavorite ? 'fill-current' : ''} />
+                <Star size={16} className={utils.isFavorite(selectedPrompt.id) ? 'fill-current' : ''} />
               </Button>
 
               <Button
@@ -227,8 +232,8 @@ export default function PromptEdit({
                 <Copy size={16} />
               </Button>
 
-              {isOwner(selectedPrompt) && (
-                selectedPrompt.isDeleted ? (
+              {utils.isOwner(selectedPrompt) && (
+                selectedPrompt.deleted ? (
                   <Button
                     size="sm"
                     variant="ghost"
@@ -342,19 +347,19 @@ export default function PromptEdit({
                 ← Back to prompts
               </Link>
 
-              {!isOwner(selectedPrompt) && (
+              {!utils.isOwner(selectedPrompt) && (
                 <Button
                   size="sm"
                   variant="outline"
                   onClick={() => onSave(selectedPrompt.id)}
                   className={`text-xs border-[var(--moonlight-silver-dim)] ${
-                    selectedPrompt.isSaved 
+                    utils.isSaved(selectedPrompt.id)
                       ? 'text-[var(--glow-ember)] border-[var(--glow-ember)]/50' 
                       : 'text-[var(--moonlight-silver-bright)] hover:bg-[var(--slate-grey)]'
                   }`}
                 >
                   <Save size={12} className="mr-1" />
-                  {selectedPrompt.isSaved ? 'Saved' : 'Save'}
+                  {utils.isSaved(selectedPrompt.id) ? 'Saved' : 'Save'}
                 </Button>
               )}
             </div>

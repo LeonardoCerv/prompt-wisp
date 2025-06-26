@@ -2,8 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
-import { X, ChevronDown, User, Search } from 'lucide-react'
+import { X, User, Search } from 'lucide-react'
 
 interface User {
   id: string
