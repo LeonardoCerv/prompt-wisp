@@ -7,11 +7,15 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Home, FileX } from 'lucide-react'
 import Link from 'next/link'
-import { useNavbar } from '@/context/navbarContext'
+import { 
+  savePrompt, 
+  deletePrompt, 
+  restorePrompt, 
+  copyToClipboard, 
+  toggleFavorite,
+  refreshPrompts,
+} from '@/components/navbar'
 import { PromptData } from '@/lib/models/prompt'
-
-// Define FilterType locally
-type FilterType = 'all' | 'your-prompts' | 'saved' | 'deleted' | 'all-prompts' | 'favorites' | string
 
 // Extended interface for transformed prompt data
 interface ExtendedPromptData extends PromptData {
@@ -31,10 +35,9 @@ interface PromptSlugPageProps {
 }
 
 export default function PromptSlugPage({ slug, promptData, user }: PromptSlugPageProps) {
-  const navbar = useNavbar()
   const [prompts, setPrompts] = useState<ExtendedPromptData[]>([])
   const [selectedPrompt, setSelectedPrompt] = useState<ExtendedPromptData | null>(null)
-  const [activeFilter, setActiveFilter] = useState<FilterType>('all')
+  const [activeFilter, setActiveFilter] = useState<string>('all')
   const [loading, setLoading] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [promptFound, setPromptFound] = useState(false)
@@ -133,47 +136,35 @@ export default function PromptSlugPage({ slug, promptData, user }: PromptSlugPag
     }
   }
 
-  // Wrapper functions for navbar context functions to match expected signatures
+  // Wrapper functions for navbar functions to match expected signatures
   const handleToggleFavorite = (id: string) => {
-    if (navbar?.toggleFavorite) navbar.toggleFavorite(id)
+    toggleFavorite(id)
     loadPrompts() // Refresh to get updated data
   }
 
   const handleCopyToClipboard = (content: string, title: string) => {
-    if (navbar?.copyToClipboard) navbar.copyToClipboard(content, title)
+    copyToClipboard(content, title)
   }
 
   const handleSavePrompt = (id: string) => {
-    if (navbar?.savePrompt) navbar.savePrompt(id)
+    savePrompt(id)
     loadPrompts() // Refresh to get updated data
   }
 
   const handleDeletePrompt = (id: string) => {
-    if (navbar?.deletePrompt) navbar.deletePrompt(id)
+    deletePrompt(id)
     loadPrompts() // Refresh to get updated data
   }
 
   const handleRestorePrompt = (id: string) => {
-    if (navbar?.restorePrompt) navbar.restorePrompt(id)
+    restorePrompt(id)
     loadPrompts() // Refresh to get updated data
   }
 
-  // Replace loadPrompts to use navbar context if available, else fallback to fetch
   const loadPrompts = async () => {
     setLoading(true)
     try {
-      let userPrompts: any[] = []
-      if (navbar?.refreshPrompts) {
-        userPrompts = await navbar.refreshPrompts()
-      } else {
-        const res = await fetch('/api/prompts/user/', { method: 'GET', cache: 'no-store' })
-        const userPromptsRaw = await res.json()
-        userPrompts = Array.isArray(userPromptsRaw.prompts)
-          ? userPromptsRaw.prompts
-          : Array.isArray(userPromptsRaw)
-            ? userPromptsRaw
-            : []
-      }
+      const userPrompts = await refreshPrompts()
       // Transform prompts to ExtendedPromptData format
       const transformedPrompts = userPrompts.map((prompt: any) => ({
         ...prompt,

@@ -94,21 +94,14 @@ class User {
     }
 
     // Get user by ID
-    static async findById(id: string): Promise<UserData | null> {
+    static async findById(id: string): Promise<UserData> {
         try {
             const supabase = await createClient();
-            const { data, error } = await supabase
+            const { data } = await supabase
                 .from('users')
                 .select('*')
                 .eq('id', id)
                 .single();
-
-            if (error) {
-                if (error.code === 'PGRST116') { // No rows returned
-                    return null;
-                }
-                throw new Error(`Error getting user: ${error.message}`);
-            }
 
             return data as UserData;
         } catch (error) {
