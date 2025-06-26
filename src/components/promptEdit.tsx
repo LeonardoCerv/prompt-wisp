@@ -87,7 +87,7 @@ export default function PromptEdit({
 
   // Handle saving changes
   const handleSaveChanges = async () => {
-    if (!selectedPrompt) return
+    if (!selectedPrompt || !hasUnsavedChanges) return
 
     try {
       
@@ -97,7 +97,7 @@ export default function PromptEdit({
         description: editedDescription,
         tags: editedTags
       })
-      
+
       toast.success("Prompt updated successfully")
     } catch (error) {
       console.error("Error updating prompt:", error)
@@ -185,6 +185,18 @@ export default function PromptEdit({
     
     return `${category}/${editedTitle || selectedPrompt.title || 'Untitled'}`
   }
+
+  const handleContentChange = () => {
+    if (
+      editedTitle !== selectedPrompt?.title ||
+      editedContent !== selectedPrompt?.content ||
+      editedDescription !== (selectedPrompt?.description || '') ||
+      JSON.stringify(editedTags) !== JSON.stringify(selectedPrompt?.tags)
+    ){
+    setHasUnsavedChanges(true)
+    }
+  }
+
 
   return (
     <div className="flex flex-col bg-[var(--prompts)] h-screen">
@@ -287,6 +299,7 @@ export default function PromptEdit({
                 ref={titleRef}
                 value={editedTitle}
                 onChange={(e) => {
+                  handleContentChange()
                   setEditedTitle(e.target.value)
                   autoResizeTextarea(e.target)
                 }}
@@ -304,7 +317,10 @@ export default function PromptEdit({
               </label>
               <textarea
                 value={editedDescription}
-                onChange={(e) => setEditedDescription(e.target.value)}
+                onChange={(e) => {
+                  handleContentChange() 
+                  setEditedDescription(e.target.value)
+                }}
                 className="w-full text-base text-[var(--moonlight-silver-bright)] bg-transparent border-none outline-none resize-none placeholder-[var(--moonlight-silver)]/50 leading-relaxed"
                 placeholder="Describe what this prompt does..."
                 rows={3}
@@ -330,6 +346,7 @@ export default function PromptEdit({
                 ref={contentRef}
                 value={editedContent}
                 onChange={(e) => {
+                  handleContentChange()
                   setEditedContent(e.target.value)
                   autoResizeTextarea(e.target)
                 }}
@@ -349,7 +366,9 @@ export default function PromptEdit({
                 <input
                   type="text"
                   value={editedTags.join(', ')}
-                  onChange={(e) => handleTagEdit(e.target.value)}
+                  onChange={(e) => {
+                    handleContentChange()
+                    handleTagEdit(e.target.value)}}
                   className="w-full text-sm text-[var(--moonlight-silver-bright)] bg-transparent border border-[var(--moonlight-silver-dim)]/50 rounded-md px-3 py-2 outline-none focus:border-[var(--glow-ember)]/50 focus:ring-1 focus:ring-[var(--glow-ember)]/20"
                   placeholder="Add tags separated by commas..."
                 />
