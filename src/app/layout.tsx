@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
-import { NavbarProvider } from '@/context/navbarContext'
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -33,9 +32,7 @@ export default async function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased dark flex min-h-screen flex-col`}
       >
-        <NavbarProvider>
           {children}
-        </NavbarProvider>
         <Toaster />
       </body>
     </html>

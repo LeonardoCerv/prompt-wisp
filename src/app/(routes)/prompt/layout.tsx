@@ -28,7 +28,7 @@ export default async function PromptLayout({
       <div className="min-h-screen bg-[var(--black)] w-full">
         <div className="h-screen">
           <div className="flex gap-0 h-full">
-            <Navbar user={authUser}>
+            <Navbar>
               {children}
             </Navbar>
           </div>
