@@ -19,6 +19,29 @@ export function CollectionActions({ collectionId, collectionTitle = '', disabled
   const inputRef = useRef<HTMLInputElement>(null)
   const { actions } = useApp()
 
+  // Add Prompt dialog state
+  const [showAddPromptDialog, setShowAddPromptDialog] = useState(false)
+  const [addPromptPosition, setAddPromptPosition] = useState<{ x: number; y: number } | null>(null)
+  const [promptSearch, setPromptSearch] = useState("")
+  const [selectedPromptIds, setSelectedPromptIds] = useState<string[]>([])
+
+  // Get all prompts not already in this collection
+  const { state } = useApp()
+  const prompts = state.prompts.filter(
+    p => !p.deleted && (!p.collections || !p.collections.includes(collectionId))
+  )
+  const filteredPrompts = prompts.filter(
+    p =>
+      p.title.toLowerCase().includes(promptSearch.toLowerCase()) ||
+      (p.description?.toLowerCase().includes(promptSearch.toLowerCase()) ?? false) ||
+      (p.tags && p.tags.some(tag => tag.toLowerCase().includes(promptSearch.toLowerCase())))
+  )
+
+  // Sort prompts alphabetically by title if not searching
+  const sortedPrompts = promptSearch.trim() === ""
+    ? [...prompts].sort((a, b) => a.title.localeCompare(b.title))
+    : filteredPrompts
+
   useEffect(() => {
     if (showPopup && popupRef.current && popupPosition) {
       const popup = popupRef.current
@@ -83,6 +106,28 @@ export function CollectionActions({ collectionId, collectionTitle = '', disabled
     setShowPopup(false)
   }
 
+  function openAddPromptDialog(mouseX: number, mouseY: number) {
+    setShowPopup(false)
+    setShowAddPromptDialog(true)
+    setAddPromptPosition({ x: mouseX, y: mouseY })
+    setPromptSearch("")
+    setSelectedPromptIds([])
+  }
+
+  function closeAddPromptDialog() {
+    setShowAddPromptDialog(false)
+    setAddPromptPosition(null)
+    setPromptSearch("")
+    setSelectedPromptIds([])
+  }
+
+  async function handleAddPrompts() {
+    for (const promptId of selectedPromptIds) {
+      await actions.addPromptToCollection(collectionId, promptId)
+    }
+    closeAddPromptDialog()
+  }
+
   return (
     <>
       <Button
@@ -126,7 +171,16 @@ export function CollectionActions({ collectionId, collectionTitle = '', disabled
         >
           <button
             className="flex items-center gap-2 text-left text-sm text-white hover:bg-[var(--wisp-blue)]/10 rounded-md px-4 py-2 transition-colors cursor-pointer font-medium"
-            onClick={() => setShowPopup(false)}
+            onClick={e => {
+              setShowPopup(false)
+              if (e && e.nativeEvent) {
+                const mouseX = e.nativeEvent.clientX
+                const mouseY = e.nativeEvent.clientY
+                openAddPromptDialog(mouseX, mouseY)
+              } else {
+                openAddPromptDialog(window.innerWidth / 2, window.innerHeight / 2)
+              }
+            }}
           >
             <Plus size={16} />
             Add Prompt
@@ -192,6 +246,65 @@ export function CollectionActions({ collectionId, collectionTitle = '', disabled
             }}
             autoFocus
           />
+        </div>
+      )}
+      {showAddPromptDialog && addPromptPosition && (
+        <div
+          style={{
+            position: "fixed",
+            left: addPromptPosition.x,
+            top: addPromptPosition.y,
+            zIndex: 200,
+            background: "var(--deep-charcoal)",
+            border: "1px solid var(--wisp-blue)",
+            borderRadius: 10,
+            boxShadow: "0 8px 32px rgba(0,0,0,0.25)",
+            padding: "18px 22px",
+            minWidth: 320,
+            minHeight: 220,
+            maxHeight: 400,
+            display: "flex",
+            flexDirection: "column"
+          }}
+        >
+          <input
+            className="mb-3 rounded border border-[var(--moonlight-silver-dim)] bg-[var(--deep-charcoal)] text-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--wisp-blue)] text-base placeholder:text-gray-400"
+            placeholder="Search prompts..."
+            value={promptSearch}
+            onChange={e => setPromptSearch(e.target.value)}
+            autoFocus
+          />
+          <div className="flex-1 overflow-y-auto mb-3" style={{ maxHeight: 250 }}>
+            {sortedPrompts.length === 0 ? (
+              <div className="text-xs text-gray-400 py-6 text-center">No prompts found.</div>
+            ) : (
+              <ul className="space-y-1">
+                {sortedPrompts.map(prompt => (
+                  <li key={prompt.id} className="flex items-center gap-2 px-1 py-1 rounded hover:bg-[var(--wisp-blue)]/10 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedPromptIds.includes(prompt.id)}
+                      onChange={e => {
+                        if (e.target.checked) setSelectedPromptIds(ids => [...ids, prompt.id])
+                        else setSelectedPromptIds(ids => ids.filter(id => id !== prompt.id))
+                      }}
+                      className="accent-[var(--wisp-blue)]"
+                    />
+                    <span className="truncate text-white text-sm">{prompt.title}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+          <div className="flex gap-2 justify-end">
+            <Button variant="ghost" className="rounded px-4 py-2 text-gray-300 hover:bg-gray-700" onClick={closeAddPromptDialog}>Cancel</Button>
+            <Button
+              variant="default"
+              className="rounded px-4 py-2 bg-[var(--wisp-blue)] hover:bg-[var(--wisp-blue-dark)] text-white font-semibold"
+              onClick={handleAddPrompts}
+              disabled={selectedPromptIds.length === 0}
+            >Add {selectedPromptIds.length > 0 ? selectedPromptIds.length : ''} Prompt{selectedPromptIds.length === 1 ? '' : 's'}</Button>
+          </div>
         </div>
       )}
     </>
