@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button"
 import { Home, Star, BookOpen, Edit, Archive, Search } from "lucide-react"
 import Link from "next/link"
 import { useApp } from "@/contexts/appContext"
+import { useState } from "react"
+import SearchModal from "./SearchModal"
 
 interface NavigationSectionProps {
   searchInputRef: HTMLInputElement | null
@@ -12,6 +14,7 @@ interface NavigationSectionProps {
 export function NavigationSection({ searchInputRef }: NavigationSectionProps) {
   const { state, actions } = useApp()
   const { selectedFilter } = state.filters
+  const [searchOpen, setSearchOpen] = useState(false)
 
   type ButtonVariant = "ghost" | "default" | "link" | "destructive" | "outline" | "secondary" | "icon";
 
@@ -28,7 +31,7 @@ export function NavigationSection({ searchInputRef }: NavigationSectionProps) {
       key: "search",
       icon: Search,
       label: "Search",
-      onClick: () => searchInputRef?.focus(),
+      onClick: () => setSearchOpen(true),
       variant: "ghost",
     },
     {
@@ -113,6 +116,9 @@ export function NavigationSection({ searchInputRef }: NavigationSectionProps) {
           ButtonComponent
         )
       })}
+      {searchOpen && (
+        <SearchModal open={searchOpen} onClose={() => setSearchOpen(false)} />
+      )}
     </div>
   )
 }
