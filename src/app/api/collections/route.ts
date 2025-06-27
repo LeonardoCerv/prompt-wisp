@@ -184,6 +184,14 @@ export async function PUT(request: NextRequest) {
     }
 
     // Prepare update data
+    if (updates.prompts) {
+      for (const promptId of updates.prompts) {
+        if (promptId) {
+          console.log(`Updating existing prompt ${promptId} in collection ${id}`);
+          await Prompt.addCollection(promptId, id);
+        }
+      }
+    }
     
     // Prepare update data
     const updateData: CollectionUpdate = {};
@@ -192,8 +200,7 @@ export async function PUT(request: NextRequest) {
     if (updates.description !== undefined) updateData.description = updates.description;
     if (updates.images) updateData.images = updates.images;
     if (updates.collaborators) updateData.collaborators = updates.collaborators;
-    if (updates.prompts) updateData.prompts = updates.prompts;
-    if (updates.prompt) updateData.prompts = [...(existingCollection.prompts || []), updates.prompt];
+    if (updates.prompts) updateData.prompts = [...(existingCollection.prompts || []), updates.prompts].flat();
     if (updates.tags) updateData.tags = updates.tags;
     if (updates.visibility !== undefined) updateData.visibility = updates.visibility;
 
