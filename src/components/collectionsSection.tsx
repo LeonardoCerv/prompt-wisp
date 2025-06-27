@@ -1,9 +1,9 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { ChevronDown, ChevronRight, Plus, Loader2, Trash2, Ellipsis } from "lucide-react"
+import { ChevronDown, ChevronRight, Plus } from "lucide-react"
 import { useApp } from "@/contexts/appContext"
-import { useState, useRef, useEffect } from "react"
+import { useState } from "react"
 import { CollectionActions } from "@/components/collectionActions"
 
 interface CollectionsSectionProps {
@@ -31,7 +31,7 @@ export function CollectionsSection({ onCreateCollection }: CollectionsSectionPro
         <div className="space-y-1">
           <Button
             variant="ghost"
-            onClick={(e) => {
+            onClick={e => {
               e.stopPropagation()
               onCreateCollection()
             }}
@@ -45,7 +45,7 @@ export function CollectionsSection({ onCreateCollection }: CollectionsSectionPro
           {loading.collections ? (
             <div className="text-xs text-[var(--moonlight-silver)]/60 px-3 py-2">Loading collections...</div>
           ) : collections.length > 0 ? (
-            collections.map((collection) => (
+            collections.map(collection => (
               <div
                 key={collection.id}
                 className={`relative w-full justify-start text-sm rounded-lg py-1.5 px-3 ${
@@ -59,9 +59,8 @@ export function CollectionsSection({ onCreateCollection }: CollectionsSectionPro
                 <div className="flex items-center justify-between gap-2">
                   <Button
                     variant="ghost"
-                    className={`flex-1 justify-start text-sm text-left truncate`}
+                    className="flex-1 justify-start text-sm text-left truncate"
                     onClick={() => {
-                      console.log("Clicking collection:", collection.id, collection.title)
                       actions.setFilter("collection", { collection: collection.id })
                     }}
                     title={collection.title}
