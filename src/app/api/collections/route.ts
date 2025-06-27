@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/utils/supabase/server'
-import Collection from '@/lib/models/collection'
+import Collection, { CollectionUpdate } from '@/lib/models/collection'
 import Prompt, { PromptData } from '@/lib/models/prompt'
 
 export async function POST(request: NextRequest) {
@@ -105,5 +105,103 @@ export async function GET(request: NextRequest) {
       { error: 'Internal server error' },
       { status: 500 }
     )
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const supabase = await createClient()
+
+    // Get current user
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    if (userError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Get collection id from query params
+    const body = await request.json()
+    const {id} = body
+    if (!id) {
+      return NextResponse.json({ error: 'Collection ID is required' }, { status:400 })
+    }
+
+    // Verify user owns the collection
+    const existingCollection = await Collection.findById(id);
+    
+    if (!existingCollection) {
+      return NextResponse.json({ error: "Collection not found" }, { status: 404 });
+    }
+
+    if (existingCollection.user_id !== user.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    }
+
+    // Soft delete: set deleted = true
+    const { error: deleteError } = await supabase
+      .from('collections')
+      .update({ deleted: true })
+      .eq('id', id)
+
+    if (deleteError) {
+      return NextResponse.json({ error: 'Failed to delete collection' }, { status: 500 })
+    }
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error('Delete collection error:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
+export async function PUT(request: NextRequest) {
+  try {
+    const supabase = await createClient()
+
+    // Get current user
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    if (userError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Get collection data from request body
+    const body = await request.json()
+    console.log('Update collection data:', body)
+    const { id, updates } = body;
+
+    if (!id) {
+      return NextResponse.json({ error: 'Collection ID is required' }, { status: 400 })
+    }
+
+    // Find existing collection
+    const existingCollection = await Collection.findById(id)
+    if (!existingCollection) {
+      return NextResponse.json({ error: 'Collection not found' }, { status: 404 })
+    }
+
+    // Only owner can update
+    if (existingCollection.user_id !== user.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+    }
+
+    // Prepare update data
+    
+    // Prepare update data
+    const updateData: CollectionUpdate = {};
+
+    if (updates.title) updateData.title = updates.title;
+    if (updates.description !== undefined) updateData.description = updates.description;
+    if (updates.images) updateData.images = updates.images;
+    if (updates.collaborators) updateData.collaborators = updates.collaborators;
+    if (updates.prompts) updateData.prompts = updates.prompts;
+    if (updates.prompt) updateData.prompts = [...(existingCollection.prompts || []), updates.prompt];
+    if (updates.tags) updateData.tags = updates.tags;
+    if (updates.visibility !== undefined) updateData.visibility = updates.visibility;
+
+    const updatedCollection = await Collection.update(id, updateData);
+
+    return NextResponse.json(updatedCollection)
+  } catch (error) {
+    console.error('Update collection error:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

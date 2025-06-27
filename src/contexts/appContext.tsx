@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { createContext, useContext, useReducer, useCallback, useEffect, useMemo } from "react"
-import type { PromptData, CollectionData, UserData } from "@/lib/models"
+import type { PromptData, CollectionData, UserData, CollectionUpdate } from "@/lib/models"
 
 // Types
 interface AppState {
@@ -159,6 +159,10 @@ interface AppContextType {
 
     // Collection operations
     createCollection: (collection: any) => Promise<CollectionData>
+    addPromptToCollection: (collectionId: string, promptId: string) => Promise<void>
+    editCollection: (collectionId: string, updates: Partial<CollectionData>) => Promise<void>
+    renameCollection: (collectionId: string, newTitle: string) => Promise<void>
+    deleteCollection: (collectionId: string) => Promise<void>
 
     // UI actions
     setFilter: (filter: string, options?: { collection?: string; tags?: string[] }) => void
@@ -420,6 +424,39 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return newCollection
   }, [])
 
+  // Edit collection (generic update)
+  const editCollection = useCallback(async (collectionId: string, updates: Partial<CollectionUpdate>) => {
+    const response = await fetch(`/api/collections`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: collectionId, updates }),
+    })
+    if (!response.ok) throw new Error("Failed to update collection")
+    await loadCollections()
+  }, [loadCollections])
+
+  // Add prompt to collection
+  const addPromptToCollection = useCallback(async (collectionId: string, promptId: string) => {
+
+   await editCollection(collectionId, { prompt: promptId })
+  }, [editCollection])
+
+  // Rename collection (just update title)
+  const renameCollection = useCallback(async (collectionId: string, newTitle: string) => {
+    await editCollection(collectionId, { title: newTitle })
+  }, [editCollection])
+
+  // Soft delete collection
+  const deleteCollection = useCallback(async (collectionId: string) => {
+    const response = await fetch(`/api/collections`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: collectionId}),
+    })
+    if (!response.ok) throw new Error("Failed to delete collection")
+    await loadCollections()
+  }, [loadCollections])
+
   // UI actions
   const setFilter = useCallback((filter: string, options?: { collection?: string; tags?: string[] }) => {
     dispatch({
@@ -560,6 +597,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       savePrompt,
       savePromptChanges,
       createCollection,
+      addPromptToCollection,
+      editCollection,
+      renameCollection,
+      deleteCollection,
       setFilter,
       setSelectedPrompt,
       toggleCollectionsExpanded,
@@ -578,6 +619,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       savePrompt,
       savePromptChanges,
       createCollection,
+      addPromptToCollection,
+      editCollection,
+      renameCollection,
+      deleteCollection,
       setFilter,
       setSelectedPrompt,
       toggleCollectionsExpanded,

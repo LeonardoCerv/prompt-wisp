@@ -45,6 +45,7 @@ export interface CollectionUpdate {
     visibility?: 'public' | 'private' | 'unlisted';
     deleted?: boolean;
     updated_at?: string;
+    prompt?: string | null; // optional prompt for quick access
 }
 
 // Extended interface with user profile information
