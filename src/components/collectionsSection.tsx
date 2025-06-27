@@ -3,7 +3,8 @@
 import { Button } from "@/components/ui/button"
 import { ChevronDown, ChevronRight, Plus, Loader2, Trash2, Ellipsis } from "lucide-react"
 import { useApp } from "@/contexts/appContext"
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
+import { CollectionActions } from "@/components/collectionActions"
 
 interface CollectionsSectionProps {
   onCreateCollection: () => void
@@ -14,9 +15,6 @@ export function CollectionsSection({ onCreateCollection }: CollectionsSectionPro
   const { collections, loading } = state
   const { collectionsExpanded } = state.ui
   const { selectedFilter, selectedCollection } = state.filters
-  const [ showPopup, setShowPopup ] = useState(false)
-
-  // Track which collection is hovered
   const [hoveredCollection, setHoveredCollection] = useState<string | null>(null)
 
   return (
@@ -70,23 +68,9 @@ export function CollectionsSection({ onCreateCollection }: CollectionsSectionPro
                   >
                     {collection.title}
                   </Button>
-                  {/* Menu trigger (three dots) always visible for accessibility, but menu only on hover */}
-                  <Button
-                    size="sm"
-                    variant="icon"
-                    disabled={!selectedCollection}
-                    onClick={() => setShowPopup(!showPopup)}
-                    className="h-9 w-9 text-gray-400 hover:text-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <Ellipsis size={22} />
-                  </Button>
-                  {/* Popup menu, only visible on hover */}
-                  {showPopup && hoveredCollection == collection.id && (
-                    <div className="absolute -right-20 top-10 z-100 min-w-[160px] bg-[var(--deep-charcoal)] border border-[var(--moonlight-silver-dim)]/40 rounded-lg shadow-lg py-2 px-3 flex flex-col gap-1">
-                      <button className="text-left text-sm text-white hover:bg-[var(--wisp-blue)]/10 rounded px-2 py-1 transition-colors cursor-pointer">Edit Collection</button>
-                      <button className="text-left text-sm text-white hover:bg-[var(--wisp-blue)]/10 rounded px-2 py-1 transition-colors cursor-pointer">Rename</button>
-                      <button className="text-left text-sm text-red-400 hover:bg-red-400/10 rounded px-2 py-1 transition-colors cursor-pointer">Delete</button>
-                    </div>
+                  {/* Show CollectionActions only on hover */}
+                  {hoveredCollection === collection.id && (
+                    <CollectionActions collectionId={collection.id} disabled={!selectedCollection} />
                   )}
                 </div>
               </div>
