@@ -1,9 +1,9 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { ChevronDown, ChevronRight, Plus } from "lucide-react"
+import { ChevronDown, ChevronRight, Ellipsis, Plus } from "lucide-react"
 import { useApp } from "@/contexts/appContext"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { CollectionActions } from "@/components/collectionActions"
 
 interface CollectionsSectionProps {
@@ -11,11 +11,42 @@ interface CollectionsSectionProps {
 }
 
 export function CollectionsSection({ onCreateCollection }: CollectionsSectionProps) {
-  const { state, actions } = useApp()
-  const { collections, loading } = state
-  const { collectionsExpanded } = state.ui
-  const { selectedFilter, selectedCollection } = state.filters
-  const [hoveredCollection, setHoveredCollection] = useState<string | null>(null)
+   const [showPopup, setShowPopup] = useState(false)
+   const [popupPosition, setPopupPosition] = useState<{ x: number; y: number } | null>(null)
+   const [popupCollectionId, setPopupCollectionId] = useState<string | null>(null)
+   const { state, actions } = useApp()
+   const { collections, loading } = state
+   const { collectionsExpanded } = state.ui
+   const { selectedFilter, selectedCollection } = state.filters
+   const [hoveredCollection, setHoveredCollection] = useState<string | null>(null)
+
+  // Close popup on outside click
+  useEffect(() => {
+    if (!showPopup) return
+    const handleClick = (e: MouseEvent) => {
+      const popup = document.getElementById('collection-actions-popup')
+      if (popup && !popup.contains(e.target as Node)) {
+        setShowPopup(false)
+        setPopupPosition(null)
+        setPopupCollectionId(null)
+        setHoveredCollection(null)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [showPopup])
+
+  // Prevent background scrolling and interaction when popup is open
+  useEffect(() => {
+    if (showPopup) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [showPopup])
 
   return (
     <div className="space-y-2 px-2">
@@ -53,8 +84,16 @@ export function CollectionsSection({ onCreateCollection }: CollectionsSectionPro
                     ? "bg-[var(--wisp-blue)]/20 text-[var(--wisp-blue)]"
                     : "text-[var(--moonlight-silver)] hover:text-white hover:bg-white/5"
                 }`}
-                onMouseEnter={() => setHoveredCollection(collection.id)}
-                onMouseLeave={() => setHoveredCollection(null)}
+                onMouseEnter={() => {
+                  if (!showPopup || popupCollectionId !== collection.id) {
+                    setHoveredCollection(collection.id)
+                  }
+                }}
+                onMouseLeave={() => {
+                  if (!showPopup || popupCollectionId !== collection.id) {
+                    setHoveredCollection(null)
+                  }
+                }}
               >
                 <div className="flex items-center justify-between gap-2">
                   <Button
@@ -67,9 +106,44 @@ export function CollectionsSection({ onCreateCollection }: CollectionsSectionPro
                   >
                     {collection.title}
                   </Button>
-                  {/* Show CollectionActions only on hover */}
-                  {hoveredCollection === collection.id && (
-                    <CollectionActions collectionId={collection.id} disabled={!selectedCollection} />
+
+                  <div className={`${hoveredCollection === collection.id && (!showPopup || popupCollectionId !== collection.id) ? "flex" : "hidden"}`}>
+                    <Button
+                      size="icon"
+                      variant="icon"
+                      onClick={e => {
+                        e.stopPropagation()
+                        setShowPopup(true)
+                        setPopupCollectionId(collection.id)
+                        setPopupPosition({ x: e.clientX, y: e.clientY })
+                      }}
+                      className={`h-6 w-6 p-0 text-gray-400 hover:text-gray-200 flex`}
+                      aria-label="Collection actions"
+                    >
+                      <Ellipsis size={14} />
+                    </Button>
+                  </div>
+                  {showPopup && popupPosition && popupCollectionId === collection.id && (
+                    <>
+                      {/* Overlay to block background interaction */}
+                      <div
+                        style={{
+                          position: 'fixed',
+                          top: 0,
+                          left: 0,
+                          width: '100vw',
+                          height: '100vh',
+                          zIndex: 99,
+                          background: 'rgba(0,0,0,0.01)',
+                        }}
+                      />
+                      <div id="collection-actions-popup" style={{ zIndex: 100, position: 'fixed', left: popupPosition.x, top: popupPosition.y }}>
+                        <CollectionActions
+                          collectionId={collection.id}
+                          popupPosition={popupPosition}
+                        />
+                      </div>
+                    </>
                   )}
                 </div>
               </div>
@@ -84,3 +158,5 @@ export function CollectionsSection({ onCreateCollection }: CollectionsSectionPro
     </div>
   )
 }
+
+

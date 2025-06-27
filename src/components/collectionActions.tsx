@@ -7,12 +7,10 @@ import EditCollectionDialog from "@/components/editCollection"
 interface CollectionActionsProps {
   collectionId: string
   collectionTitle?: string
-  disabled?: boolean
+  popupPosition: { x: number; y: number }
 }
 
-export function CollectionActions({ collectionId, collectionTitle = '', disabled }: CollectionActionsProps) {
-  const [showPopup, setShowPopup] = useState(false)
-  const [popupPosition, setPopupPosition] = useState<{ x: number; y: number } | null>(null)
+export function CollectionActions({ collectionId, collectionTitle = '', popupPosition }: CollectionActionsProps) {
   const popupRef = useRef<HTMLDivElement>(null)
   const [showRenameDialog, setShowRenameDialog] = useState(false)
   const [renameValue, setRenameValue] = useState(collectionTitle)
@@ -49,6 +47,9 @@ export function CollectionActions({ collectionId, collectionTitle = '', disabled
   // Find the current collection data from state
   const collectionData = state.collections?.find((c: any) => c.id === collectionId)
   const collection = collectionData || { id: collectionId, title: collectionTitle }
+
+  const [showPopup, setShowPopup] = useState(false)
+  const [popupPositionState, setPopupPosition] = useState<{ x: number; y: number } | null>(null)
 
   useEffect(() => {
     if (showPopup && popupRef.current && popupPosition) {
@@ -158,25 +159,6 @@ export function CollectionActions({ collectionId, collectionTitle = '', disabled
 
   return (
     <>
-      <Button
-        size="icon"
-        variant="icon"
-        disabled={disabled}
-        onClick={e => {
-          e.stopPropagation()
-          setShowPopup(!showPopup)
-          if (!showPopup) {
-            setPopupPosition({ x: e.clientX, y: e.clientY })
-          } else {
-            setPopupPosition(null)
-          }
-        }}
-        className="h-6 w-6 p-0 text-gray-400 hover:text-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
-        aria-label="Collection actions"
-      >
-        <Ellipsis size={14} />
-      </Button>
-      {showPopup && popupPosition && (
         <div
           ref={popupRef}
           style={{
@@ -244,7 +226,7 @@ export function CollectionActions({ collectionId, collectionTitle = '', disabled
             Delete
           </button>
         </div>
-      )}
+
       {showRenameDialog && renamePosition && (
         <div
           style={{
