@@ -2,6 +2,7 @@ import { useRef, useEffect, useState } from "react"
 import { Ellipsis, Plus, Edit, Trash2, Type } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useApp } from "@/contexts/appContext"
+import EditCollectionDialog from "@/components/editCollection"
 
 interface CollectionActionsProps {
   collectionId: string
@@ -17,7 +18,7 @@ export function CollectionActions({ collectionId, collectionTitle = '', disabled
   const [renameValue, setRenameValue] = useState(collectionTitle)
   const [renamePosition, setRenamePosition] = useState<{ x: number; y: number } | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
-  const { actions } = useApp()
+  const { actions, state } = useApp()
 
   // Add Prompt dialog state
   const [showAddPromptDialog, setShowAddPromptDialog] = useState(false)
@@ -25,8 +26,11 @@ export function CollectionActions({ collectionId, collectionTitle = '', disabled
   const [promptSearch, setPromptSearch] = useState("")
   const [selectedPromptIds, setSelectedPromptIds] = useState<string[]>([])
 
+  // Edit Collection dialog state
+  const [showEditDialog, setShowEditDialog] = useState(false)
+  const [editForm, setEditForm] = useState<any>(null)
+
   // Get all prompts not already in this collection
-  const { state } = useApp()
   const prompts = state.prompts.filter(
     p => !p.deleted && (!p.collections || !p.collections.includes(collectionId))
   )
@@ -41,6 +45,10 @@ export function CollectionActions({ collectionId, collectionTitle = '', disabled
   const sortedPrompts = promptSearch.trim() === ""
     ? [...prompts].sort((a, b) => a.title.localeCompare(b.title))
     : filteredPrompts
+
+  // Find the current collection data from state
+  const collectionData = state.collections?.find((c: any) => c.id === collectionId)
+  const collection = collectionData || { id: collectionId, title: collectionTitle }
 
   useEffect(() => {
     if (showPopup && popupRef.current && popupPosition) {
@@ -122,10 +130,29 @@ export function CollectionActions({ collectionId, collectionTitle = '', disabled
   }
 
   async function handleAddPrompts() {
-    for (const promptId of selectedPromptIds) {
-      await actions.addPromptToCollection(collectionId, promptId)
-    }
+    await actions.addPromptToCollection(collectionId, selectedPromptIds)
     closeAddPromptDialog()
+  }
+
+  function openEditDialog() {
+    setShowPopup(false)
+    setShowEditDialog(true)
+    setEditForm({
+      title: collectionData?.title || collectionTitle || '',
+      description: collectionData?.description || '',
+      tags: Array.isArray(collectionData?.tags) ? collectionData.tags.join(", ") : (collectionData?.tags || ''),
+      visibility: collectionData?.visibility || 'private',
+      images: collectionData?.images || [],
+      collaborators: Array.isArray(collectionData?.collaborators)
+        ? collectionData.collaborators.filter((c: any) => typeof c === 'object' && c !== null && 'id' in c)
+        : [],
+      id: collectionId,
+    })
+  }
+
+  function closeEditDialog() {
+    setShowEditDialog(false)
+    setEditForm(null)
   }
 
   return (
@@ -187,7 +214,7 @@ export function CollectionActions({ collectionId, collectionTitle = '', disabled
           </button>
           <button
             className="flex items-center gap-2 text-left text-sm text-white hover:bg-[var(--wisp-blue)]/10 rounded-md px-4 py-2 transition-colors cursor-pointer font-medium"
-            onClick={() => setShowPopup(false)}
+            onClick={openEditDialog}
           >
             <Edit size={16} />
             Edit Collection
@@ -306,6 +333,14 @@ export function CollectionActions({ collectionId, collectionTitle = '', disabled
             >Add {selectedPromptIds.length > 0 ? selectedPromptIds.length : ''} Prompt{selectedPromptIds.length === 1 ? '' : 's'}</Button>
           </div>
         </div>
+      )}
+      {/* Edit Collection Dialog */}
+      {showEditDialog && (
+        <EditCollectionDialog
+          open={showEditDialog}
+          onClose={closeEditDialog}
+          initialData={editForm}
+        />
       )}
     </>
   )

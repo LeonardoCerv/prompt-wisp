@@ -159,7 +159,7 @@ interface AppContextType {
 
     // Collection operations
     createCollection: (collection: any) => Promise<CollectionData>
-    addPromptToCollection: (collectionId: string, promptId: string) => Promise<void>
+    addPromptToCollection: (collectionId: string, promptIds: string[]) => Promise<void>
     editCollection: (collectionId: string, updates: Partial<CollectionData>) => Promise<void>
     renameCollection: (collectionId: string, newTitle: string) => Promise<void>
     deleteCollection: (collectionId: string) => Promise<void>
@@ -436,9 +436,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [loadCollections])
 
   // Add prompt to collection
-  const addPromptToCollection = useCallback(async (collectionId: string, promptId: string) => {
-
-   await editCollection(collectionId, { prompt: promptId })
+  const addPromptToCollection = useCallback(async (collectionId: string, promptIds: string[]) => {
+   await editCollection(collectionId, { prompts: promptIds })
   }, [editCollection])
 
   // Rename collection (just update title)

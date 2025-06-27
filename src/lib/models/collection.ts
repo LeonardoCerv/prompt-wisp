@@ -249,6 +249,8 @@ class Collection {
                 throw new Error(`Error updating collection: ${error.message}`);
             }
 
+            console.log("Collection updated successfully:", data);
+
             return data as CollectionData;
         } catch (error) {
             console.error("Error updating collection:", error);

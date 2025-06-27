@@ -198,6 +198,7 @@ export async function PUT(request: NextRequest) {
     if (updates.visibility !== undefined) updateData.visibility = updates.visibility;
 
     const updatedCollection = await Collection.update(id, updateData);
+    console.log('Collection updated successfully:', updatedCollection);
 
     return NextResponse.json(updatedCollection)
   } catch (error) {
