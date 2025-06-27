@@ -131,6 +131,7 @@ export function CollectionActions({ collectionId, collectionTitle = '', disabled
 
   async function handleAddPrompts() {
     await actions.addPromptToCollection(collectionId, selectedPromptIds)
+    await actions.loadPrompts() // Refresh the prompt list
     closeAddPromptDialog()
   }
 

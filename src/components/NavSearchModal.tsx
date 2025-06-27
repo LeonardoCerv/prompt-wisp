@@ -1,74 +1,20 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { useApp } from '@/contexts/appContext';
 import type { PromptData } from '@/lib/models';
 import PromptCard from './promptCard';
-import { Badge } from './ui/badge';
 import { useRouter } from 'next/navigation';
 
-interface SearchModalProps {
+interface NavSearchModalProps {
   open: boolean;
   onClose: () => void;
 }
 
-const SearchModal: React.FC<SearchModalProps> = ({ open, onClose }) => {
-  const { state, utils, actions } = useApp();
+const NavSearchModal: React.FC<NavSearchModalProps> = ({ open, onClose }) => {
+  const { state, actions, search } = useApp() as any;
   const [query, setQuery] = useState('');
   const router = useRouter();
 
-  // Gather all relevant items: owned/bought prompts
-  const userId = state.user?.id;
-  const boughtPromptIds = state.user?.bought || [];
-  const favoritePromptIds = state.user?.favorites || [];
-
-  // Prompts: owned or bought (not deleted)
-  const prompts = useMemo(() =>
-    state.prompts.filter(
-      (p) =>
-        (!p.deleted &&
-          (p.user_id === userId || boughtPromptIds.includes(p.id)))
-    ),
-    [state.prompts, userId, boughtPromptIds]
-  );
-
-  // Recently deleted prompts: owned or bought
-  const deletedPrompts = useMemo(() =>
-    state.prompts.filter(
-      (p) =>
-        p.deleted &&
-        (p.user_id === userId || boughtPromptIds.includes(p.id))
-    ),
-    [state.prompts, userId, boughtPromptIds]
-  );
-
-  // Combined filtered prompts (active and deleted, keep deleted style)
-  const allFilteredPrompts = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    let active = [];
-    let deleted = [];
-    if (q.startsWith('#')) {
-      const tagQuery = q.slice(1);
-      active = prompts.filter(
-        (p) => p.tags && p.tags.some(tag => tag.toLowerCase().includes(tagQuery))
-      );
-      deleted = deletedPrompts.filter(
-        (p) => p.tags && p.tags.some(tag => tag.toLowerCase().includes(tagQuery))
-      );
-    } else {
-      active = prompts.filter(
-        (p) =>
-          p.title.toLowerCase().includes(q) ||
-          (p.description?.toLowerCase().includes(q) ?? false) ||
-          (p.tags && p.tags.some(tag => tag.toLowerCase().includes(q)))
-      );
-      deleted = deletedPrompts.filter(
-        (p) =>
-          p.title.toLowerCase().includes(q) ||
-          (p.description?.toLowerCase().includes(q) ?? false) ||
-          (p.tags && p.tags.some(tag => tag.toLowerCase().includes(q)))
-      );
-    }
-    return [...active, ...deleted];
-  }, [prompts, deletedPrompts, query]);
+  const allFilteredPrompts = search?.searchPrompts(query) || [];
 
   const handlePromptSelect = (prompt: PromptData) => {
     onClose();
@@ -113,7 +59,7 @@ const SearchModal: React.FC<SearchModalProps> = ({ open, onClose }) => {
                 </h3>
                 {allFilteredPrompts.length > 0 ? (
                   <ul className="grid gap-2">
-                    {allFilteredPrompts.map((prompt) => (
+                    {allFilteredPrompts.map((prompt: PromptData) => (
                       <li key={prompt.id}>
                         {prompt.deleted ? (
                           <div className="relative cursor-pointer opacity-60 group" onClick={() => handlePromptSelect(prompt)}>
@@ -151,4 +97,4 @@ const SearchModal: React.FC<SearchModalProps> = ({ open, onClose }) => {
   );
 };
 
-export default SearchModal;
+export default NavSearchModal;

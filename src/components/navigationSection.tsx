@@ -5,7 +5,7 @@ import { Home, Star, BookOpen, Edit, Archive, Search } from "lucide-react"
 import Link from "next/link"
 import { useApp } from "@/contexts/appContext"
 import { useState } from "react"
-import SearchModal from "./SearchModal"
+import NavSearchModal from "./NavSearchModal"
 
 interface NavigationSectionProps {
   searchInputRef: HTMLInputElement | null
@@ -117,7 +117,7 @@ export function NavigationSection({ searchInputRef }: NavigationSectionProps) {
         )
       })}
       {searchOpen && (
-        <SearchModal open={searchOpen} onClose={() => setSearchOpen(false)} />
+        <NavSearchModal open={searchOpen} onClose={() => setSearchOpen(false)} />
       )}
     </div>
   )

@@ -187,7 +187,8 @@ interface AppContextType {
     // General utilities
     formatDate: (dateString: string) => string
     truncateText: (text: string, maxLength: number) => string
-  }
+  },
+  search: { searchPrompts: (query: string) => PromptData[] },
 }
 
 const AppContext = createContext<AppContextType | null>(null)
@@ -581,6 +582,50 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [state.user, state.prompts, state.collections],
   )
 
+  // Add a search utility for prompts
+  const searchPrompts = useCallback((query: string) => {
+    const userId = state.user?.id;
+    const boughtPromptIds = state.user?.bought || [];
+    // Prompts: owned or bought (not deleted)
+    const prompts = state.prompts.filter(
+      (p) =>
+        (!p.deleted &&
+          (p.user_id === userId || boughtPromptIds.includes(p.id)))
+    );
+    // Recently deleted prompts: owned or bought
+    const deletedPrompts = state.prompts.filter(
+      (p) =>
+        p.deleted &&
+        (p.user_id === userId || boughtPromptIds.includes(p.id))
+    );
+    const q = query.trim().toLowerCase();
+    let active: typeof prompts = [];
+    let deleted: typeof deletedPrompts = [];
+    if (q.startsWith('#')) {
+      const tagQuery = q.slice(1);
+      active = prompts.filter(
+        (p) => p.tags && p.tags.some(tag => tag.toLowerCase().includes(tagQuery))
+      );
+      deleted = deletedPrompts.filter(
+        (p) => p.tags && p.tags.some(tag => tag.toLowerCase().includes(tagQuery))
+      );
+    } else {
+      active = prompts.filter(
+        (p) =>
+          p.title.toLowerCase().includes(q) ||
+          (p.description?.toLowerCase().includes(q) ?? false) ||
+          (p.tags && p.tags.some(tag => tag.toLowerCase().includes(q)))
+      );
+      deleted = deletedPrompts.filter(
+        (p) =>
+          p.title.toLowerCase().includes(q) ||
+          (p.description?.toLowerCase().includes(q) ?? false) ||
+          (p.tags && p.tags.some(tag => tag.toLowerCase().includes(q)))
+      );
+    }
+    return [...active, ...deleted];
+  }, [state.prompts, state.user]);
+
   // Memoize the actions object to prevent infinite re-renders
   const contextActions = useMemo(
     () => ({
@@ -634,8 +679,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       state,
       actions: contextActions,
       utils,
+      search: { searchPrompts },
     }),
-    [state, contextActions, utils],
+    [state, contextActions, utils, searchPrompts],
   )
 
   return <AppContext.Provider value={contextValue}>{children}</AppContext.Provider>
