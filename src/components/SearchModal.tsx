@@ -1,6 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '@/contexts/appContext';
-import type { PromptData, CollectionData } from '@/lib/models';
+import type { PromptData } from '@/lib/models';
+import PromptCard from './promptCard';
+import { Badge } from './ui/badge';
+import { useRouter } from 'next/navigation';
 
 interface SearchModalProps {
   open: boolean;
@@ -8,10 +11,11 @@ interface SearchModalProps {
 }
 
 const SearchModal: React.FC<SearchModalProps> = ({ open, onClose }) => {
-  const { state, utils } = useApp();
+  const { state, utils, actions } = useApp();
   const [query, setQuery] = useState('');
+  const router = useRouter();
 
-  // Gather all relevant items: owned/bought prompts, owned/bought collections
+  // Gather all relevant items: owned/bought prompts
   const userId = state.user?.id;
   const boughtPromptIds = state.user?.bought || [];
   const favoritePromptIds = state.user?.favorites || [];
@@ -26,16 +30,6 @@ const SearchModal: React.FC<SearchModalProps> = ({ open, onClose }) => {
     [state.prompts, userId, boughtPromptIds]
   );
 
-  // Collections: owned or bought (not deleted)
-  const collections = useMemo(() =>
-    state.collections.filter(
-      (c) =>
-        (!c.deleted &&
-          (c.user_id === userId || (c.prompts || []).some(pid => boughtPromptIds.includes(pid))))
-    ),
-    [state.collections, userId, boughtPromptIds]
-  );
-
   // Recently deleted prompts: owned or bought
   const deletedPrompts = useMemo(() =>
     state.prompts.filter(
@@ -46,53 +40,41 @@ const SearchModal: React.FC<SearchModalProps> = ({ open, onClose }) => {
     [state.prompts, userId, boughtPromptIds]
   );
 
-  // Recently deleted collections: owned or bought
-  const deletedCollections = useMemo(() =>
-    state.collections.filter(
-      (c) =>
-        c.deleted &&
-        (c.user_id === userId || (c.prompts || []).some(pid => boughtPromptIds.includes(pid)))
-    ),
-    [state.collections, userId, boughtPromptIds]
-  );
+  // Combined filtered prompts (active and deleted, keep deleted style)
+  const allFilteredPrompts = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    let active = [];
+    let deleted = [];
+    if (q.startsWith('#')) {
+      const tagQuery = q.slice(1);
+      active = prompts.filter(
+        (p) => p.tags && p.tags.some(tag => tag.toLowerCase().includes(tagQuery))
+      );
+      deleted = deletedPrompts.filter(
+        (p) => p.tags && p.tags.some(tag => tag.toLowerCase().includes(tagQuery))
+      );
+    } else {
+      active = prompts.filter(
+        (p) =>
+          p.title.toLowerCase().includes(q) ||
+          (p.description?.toLowerCase().includes(q) ?? false) ||
+          (p.tags && p.tags.some(tag => tag.toLowerCase().includes(q)))
+      );
+      deleted = deletedPrompts.filter(
+        (p) =>
+          p.title.toLowerCase().includes(q) ||
+          (p.description?.toLowerCase().includes(q) ?? false) ||
+          (p.tags && p.tags.some(tag => tag.toLowerCase().includes(q)))
+      );
+    }
+    return [...active, ...deleted];
+  }, [prompts, deletedPrompts, query]);
 
-  // Filtered results
-  const filteredPrompts = useMemo(() =>
-    prompts.filter(
-      (p) =>
-        p.title.toLowerCase().includes(query.toLowerCase()) ||
-        (p.description?.toLowerCase().includes(query.toLowerCase()) ?? false)
-    ),
-    [prompts, query]
-  );
-
-  const filteredCollections = useMemo(() =>
-    collections.filter(
-      (c) =>
-        c.title.toLowerCase().includes(query.toLowerCase()) ||
-        (c.description?.toLowerCase().includes(query.toLowerCase()) ?? false)
-    ),
-    [collections, query]
-  );
-
-  // Filtered deleted results
-  const filteredDeletedPrompts = useMemo(() =>
-    deletedPrompts.filter(
-      (p) =>
-        p.title.toLowerCase().includes(query.toLowerCase()) ||
-        (p.description?.toLowerCase().includes(query.toLowerCase()) ?? false)
-    ),
-    [deletedPrompts, query]
-  );
-
-  const filteredDeletedCollections = useMemo(() =>
-    deletedCollections.filter(
-      (c) =>
-        c.title.toLowerCase().includes(query.toLowerCase()) ||
-        (c.description?.toLowerCase().includes(query.toLowerCase()) ?? false)
-    ),
-    [deletedCollections, query]
-  );
+  const handlePromptSelect = (prompt: PromptData) => {
+    onClose();
+    actions.setSelectedPrompt(prompt)
+    router.push(`/prompt/${prompt.id}`)
+  };
 
   if (!open) return null;
   return (
@@ -106,25 +88,53 @@ const SearchModal: React.FC<SearchModalProps> = ({ open, onClose }) => {
           ×
         </button>
         <h2 className="text-lg font-semibold mb-4">Search</h2>
-        <input
-          type="text"
-          className="w-full border rounded px-3 py-2 mb-4 focus:outline-none focus:ring"
-          placeholder="Search collections, prompts, ..."
-          value={query}
-          onChange={e => setQuery(e.target.value)}
-          autoFocus
-        />
-        <div className="space-y-4 max-h-80 overflow-y-auto">
+        <div className="relative mb-4">
+          <input
+            type="text"
+            className="w-full border rounded px-3 py-2 focus:outline-none focus:ring pr-10"
+            placeholder="Search prompts or #tag ..."
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            autoFocus
+            style={{ position: 'relative', background: 'transparent' }}
+          />
+          {query.trim().startsWith('#') && (
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none select-none text-blue-600 font-semibold">
+              {query.split(' ')[0]}
+            </span>
+          )}
+        </div>
+        <div className="space-y-6 max-h-80 overflow-y-auto">
           {query && (
             <>
               <div>
-                <h3 className="font-semibold text-sm mb-1">Prompts</h3>
-                {filteredPrompts.length > 0 ? (
-                  <ul>
-                    {filteredPrompts.map((prompt) => (
-                      <li key={prompt.id} className="py-1 border-b last:border-b-0">
-                        <span className="font-medium">{prompt.title}</span>
-                        <span className="ml-2 text-xs text-zinc-500">{utils.truncateText(prompt.description || '', 40)}</span>
+                <h3 className="font-semibold text-sm mb-2 text-zinc-700 dark:text-zinc-200 flex items-center gap-2">
+                  <span>Best matches</span>
+                </h3>
+                {allFilteredPrompts.length > 0 ? (
+                  <ul className="grid gap-2">
+                    {allFilteredPrompts.map((prompt) => (
+                      <li key={prompt.id}>
+                        {prompt.deleted ? (
+                          <div className="relative cursor-pointer opacity-60 group" onClick={() => handlePromptSelect(prompt)}>
+                            <div className="absolute inset-0 pointer-events-none rounded border border-dashed border-red-600 transition-all mx-3"></div>
+                            <PromptCard
+                              prompt={prompt}
+                              isSelected={false}
+                              isLast={true}
+                              isBeforeSelected={false}
+                              onSelect={() => handlePromptSelect(prompt)}
+                            />
+                          </div>
+                        ) : (
+                            <PromptCard
+                              prompt={prompt}
+                              isSelected={false}
+                              isLast={false}
+                              isBeforeSelected={false}
+                              onSelect={() => handlePromptSelect(prompt)}
+                            />
+                        )}
                       </li>
                     ))}
                   </ul>
@@ -132,56 +142,9 @@ const SearchModal: React.FC<SearchModalProps> = ({ open, onClose }) => {
                   <div className="text-xs text-zinc-400">No prompts found.</div>
                 )}
               </div>
-              <div>
-                <h3 className="font-semibold text-sm mb-1">Collections</h3>
-                {filteredCollections.length > 0 ? (
-                  <ul>
-                    {filteredCollections.map((col) => (
-                      <li key={col.id} className="py-1 border-b last:border-b-0">
-                        <span className="font-medium">{col.title}</span>
-                        <span className="ml-2 text-xs text-zinc-500">{utils.truncateText(col.description || '', 40)}</span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <div className="text-xs text-zinc-400">No collections found.</div>
-                )}
-              </div>
-              {/* Recently Deleted Section */}
-              {(filteredDeletedPrompts.length > 0 || filteredDeletedCollections.length > 0) && (
-                <div>
-                  <h3 className="font-semibold text-sm mb-1 mt-4">Recently Deleted</h3>
-                  {filteredDeletedPrompts.length > 0 && (
-                    <div className="mb-2">
-                      <div className="text-xs text-zinc-500 mb-1">Prompts</div>
-                      <ul>
-                        {filteredDeletedPrompts.map((prompt) => (
-                          <li key={prompt.id} className="py-1 border-b last:border-b-0 opacity-60">
-                            <span className="font-medium line-through">{prompt.title}</span>
-                            <span className="ml-2 text-xs text-zinc-500">{utils.truncateText(prompt.description || '', 40)}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                  {filteredDeletedCollections.length > 0 && (
-                    <div>
-                      <div className="text-xs text-zinc-500 mb-1">Collections</div>
-                      <ul>
-                        {filteredDeletedCollections.map((col) => (
-                          <li key={col.id} className="py-1 border-b last:border-b-0 opacity-60">
-                            <span className="font-medium line-through">{col.title}</span>
-                            <span className="ml-2 text-xs text-zinc-500">{utils.truncateText(col.description || '', 40)}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              )}
             </>
           )}
-          {!query && <div className="text-xs text-zinc-400">Type to search your prompts and collections.</div>}
+          {!query && <div className="text-xs text-zinc-400">Type to search your prompts or #tag.</div>}
         </div>
       </div>
     </div>
