@@ -8,9 +8,10 @@ interface CollectionActionsProps {
   collectionId: string
   collectionTitle?: string
   popupPosition: { x: number; y: number }
+  onRequestClose: () => void
 }
 
-export function CollectionActions({ collectionId, collectionTitle = '', popupPosition }: CollectionActionsProps) {
+export function CollectionActions({ collectionId, collectionTitle = '', popupPosition, onRequestClose }: CollectionActionsProps) {
   const popupRef = useRef<HTMLDivElement>(null)
   const [showRenameDialog, setShowRenameDialog] = useState(false)
   const [renameValue, setRenameValue] = useState(collectionTitle)
@@ -46,58 +47,50 @@ export function CollectionActions({ collectionId, collectionTitle = '', popupPos
 
   // Find the current collection data from state
   const collectionData = state.collections?.find((c: any) => c.id === collectionId)
-  const collection = collectionData || { id: collectionId, title: collectionTitle }
-
-  const [showPopup, setShowPopup] = useState(false)
-  const [popupPositionState, setPopupPosition] = useState<{ x: number; y: number } | null>(null)
-
-  useEffect(() => {
-    if (showPopup && popupRef.current && popupPosition) {
-      const popup = popupRef.current
-      const rect = popup.getBoundingClientRect()
-      const vw = window.innerWidth
-      const vh = window.innerHeight
-      let newX = popupPosition.x
-      let newY = popupPosition.y
-      if (newX + rect.width > vw) newX = Math.max(0, vw - rect.width)
-      if (newY + rect.height > vh) newY = Math.max(0, popupPosition.y - rect.height)
-      if (newX !== popupPosition.x || newY !== popupPosition.y) setPopupPosition({ x: newX, y: newY })
-    }
-  }, [showPopup, popupPosition])
-
-  useEffect(() => {
-    if (!showPopup) return
-    const handleClick = (e: MouseEvent) => {
-      if (popupRef.current && !popupRef.current.contains(e.target as Node)) {
-        setShowPopup(false)
-        setPopupPosition(null)
-      }
-    }
-    window.addEventListener("mousedown", handleClick)
-    return () => window.removeEventListener("mousedown", handleClick)
-  }, [showPopup])
 
   useEffect(() => {
     if (showRenameDialog && inputRef.current) {
       inputRef.current.focus()
       inputRef.current.select()
     }
-    if (!showRenameDialog) return
+  }, [showRenameDialog])
+
+  useEffect(() => {
+    if (!showRenameDialog && !showAddPromptDialog && !showEditDialog && !popupRef.current) return
     const handleClick = (e: MouseEvent) => {
-      if (inputRef.current && !inputRef.current.contains(e.target as Node)) closeRenameDialog()
+      const addPromptDialog = document.getElementById('add-prompt-dialog')
+      const isInRename = showRenameDialog && inputRef.current && inputRef.current.contains(e.target as Node)
+      const isInAddPrompt = showAddPromptDialog && addPromptDialog && addPromptDialog.contains(e.target as Node)
+      const isInMainPopup = popupRef.current && popupRef.current.contains(e.target as Node)
+      if (!isInRename && !isInAddPrompt && !isInMainPopup) {
+        closeAllDialogs()
+      }
     }
     window.addEventListener("mousedown", handleClick)
     return () => window.removeEventListener("mousedown", handleClick)
-  }, [showRenameDialog])
+  }, [showRenameDialog, showAddPromptDialog, showEditDialog, popupRef])
+
+  function closeAllDialogs() {
+    setShowRenameDialog(false)
+    setRenameValue(collectionTitle)
+    setRenamePosition(null)
+    setShowAddPromptDialog(false)
+    setAddPromptPosition(null)
+    setPromptSearch("")
+    setSelectedPromptIds([])
+    setShowEditDialog(false)
+    setEditForm(null)
+    onRequestClose && onRequestClose()
+  }
 
   function openRenameDialog(mouseX: number, mouseY: number) {
-    setShowPopup(false)
     setShowRenameDialog(true)
     setRenameValue(collectionTitle)
     setRenamePosition({ x: mouseX, y: mouseY })
   }
 
-  function closeRenameDialog() {
+  function closeRenameDialog(forceAll = false) {
+    if (forceAll) return closeAllDialogs()
     setShowRenameDialog(false)
     setRenameValue(collectionTitle)
     setRenamePosition(null)
@@ -112,18 +105,17 @@ export function CollectionActions({ collectionId, collectionTitle = '', popupPos
 
   async function handleDelete() {
     await actions.deleteCollection(collectionId)
-    setShowPopup(false)
   }
 
   function openAddPromptDialog(mouseX: number, mouseY: number) {
-    setShowPopup(false)
     setShowAddPromptDialog(true)
     setAddPromptPosition({ x: mouseX, y: mouseY })
     setPromptSearch("")
     setSelectedPromptIds([])
   }
 
-  function closeAddPromptDialog() {
+  function closeAddPromptDialog(forceAll = false) {
+    if (forceAll) return closeAllDialogs()
     setShowAddPromptDialog(false)
     setAddPromptPosition(null)
     setPromptSearch("")
@@ -137,7 +129,6 @@ export function CollectionActions({ collectionId, collectionTitle = '', popupPos
   }
 
   function openEditDialog() {
-    setShowPopup(false)
     setShowEditDialog(true)
     setEditForm({
       title: collectionData?.title || collectionTitle || '',
@@ -159,74 +150,84 @@ export function CollectionActions({ collectionId, collectionTitle = '', popupPos
 
   return (
     <>
+      {(showRenameDialog || showAddPromptDialog || showEditDialog) && (
         <div
-          ref={popupRef}
           style={{
-            position: "fixed",
-            left: popupPosition.x,
-            top: popupPosition.y,
-            zIndex: 100,
-            minWidth: 180,
-            background: "var(--deep-charcoal)",
-            border: "1px solid var(--moonlight-silver-dim)",
-            borderRadius: 12,
-            boxShadow: "0 8px 32px rgba(0,0,0,0.25)",
-            padding: "10px 0",
-            display: "flex",
-            flexDirection: "column",
-            gap: 2,
-            transition: "all 0.15s cubic-bezier(.4,0,.2,1)",
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            zIndex: 99,
+            background: 'rgba(0,0,0,0.01)',
           }}
-          onClick={e => e.stopPropagation()}
+        />
+      )}
+      <div
+        ref={popupRef}
+        style={{
+          position: "fixed",
+          left: popupPosition.x,
+          top: popupPosition.y,
+          zIndex: 100,
+          minWidth: 180,
+          background: "var(--deep-charcoal)",
+          border: "1px solid var(--moonlight-silver-dim)",
+          borderRadius: 12,
+          boxShadow: "0 8px 32px rgba(0,0,0,0.25)",
+          padding: "10px 0",
+          display: showRenameDialog || showAddPromptDialog || showEditDialog ? 'none' : 'flex',
+          flexDirection: "column",
+          gap: 2,
+          transition: "all 0.15s cubic-bezier(.4,0,.2,1)",
+        }}
+        onClick={e => e.stopPropagation()}
+      >
+        <button
+          className="flex items-center gap-2 text-left text-sm text-white hover:bg-[var(--wisp-blue)]/10 rounded-md px-4 py-2 transition-colors cursor-pointer font-medium"
+          onClick={e => {
+            if (e && e.nativeEvent) {
+              const mouseX = e.nativeEvent.clientX
+              const mouseY = e.nativeEvent.clientY
+              openAddPromptDialog(mouseX, mouseY)
+            } else {
+              openAddPromptDialog(window.innerWidth / 2, window.innerHeight / 2)
+            }
+          }}
         >
-          <button
-            className="flex items-center gap-2 text-left text-sm text-white hover:bg-[var(--wisp-blue)]/10 rounded-md px-4 py-2 transition-colors cursor-pointer font-medium"
-            onClick={e => {
-              setShowPopup(false)
-              if (e && e.nativeEvent) {
-                const mouseX = e.nativeEvent.clientX
-                const mouseY = e.nativeEvent.clientY
-                openAddPromptDialog(mouseX, mouseY)
-              } else {
-                openAddPromptDialog(window.innerWidth / 2, window.innerHeight / 2)
-              }
-            }}
-          >
-            <Plus size={16} />
-            Add Prompt
-          </button>
-          <button
-            className="flex items-center gap-2 text-left text-sm text-white hover:bg-[var(--wisp-blue)]/10 rounded-md px-4 py-2 transition-colors cursor-pointer font-medium"
-            onClick={openEditDialog}
-          >
-            <Edit size={16} />
-            Edit Collection
-          </button>
-          <button
-            className="flex items-center gap-2 text-left text-sm text-white hover:bg-[var(--wisp-blue)]/10 rounded-md px-4 py-2 transition-colors cursor-pointer font-medium"
-            onClick={e => {
-              setShowPopup(false)
-              if (e && e.nativeEvent) {
-                const mouseX = e.nativeEvent.clientX
-                const mouseY = e.nativeEvent.clientY
-                openRenameDialog(mouseX, mouseY)
-              } else {
-                openRenameDialog(window.innerWidth / 2, window.innerHeight / 2)
-              }
-            }}
-          >
-            <Type size={16} />
-            Rename
-          </button>
-          <button
-            className="flex items-center gap-2 text-left text-sm text-red-400 hover:bg-red-400/10 rounded-md px-4 py-2 transition-colors cursor-pointer font-medium"
-            onClick={handleDelete}
-          >
-            <Trash2 size={16} />
-            Delete
-          </button>
-        </div>
-
+          <Plus size={16} />
+          Add Prompt
+        </button>
+        <button
+          className="flex items-center gap-2 text-left text-sm text-white hover:bg-[var(--wisp-blue)]/10 rounded-md px-4 py-2 transition-colors cursor-pointer font-medium"
+          onClick={openEditDialog}
+        >
+          <Edit size={16} />
+          Edit Collection
+        </button>
+        <button
+          className="flex items-center gap-2 text-left text-sm text-white hover:bg-[var(--wisp-blue)]/10 rounded-md px-4 py-2 transition-colors cursor-pointer font-medium"
+          onClick={e => {
+            if (e && e.nativeEvent) {
+              const mouseX = e.nativeEvent.clientX
+              const mouseY = e.nativeEvent.clientY
+              openRenameDialog(mouseX, mouseY)
+            } else {
+              openRenameDialog(window.innerWidth / 2, window.innerHeight / 2)
+            }
+          }}
+        >
+          <Type size={16} />
+          Rename
+        </button>
+        <button
+          className="flex items-center gap-2 text-left text-sm text-red-400 hover:bg-red-400/10 rounded-md px-4 py-2 transition-colors cursor-pointer font-medium"
+          onClick={handleDelete}
+        >
+          <Trash2 size={16} />
+          Delete
+        </button>
+      </div>
       {showRenameDialog && renamePosition && (
         <div
           style={{
@@ -260,6 +261,7 @@ export function CollectionActions({ collectionId, collectionTitle = '', popupPos
       )}
       {showAddPromptDialog && addPromptPosition && (
         <div
+          id="add-prompt-dialog"
           style={{
             position: "fixed",
             left: addPromptPosition.x,
@@ -307,7 +309,7 @@ export function CollectionActions({ collectionId, collectionTitle = '', popupPos
             )}
           </div>
           <div className="flex gap-2 justify-end">
-            <Button variant="ghost" className="rounded px-4 py-2 text-gray-300 hover:bg-gray-700" onClick={closeAddPromptDialog}>Cancel</Button>
+            <Button variant="ghost" className="rounded px-4 py-2 text-gray-300 hover:bg-gray-700" onClick={() => closeAddPromptDialog(true)}>Cancel</Button>
             <Button
               variant="default"
               className="rounded px-4 py-2 bg-[var(--wisp-blue)] hover:bg-[var(--wisp-blue-dark)] text-white font-semibold"

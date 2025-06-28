@@ -141,6 +141,12 @@ export function CollectionsSection({ onCreateCollection }: CollectionsSectionPro
                         <CollectionActions
                           collectionId={collection.id}
                           popupPosition={popupPosition}
+                          onRequestClose={() => {
+                          setShowPopup(false)
+                          setPopupPosition(null)
+                          setPopupCollectionId(null)
+                          setHoveredCollection(null)
+                        }}
                         />
                       </div>
                     </>
