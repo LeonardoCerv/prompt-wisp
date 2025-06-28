@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/utils/supabase/server";
-import { User, UserData } from "@/lib/models";
 
 // Get user's info
 export async function GET() {

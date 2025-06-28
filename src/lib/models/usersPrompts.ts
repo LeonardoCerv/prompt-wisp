@@ -38,6 +38,34 @@ class UsersPrompts {
     }
 
     /**
+     * Get all prompts for a user.
+     * @param userId - The prompt's ID
+     * @returns Array of prompt IDs (empty if none found)
+     */
+    static async getPrompts(userId: string): Promise<string[]> {
+        try {
+            const supabase = await createClient();
+            const { data, error } = await supabase
+                .from('users_prompts')
+                .select('prompt_id')
+                .eq('user_id', userId);
+
+            if (error) {
+                if (error.code === 'PGRST116') { // No rows returned
+                    return [];
+                } 
+                throw new Error(`Error getting users for prompt: ${error.message}`);
+            }
+
+            if (!data) return [];
+            return data.map(row => row.prompt_id);
+        } catch (error) {
+            console.error("Error getting users by prompt ID:", error);
+            throw error;
+        }
+    }
+
+        /**
      * Get all user IDs for a prompt.
      * @param promptId - The prompt's ID
      * @returns Array of user IDs (empty if none found)
