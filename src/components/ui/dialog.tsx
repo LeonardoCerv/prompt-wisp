@@ -4,16 +4,35 @@ import { useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { cva, type VariantProps } from "class-variance-authority"
+import { cn } from '@/lib/utils/utils'
 
-interface DialogProps {
+interface DialogProps extends VariantProps<typeof dialogVariants> {
   isOpen: boolean
   onClose: () => void
   title: string
   children: React.ReactNode
   maxWidth?: string
+  variant?: "default" | "transparent" | "tool"
 }
 
-export default function Dialog({ isOpen, onClose, title, children, maxWidth = "max-w-md" }: DialogProps) {
+const dialogVariants = cva(
+  "bg-[var(--deep-charcoal)] border border-[var(--moonlight-silver-dim)] rounded-lg shadow-xl",
+  {
+    variants: {
+      variant: {
+        default: "bg-[var(--deep-charcoal)] border border-[var(--moonlight-silver-dim)]",
+        transparent: "bg-transparent border-none shadow-none",
+        tool: "bg-[var(--deep-charcoal)] border border-[var(--moonlight-silver-dim)]", // content stays the same, only portal bg changes
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+    },
+  }
+)
+
+export default function Dialog({ isOpen, onClose, title, children, maxWidth = "max-w-md", variant = "default" }: DialogProps) {
   const dialogRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -44,12 +63,17 @@ export default function Dialog({ isOpen, onClose, title, children, maxWidth = "m
 
   return createPortal(
     <div 
-      className="fixed inset-0 z-50 flex items-start justify-center bg-black/60 backdrop-blur-sm overflow-y-auto py-8"
+      className={cn(
+        "fixed inset-0 z-50 flex items-center justify-center overflow-y-auto py-8",
+        variant === "tool"
+          ? "bg-transparent backdrop-blur-none"
+          : "bg-black/60 backdrop-blur-sm"
+      )}
       onClick={handleBackdropClick}
     >
       <div 
         ref={dialogRef}
-        className={`bg-[var(--deep-charcoal)] border border-[var(--moonlight-silver-dim)] rounded-lg shadow-xl ${maxWidth} w-full mx-4 max-h-[90vh] flex flex-col`}
+        className={cn(dialogVariants({ variant }), maxWidth, "w-full mx-4 max-h-[90vh] flex flex-col")}
       >
         {title && (
           <div className="flex items-center justify-between p-4 border-b border-[var(--moonlight-silver-dim)]">
