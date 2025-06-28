@@ -20,7 +20,7 @@ class CollectionPrompts {
         try {
             const supabase = await createClient();
             const { data, error } = await supabase
-                .from('collection_prompts')
+                .from('users_collections')
                 .insert(collectionPrompts)
                 .select()
                 .single();
@@ -45,7 +45,7 @@ class CollectionPrompts {
         try {
             const supabase = await createClient();
             const { data, error } = await supabase
-                .from('collection_prompts')
+                .from('users_collections')
                 .select('prompt_id')
                 .eq('collection_id', collectionId);
 
@@ -73,7 +73,7 @@ class CollectionPrompts {
         try {
             const supabase = await createClient();
             const { data, error } = await supabase
-                .from('collection_prompts')
+                .from('users_collections')
                 .select('collection_id')
                 .eq('prompt_id', promptId);
 
@@ -102,7 +102,7 @@ class CollectionPrompts {
             const supabase = await createClient();
     
             const { error } = await supabase
-                .from('collection_prompts')
+                .from('users_collections')
                 .delete()
                 .eq('prompt_id', promptId)
                 .eq('collection_id', collectionId);
@@ -125,7 +125,7 @@ class CollectionPrompts {
         try {
             const supabase = await createClient();
             const { count, error } = await supabase
-                .from('collection_prompts')
+                .from('users_collections')
                 .select('prompt_id', { count: 'exact', head: true })
                 .eq('collection_id', collectionId);
 
@@ -148,7 +148,7 @@ class CollectionPrompts {
         try {
             const supabase = await createClient();
             const { count, error } = await supabase
-                .from('collection_prompts')
+                .from('users_collections')
                 .select('collection_id', { count: 'exact', head: true })
                 .eq('prompt_id', promptId);
 
