@@ -7,6 +7,8 @@ import { ShoppingBag, Sparkles, RefreshCw, Search } from 'lucide-react'
 import { type User } from '@supabase/supabase-js'
 import Link from 'next/link'
 import Image from 'next/image'
+import { useApp } from '@/contexts/appContext'
+import PromptCard from './promptCard'
 
 interface PromptHomeProps {
   user: User
@@ -20,6 +22,13 @@ export default function PromptHome({
   const [searchResults, setSearchResults] = useState<any[]>([])
   const [isSearching, setIsSearching] = useState(false)
   const [showSearchResults] = useState(true) // Always true now
+  const { state, actions, search } = useApp() as any;
+  const [query, setQuery] = useState("");
+  const allFilteredPrompts = search?.searchPrompts(query) || [];
+  const handlePromptSelect = (prompt: any) => {
+    actions.setSelectedPrompt?.(prompt);
+    window.location.href = `/prompt/${prompt.id}`;
+  };
 
   const getGreeting = () => {
     const hour = new Date().getHours()
@@ -82,10 +91,10 @@ export default function PromptHome({
 
   return (
     <div className="flex-1 flex flex-col h-full overflow-y-auto">
-      <div className="flex-shrink-0 p-6 space-y-8 bg-[var(--blackblack)]">
+      <div className="flex-shrink-0 p-6 pt-16 space-y-8 bg-[var(--blackblack)]">
         {/* Welcome Header */}
         <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-4 mb-4">
+          <div className="flex items-center justify-center gap-4 mt-4 mb-16">
             <Image 
               src="/wisp.svg" 
               alt="Wisp Mascot" 
@@ -98,159 +107,92 @@ export default function PromptHome({
             </h1>
           </div>
           {/* Search Field - LLM Chat Style */}
-          <div className="max-w-4xl mx-auto relative">
-            <div 
-              className="relative"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="relative">
-                <div className="relative bg-[var(--obsidian-900)]/80 border border-[var(--slate-700)]/40 rounded-2xl shadow-2xl backdrop-blur-xl transition-all duration-300 focus-within:border-[var(--wisp-blue)]/50 focus-within:shadow-[var(--wisp-blue)]/10 focus-within:shadow-2xl">
-                  <div className="flex items-start gap-4 p-6">
-                    <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-[var(--wisp-blue)]/20 to-[var(--ethereal-teal)]/20 flex items-center justify-center mt-1">
-                      <Search size={20} className="text-[var(--wisp-blue)]" />
-                    </div>
-                    <div className="flex-1">
-                      <textarea
-                        placeholder="Ask me anything about your prompts, collections, or library..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        onFocus={() => {/* Always open */}}
-                        className="w-full bg-transparent text-white placeholder-[var(--moonlight-silver)]/60 border-0 outline-none resize-none text-lg font-light leading-relaxed min-h-[60px] max-h-[200px] overflow-y-auto"
-                        rows={1}
-                        style={{
-                          height: 'auto',
-                          minHeight: '60px'
-                        }}
-                        onInput={(e) => {
-                          const target = e.target as HTMLTextAreaElement;
-                          target.style.height = 'auto';
-                          target.style.height = Math.min(target.scrollHeight, 200) + 'px';
-                        }}
-                      />
-                      {searchQuery.trim() && (
-                        <div className="flex items-center justify-between mt-3 pt-3 border-t border-[var(--slate-700)]/30">
-                          <div className="text-[var(--moonlight-silver)]/50 text-sm">
-                            {isSearching ? 'Searching...' : `${searchResults.length} result${searchResults.length !== 1 ? 's' : ''} found`}
-                          </div>
-                          <div className="flex items-center gap-2">
-                            {isSearching && (
-                              <RefreshCw size={16} className="text-[var(--moonlight-silver)] animate-spin" />
-                            )}
-                            <button
-                              onClick={() => searchQuery.trim() && (window.location.href = `/prompt?search=${encodeURIComponent(searchQuery.trim())}`)}
-                              className="px-4 py-2 bg-[var(--wisp-blue)] hover:bg-[var(--wisp-blue)]/90 text-white rounded-lg text-sm font-medium transition-colors duration-200 flex items-center gap-2"
-                            >
-                              <Search size={14} />
-                              Search All
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
+          <div className="max-w-2xl mx-auto relative">
+            <div className="relative" onClick={(e) => e.stopPropagation()}>
+              <div className="relative bg-[var(--obsidian-900)]/80 border border-[var(--slate-700)]/40 rounded-2xl shadow-2xl backdrop-blur-xl transition-all duration-300 focus-within:border-[var(--wisp-blue)]/50 focus-within:shadow-[var(--wisp-blue)]/10 focus-within:shadow-2xl">
+                <div className="flex items-start gap-4 p-6">
+                  <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-[var(--wisp-blue)]/20 to-[var(--ethereal-teal)]/20 flex items-center justify-center mt-1">
+                    <Search size={20} className="text-[var(--wisp-blue)]" />
+                  </div>
+                  <div className="flex-1">
+                    <textarea
+                      placeholder="Ask me anything about your prompts, collections, or library..."
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                      className="w-full bg-transparent text-white placeholder-[var(--moonlight-silver)]/60 border-0 outline-none resize-none text-lg font-light leading-relaxed min-h-[60px] max-h-[200px] overflow-y-auto"
+                      rows={1}
+                      style={{ height: 'auto', minHeight: '60px' }}
+                      onInput={(e) => {
+                        const target = e.target as HTMLTextAreaElement;
+                        target.style.height = 'auto';
+                        target.style.height = Math.min(target.scrollHeight, 200) + 'px';
+                      }}
+                      autoFocus
+                    />
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Search Results - Always visible with loading states */}
-          <div className="max-w-4xl mx-auto mt-6 mb-12">
-            <div className="bg-[var(--obsidian-900)]/60 border border-[var(--slate-700)]/30 rounded-2xl shadow-2xl backdrop-blur-xl overflow-hidden">
-              {searchQuery.length === 0 ? (
-                <div className="p-8 text-center">
+          {/* Search Results - Always visible, scrollable if overflow */}
+          <div className="max-w-2xl mx-auto mt-6 mb-12">
+            <div className="bg-[var(--obsidian-900)]/60 border border-[var(--slate-700)]/30 rounded-2xl shadow-2xl backdrop-blur-xl overflow-hidden flex flex-col min-h-[260px] h-[320px] max-h-[400px]">
+              {query.length === 0 ? (
+                <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
                   <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[var(--wisp-blue)]/10 to-[var(--ethereal-teal)]/10 flex items-center justify-center mx-auto mb-4">
                     <Search size={24} className="text-[var(--wisp-blue)]" />
                   </div>
                   <h4 className="text-white text-lg font-medium mb-2">Start searching your library</h4>
-                  <p className="text-[var(--moonlight-silver)]/60 text-sm mb-6 max-w-md mx-auto">
-                    Find prompts, collections, and more from your personal library. Try searching for keywords, tags, or topics.
+                  <p className="text-[var(--moonlight-silver)]/60 text-sm mb-2 max-w-md mx-auto">
+                    Find prompts, collections, and more from your personal library. Try searching for keywords, tags, or topics. Use <span className="font-semibold text-[var(--wisp-blue)]">#tag</span> to search by hashtag.
                   </p>
                 </div>
-              ) : searchQuery.length < 2 ? (
-                <div className="p-6 text-center">
-                  <div className="text-[var(--moonlight-silver)]/50 text-sm">
-                    Type at least 2 characters to search...
-                  </div>
-                </div>
-              ) : isSearching ? (
-                <div className="p-8 text-center">
-                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[var(--wisp-blue)]/10 to-[var(--ethereal-teal)]/10 flex items-center justify-center mx-auto mb-4">
-                    <RefreshCw size={24} className="text-[var(--wisp-blue)] animate-spin" />
-                  </div>
-                  <h4 className="text-white text-lg font-medium mb-2">Searching...</h4>
-                  <p className="text-[var(--moonlight-silver)]/60 text-sm">
-                    Looking for "{searchQuery}" in your library
-                  </p>
-                </div>
-              ) : searchResults.length > 0 ? (
-                <div className="divide-y divide-[var(--slate-700)]/20">
-                  {searchResults.map((result, index) => (
-                    <Link
-                      key={result.id || index}
-                      href={`/prompt/${result.slug || result.id}`}
-                      className="block px-6 py-5 hover:bg-[var(--obsidian-800)]/30 transition-colors duration-200 group"
-                    >
-                      <div className="flex items-start gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--wisp-blue)]/20 to-[var(--ethereal-teal)]/20 flex items-center justify-center flex-shrink-0 group-hover:from-[var(--wisp-blue)]/30 group-hover:to-[var(--ethereal-teal)]/30 transition-colors duration-200">
-                          <Sparkles size={18} className="text-[var(--wisp-blue)]" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h4 className="text-white text-lg font-medium mb-2 group-hover:text-[var(--wisp-blue)] transition-colors duration-200">
-                            {result.title || 'Untitled Prompt'}
-                          </h4>
-                          <p className="text-[var(--moonlight-silver)]/70 text-sm leading-relaxed mb-3 line-clamp-3">
-                            {result.description || 'No description available'}
-                          </p>
-                          {result.tags && result.tags.length > 0 && (
-                            <div className="flex items-center gap-2 flex-wrap">
-                              {result.tags.slice(0, 3).map((tag: string, tagIndex: number) => (
-                                <span
-                                  key={tagIndex}
-                                  className="inline-block px-3 py-1 bg-[var(--slate-700)]/20 text-[var(--moonlight-silver)]/60 text-xs rounded-full border border-[var(--slate-700)]/30"
-                                >
-                                  {tag}
-                                </span>
-                              ))}
-                              {result.tags.length > 3 && (
-                                <span className="text-[var(--moonlight-silver)]/40 text-xs">
-                                  +{result.tags.length - 3} more
-                                </span>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex-shrink-0 text-[var(--moonlight-silver)]/30 group-hover:text-[var(--wisp-blue)]/50 transition-colors duration-200">
-                          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                            <path d="M6.22 8.72a.75.75 0 0 0 1.06 1.06L10.94 6.22a.75.75 0 0 0 0-1.06L7.28 1.5a.75.75 0 0 0-1.06 1.06L8.94 5.25H2.75a.75.75 0 0 0 0 1.5h6.19L6.22 8.72Z"/>
-                          </svg>
-                        </div>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              ) : (
-                <div className="p-8 text-center">
+              ) : allFilteredPrompts.length === 0 ? (
+                <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
                   <div className="w-16 h-16 rounded-full bg-[var(--slate-700)]/10 flex items-center justify-center mx-auto mb-4">
                     <Search size={24} className="text-[var(--moonlight-silver)]/40" />
                   </div>
                   <h4 className="text-white text-lg font-medium mb-2">No results found</h4>
                   <p className="text-[var(--moonlight-silver)]/60 text-sm mb-4">
-                    We couldn't find any prompts matching "{searchQuery}"
+                    We couldn't find any prompts matching "{query}"
                   </p>
-                  <Link
-                    href={`/prompt?search=${encodeURIComponent(searchQuery.trim())}`}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--wisp-blue)]/10 hover:bg-[var(--wisp-blue)]/20 text-[var(--wisp-blue)] rounded-lg text-sm font-medium transition-colors duration-200"
-                  >
-                    <Search size={14} />
-                    Search all prompts
-                  </Link>
+                </div>
+              ) : (
+                <div className="flex-1 overflow-y-auto px-2 py-4 text-left">
+                  <ul className="grid gap-2">
+                    {allFilteredPrompts.map((prompt: any) => (
+                      <li key={prompt.id} className="min-h-[60px] max-h-[120px] overflow-hidden">
+                        {prompt.deleted ? (
+                          <div className="relative cursor-pointer opacity-60 group" onClick={() => handlePromptSelect(prompt)}>
+                            <div className="absolute inset-0 pointer-events-none rounded border border-dashed border-red-600 transition-all mx-3"></div>
+                            <PromptCard
+                              prompt={prompt}
+                              isSelected={false}
+                              isLast={true}
+                              isBeforeSelected={false}
+                              onSelect={() => handlePromptSelect(prompt)}
+                            />
+                          </div>
+                        ) : (
+                          <PromptCard
+                            prompt={prompt}
+                            isSelected={false}
+                            isLast={false}
+                            isBeforeSelected={false}
+                            onSelect={() => handlePromptSelect(prompt)}
+                          />
+                        )}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               )}
             </div>
           </div>
         </div>
 
-        {/* Marketplace CTA - Prominent */}
+        {/* Marketplace CTA - Prominent 
         <Card className="bg-gradient-to-r from-[var(--wisp-blue)] to-[var(--wisp-blue)]/80 border-[var(--wisp-blue)] shadow-2xl mb-8 transform hover:scale-[1.02] transition-all duration-300">
           <CardContent className="p-8">
             <div className="flex items-center justify-between">
@@ -284,8 +226,9 @@ export default function PromptHome({
           </CardContent>
         </Card>
 
+        */}
         {/* Main Content - Equal Split Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 h-[600px]">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 h-[600px] max-w-5xl mx-auto">
           {/* Left Column - Recent Activity */}
 
           {/* Right Column - Quick Actions Grid */}
