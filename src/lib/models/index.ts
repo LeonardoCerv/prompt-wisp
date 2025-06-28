@@ -7,18 +7,3 @@ export type { CollectionData, CollectionInsert, CollectionUpdate, CollectionWith
 
 export { default as User } from './user';
 export type { UserData, UserInsert, UserUpdate } from './user';
-
-export { default as Marketplace } from './marketplace';
-export type { MarketplaceData, MarketplaceInsert, MarketplaceUpdate, MarketplaceWithProfile } from './marketplace';
-
-export { default as Comment } from './comment';
-export type { CommentData, CommentInsert, CommentUpdate, CommentWithProfile } from './comment';
-
-export { default as Organization } from './organization';
-export type { OrganizationData, OrganizationInsert, OrganizationUpdate, OrganizationWithProfile } from './organization';
-
-export { default as Membership } from './membership';
-export type { MembershipData, MembershipInsert, MembershipUpdate, MembershipWithDetails } from './membership';
-
-export { default as Payment } from './payment';
-export type { PaymentData, PaymentInsert, PaymentUpdate } from './payment';

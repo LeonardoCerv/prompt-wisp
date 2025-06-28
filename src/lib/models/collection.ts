@@ -1,18 +1,17 @@
 import { createClient } from "@/lib/utils/supabase/server";
 
+type VisibilityType = 'public' | 'private' | 'unlisted';
+
 // Core Collection interface matching Supabase schema
 export interface CollectionData {
     id: string;
     title: string;
     description: string | null;
     images: string[] | null;
-    tags: string[];
-    prompts: string[] | null; // list of prompt IDs
-    user_id: string;
+    tags: string[] | null;
     created_at: string;
     updated_at: string;
-    collaborators: string[] | null; // list of user IDs
-    visibility: 'public' | 'private' | 'unlisted';
+    visibility: VisibilityType;
     deleted: boolean;
 }
 
@@ -22,11 +21,8 @@ export interface CollectionInsert {
     title: string;
     description?: string | null;
     images?: string[] | null;
-    tags?: string[];
-    prompts?: string[] | null;
-    user_id: string;
-    collaborators?: string[] | null;
-    visibility?: 'public' | 'private' | 'unlisted';
+    tags?: string[] | null;
+    visibility?: VisibilityType;
     deleted?: boolean;
     created_at?: string;
     updated_at?: string;
@@ -38,23 +34,10 @@ export interface CollectionUpdate {
     title?: string;
     description?: string | null;
     images?: string[] | null;
-    tags?: string[];
-    prompts?: string[] | null;
-    user_id?: string;
-    collaborators?: string[] | null;
-    visibility?: 'public' | 'private' | 'unlisted';
+    tags?: string[] | null;
+    visibility?: VisibilityType;
     deleted?: boolean;
     updated_at?: string;
-    prompt?: string | null; // optional prompt for quick access
-}
-
-// Extended interface with user profile information
-export interface CollectionWithProfile extends CollectionData {
-    profiles?: {
-        username: string | null;
-        full_name: string | null;
-        avatar_url: string | null;
-    } | null;
 }
 
 class Collection {
@@ -62,12 +45,18 @@ class Collection {
     static async create(collectionData: CollectionInsert): Promise<CollectionData> {
         try {
             const supabase = await createClient();
-
             const { data, error } = await supabase
                 .from('collections')
                 .insert(collectionData)
                 .select()
                 .single();
+
+            // Example: fetch the user who created the collection (assuming user_id is in collectionData)
+            // const { data: user, error: userError } = await supabase
+            //     .from('users')
+            //     .select('*')
+            //     .eq('id', collectionData.user_id)
+            //     .single();
 
             if (error) {
                 throw new Error(`Error creating collection: ${error.message}`);
