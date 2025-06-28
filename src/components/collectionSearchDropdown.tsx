@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { Input } from '@/components/ui/input'
-import { X, FolderOpen, Search, Plus } from 'lucide-react'
+import { X, FolderOpen, Search } from 'lucide-react'
 import { CollectionData } from '@/lib/models'
 
 interface CollectionSearchDropdownProps {
@@ -23,7 +23,7 @@ export default function CollectionSearchDropdown({
   const [allCollections, setAllCollections] = useState<CollectionData[]>([])
   const [filteredCollections, setFilteredCollections] = useState<CollectionData[]>([])
   const [isLoading, setIsLoading] = useState(false)
-  const [isCreating, setIsCreating] = useState(false)
+  const [ setIsCreating] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -32,7 +32,6 @@ export default function CollectionSearchDropdown({
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false)
-        setIsCreating(false)
       }
     }
 
@@ -90,10 +89,6 @@ export default function CollectionSearchDropdown({
 
   const handleInputFocus = () => {
     setIsOpen(true)
-  }
-
-  const handleCreateNew = () => {
-    setIsCreating(true)
   }
 
   const getCollectionTitle = (collectionId: string) => {

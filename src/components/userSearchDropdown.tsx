@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Input } from '@/components/ui/input'
 import { X, User, Search } from 'lucide-react'
+import Image from 'next/image'
 
 interface User {
   id: string
@@ -103,7 +104,7 @@ export default function UserSearchDropdown({
               className="flex items-center gap-2 bg-[var(--wisp-blue)]/20 border border-[var(--wisp-blue)]/40 rounded-md px-2 py-1 text-xs"
             >
               {user.profile_picture ? (
-                <img
+                <Image
                   src={user.profile_picture}
                   alt={user.name}
                   className="w-4 h-4 rounded-full"
@@ -153,7 +154,7 @@ export default function UserSearchDropdown({
                 className="w-full px-3 py-2 text-left hover:bg-[var(--wisp-blue)]/20 transition-colors duration-200 flex items-center gap-2"
               >
                 {user.profile_picture ? (
-                  <img
+                  <Image
                     src={user.profile_picture}
                     alt={user.name}
                     className="w-6 h-6 rounded-full"

@@ -12,7 +12,7 @@ interface NavSearchModalProps {
 }
 
 const NavSearchModal: React.FC<NavSearchModalProps> = ({ open, onClose }) => {
-  const { state, actions, search } = useApp() as any;
+  const { actions, search } = useApp()
   const [query, setQuery] = useState("");
   const router = useRouter();
 
@@ -82,7 +82,7 @@ const NavSearchModal: React.FC<NavSearchModalProps> = ({ open, onClose }) => {
                 </div>
                 <h4 className="text-white text-lg font-medium mb-2">No results found</h4>
                 <p className="text-[var(--moonlight-silver)]/60 text-sm mb-4">
-                  We couldn't find any prompts matching "{query}"
+                  We couldn&apos;t find any prompts matching &quot;{query}&quot;
                 </p>
               </div>
             ) : (

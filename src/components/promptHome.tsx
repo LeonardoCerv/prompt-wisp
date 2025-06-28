@@ -1,11 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Card, CardContent } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { ShoppingBag, Sparkles, RefreshCw, Search } from 'lucide-react'
+import {  Search } from 'lucide-react'
 import { type User } from '@supabase/supabase-js'
-import Link from 'next/link'
+
 import Image from 'next/image'
 import { useApp } from '@/contexts/appContext'
 import PromptCard from './promptCard'

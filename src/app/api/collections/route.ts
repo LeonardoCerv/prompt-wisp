@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/utils/supabase/server'
 import Collection, { CollectionUpdate } from '@/lib/models/collection'
-import Prompt, { PromptData } from '@/lib/models/prompt'
+import Prompt from '@/lib/models/prompt'
 
 export async function POST(request: NextRequest) {
   try {

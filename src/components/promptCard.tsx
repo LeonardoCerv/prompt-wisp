@@ -33,6 +33,7 @@ export default function PromptCard({ prompt, isSelected, isLast, isBeforeSelecte
       toast.success("Favorite status updated")
     } catch (error) {
       toast.error("Failed to update favorite status")
+      console.error("Error toggling favorite:", error)
     }
   }
   

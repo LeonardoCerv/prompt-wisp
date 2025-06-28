@@ -1,8 +1,9 @@
 import { useRef, useEffect, useState } from "react"
-import { Ellipsis, Plus, Edit, Trash2, Type } from "lucide-react"
+import { Plus, Edit, Trash2, Type } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useApp } from "@/contexts/appContext"
 import EditCollectionDialog from "@/components/editCollection"
+import { CollectionData } from "@/lib/models"
 
 interface CollectionActionsProps {
   collectionId: string
@@ -46,7 +47,7 @@ export function CollectionActions({ collectionId, collectionTitle = '', popupPos
     : filteredPrompts
 
   // Find the current collection data from state
-  const collectionData = state.collections?.find((c: any) => c.id === collectionId)
+  const collectionData = state.collections?.find((c: CollectionData) => c.id === collectionId)
 
   useEffect(() => {
     if (showRenameDialog && inputRef.current) {
@@ -137,7 +138,7 @@ export function CollectionActions({ collectionId, collectionTitle = '', popupPos
       visibility: collectionData?.visibility || 'private',
       images: collectionData?.images || [],
       collaborators: Array.isArray(collectionData?.collaborators)
-        ? collectionData.collaborators.filter((c: any) => typeof c === 'object' && c !== null && 'id' in c)
+        ? collectionData.collaborators.filter((c: any) => c !== null && 'id' in c)
         : [],
       id: collectionId,
     })

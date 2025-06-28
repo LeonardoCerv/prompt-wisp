@@ -14,13 +14,11 @@ import {
   Users, 
   TrendingUp, 
   Crown, 
-  Zap,
   Brain,
   Code,
   Briefcase,
   Palette,
-  MessageSquare,
-  ChevronRight
+  MessageSquare
 } from 'lucide-react'
 
 // Mock data for marketplace prompts

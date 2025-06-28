@@ -321,7 +321,7 @@ export default function PromptSlugPreview({
               Prompt not found
             </h3>
             <p className="text-[var(--moonlight-silver)]/80 max-w-sm mb-4">
-              This prompt may have been deleted or you don't have permission to view it.
+              This prompt may have been deleted or you don&#39;t have permission to view it.
             </p>
             <Link 
               href="/prompt"

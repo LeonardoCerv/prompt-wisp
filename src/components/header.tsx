@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
-import { HomeIcon, BookOpenText, Layers, Menu, PlusCircle, LogOut, User2, ShoppingBag, AppWindow, Contact } from 'lucide-react'
+import { HomeIcon, Menu, PlusCircle, LogOut, User2, AppWindow, Contact } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {signout} from './actions'
 

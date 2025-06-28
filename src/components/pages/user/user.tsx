@@ -1,10 +1,9 @@
 'use client';
 
-import { User2, Mail, Sparkles, BookOpen, Settings } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { User2, Mail } from 'lucide-react'
 
 import { type User } from '@supabase/supabase-js'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../..//ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '../..//ui/card';
 
 export default function UserPage( { user }: { user: User}) {
     return (

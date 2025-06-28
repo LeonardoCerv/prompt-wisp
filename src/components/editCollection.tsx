@@ -7,6 +7,8 @@ import Dialog from "@/components/ui/dialog"
 import UserSearchDropdown from "@/components/userSearchDropdown"
 import { Camera, Plus, Save, X } from "lucide-react"
 import { useApp } from "@/contexts/appContext"
+import { UserData } from "@/lib/models"
+import Image from "next/image"
 
 interface EditCollectionDialogProps {
   open: boolean
@@ -211,7 +213,7 @@ export default function EditCollectionDialog({
                     <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto">
                       {form.images.map((url, index) => (
                         <div key={index} className="relative group">
-                          <img
+                          <Image
                             src={url}
                             alt={`Upload ${index + 1}`}
                             className="w-full h-16 object-cover rounded border border-[var(--flare-cyan)]/30"

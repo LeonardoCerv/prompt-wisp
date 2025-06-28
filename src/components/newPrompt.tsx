@@ -28,6 +28,7 @@ import {
   BotMessageSquare
 } from 'lucide-react'
 import CollectionData from '@/lib/models/collection'
+import Image from 'next/image'
 
 interface User {
   id: string
@@ -408,7 +409,7 @@ export default function NewPromptPage({ onSubmit, onCancel }: NewPromptPageProps
                       <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto dialog-scroll">
                         {formData.images.map((url, index) => (
                           <div key={index} className="relative group">
-                            <img
+                            <Image
                               src={url}
                               alt={`Upload ${index + 1}`}
                               className="w-full h-16 object-cover rounded border border-[var(--flare-cyan)]/30"
@@ -541,7 +542,7 @@ export default function NewPromptPage({ onSubmit, onCancel }: NewPromptPageProps
             <div className="space-y-6">
               <div className="text-center mb-8">
                 <div className="flex justify-center mb-6">
-                  <img 
+                  <Image 
                     src="/wisp.svg" 
                     alt="Wisp Mascot" 
                     className="w-24 h-24 opacity-90 drop-shadow-[0_0_12px_rgba(14,165,233,0.4)]"

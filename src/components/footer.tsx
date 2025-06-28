@@ -1,4 +1,4 @@
-import { ExternalLink, GraduationCap, Code, AppWindow, Contact } from "lucide-react";
+import { AppWindow, Contact } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 

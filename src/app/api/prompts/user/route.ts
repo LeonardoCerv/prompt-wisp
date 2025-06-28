@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/utils/supabase/server";
-import Prompt from "@/lib/models/prompt";
+import Prompt, { PromptData } from "@/lib/models/prompt";
 
 // Get user's prompts (including private ones) with additional metadata
 export async function GET() {
@@ -32,7 +32,7 @@ export async function GET() {
     const boughtIds = userData?.bought || [];
 
     // Get saved/bought prompts (public prompts they've purchased)
-    let savedPrompts: any[] = [];
+    let savedPrompts: PromptData[] = [];
     if (boughtIds.length > 0) {
       savedPrompts = await Prompt.findPublicWithProfiles();
       savedPrompts = savedPrompts.filter(prompt => 
@@ -41,7 +41,7 @@ export async function GET() {
     }
 
     // Get favorite prompts (that aren't owned by user)
-    let favoritePrompts: any[] = [];
+    let favoritePrompts: PromptData[] = [];
     if (favoriteIds.length > 0) {
       favoritePrompts = await Prompt.findPublicWithProfiles();
       favoritePrompts = favoritePrompts.filter(prompt => 

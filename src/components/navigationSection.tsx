@@ -5,13 +5,9 @@ import { Home, Star, BookOpen, Edit, Archive, Search } from "lucide-react"
 import Link from "next/link"
 import { useApp } from "@/contexts/appContext"
 import { useState } from "react"
-import NavSearchModal from "./NavSearchModal"
+import NavSearchModal from "./navSearch"
 
-interface NavigationSectionProps {
-  searchInputRef: HTMLInputElement | null
-}
-
-export function NavigationSection({ searchInputRef }: NavigationSectionProps) {
+export function NavigationSection() {
   const { state, actions } = useApp()
   const { selectedFilter } = state.filters
   const [searchOpen, setSearchOpen] = useState(false)

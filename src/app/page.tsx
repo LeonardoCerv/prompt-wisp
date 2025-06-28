@@ -154,7 +154,7 @@ export default async function App() {
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold mb-4">Trusted by industry leaders</h2>
             <p className="text-moonlight-silver/70">
-              Join thousands of professionals who've transformed their AI workflow
+              Join thousands of professionals who&apos;ve transformed their AI workflow
             </p>
           </div>
 
@@ -168,7 +168,7 @@ export default async function App() {
                 </div>
               </div>
               <p className="text-moonlight-silver/90 mb-6 leading-relaxed">
-                "Wisp has revolutionized how our team approaches AI. The collaboration features are game-changing."
+                &quot;Wisp has revolutionized how our team approaches AI. The collaboration features are game-changing.&quot;
               </p>
               <div className="flex items-center">
                 <div className="w-10 h-10 bg-zinc-800 rounded-full mr-3" />
@@ -188,7 +188,7 @@ export default async function App() {
                 </div>
               </div>
               <p className="text-moonlight-silver/90 mb-6 leading-relaxed">
-                "The most intuitive prompt management platform I've used. Clean, fast, and powerful."
+                &quot;The most intuitive prompt management platform I&apos;ve used. Clean, fast, and powerful.&quot;
               </p>
               <div className="flex items-center">
                 <div className="w-10 h-10 bg-zinc-800 rounded-full mr-3" />
@@ -208,7 +208,7 @@ export default async function App() {
                 </div>
               </div>
               <p className="text-moonlight-silver/90 mb-6 leading-relaxed">
-                "Finally, a professional solution for prompt management. The security features give us peace of mind."
+                &quot;Finally, a professional solution for prompt management. The security features give us peace of mind.&quot;
               </p>
               <div className="flex items-center">
                 <div className="w-10 h-10 bg-zinc-800 rounded-full mr-3" />

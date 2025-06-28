@@ -105,25 +105,6 @@ export default function PromptEdit({
     }
   }
 
-  const handleSave = useCallback(async () => {
-    if (!selectedPrompt || !onUpdatePrompt || !hasUnsavedChanges) return
-    
-    setIsSaving(true)
-    try {
-      await onUpdatePrompt(selectedPrompt.id, {
-        title: editedTitle,
-        content: editedContent,
-        description: editedDescription,
-        tags: editedTags
-      })
-      setHasUnsavedChanges(false)
-    } catch (error) {
-      console.error('Failed to save changes:', error)
-    } finally {
-      setIsSaving(false)
-    }
-  }, [selectedPrompt, onUpdatePrompt, hasUnsavedChanges, editedTitle, editedContent, editedDescription, editedTags])
-
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {

@@ -1,19 +1,13 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { PlusCircle, Copy, Trash2, RotateCcw, StarIcon, Plus } from "lucide-react"
-import { Star } from "lucide-react"
+import { Copy, Trash2, RotateCcw } from "lucide-react"
 import { useApp } from "@/contexts/appContext"
 import { toast } from "sonner"
 
-interface PromptActionsProps {
-  onCreatePrompt: () => void
-}
-
-export function PromptActions({ onCreatePrompt }: PromptActionsProps) {
+export function PromptActions() {
   const { state, actions, utils } = useApp()
   const { selectedPrompt } = state.ui
-  const { user } = state
 
   const copyToClipboard = (content: string, title: string) => {
     navigator.clipboard
@@ -50,17 +44,6 @@ export function PromptActions({ onCreatePrompt }: PromptActionsProps) {
       toast.success("Prompt restored")
     } catch (error) {
       toast.error("Failed to restore prompt")
-    }
-  }
-
-  const handleToggleFavorite = async (promptId: string) => {
-    if (!promptId) return
-
-    try {
-      await actions.toggleFavorite(promptId)
-      // The context will handle updating the UI automatically
-    } catch (error) {
-      toast.error("Failed to update favorite status")
     }
   }
 

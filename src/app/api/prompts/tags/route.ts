@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import Prompt from "@/lib/models/prompt";
 import { createClient } from "@/lib/utils/supabase/server";
-import { User, UserData } from "@/lib/models";
 
 // Get all unique tags from public prompts
 export async function GET() {
