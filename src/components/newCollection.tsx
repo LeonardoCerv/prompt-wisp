@@ -26,16 +26,20 @@ import {
 } from 'lucide-react'
 import Image from 'next/image'
 import { CollectionInsert, PromptData } from '@/lib/models'
+import { useApp } from '@/contexts/appContext'
 
 
 interface NewCollectionProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onSubmit: (collection: CollectionInsert) => Promise<void>
-  availablePrompts?: PromptData[]
 } 
 
-export default function NewCollection({ open, onOpenChange, onSubmit, availablePrompts = [] }: NewCollectionProps) {
+export default function NewCollection({ open, onOpenChange, onSubmit }: NewCollectionProps) {
+
+  const { state } = useApp()
+  const { prompts } = state
+  
   const [formData, setFormData] = useState<CollectionInsert>({
     title: '',
     description: '',
@@ -272,7 +276,7 @@ export default function NewCollection({ open, onOpenChange, onSubmit, availableP
                     />
                   </div>
 
-                  {availablePrompts.length > 0 ? (
+                  {prompts.length > 0 ? (
                     <div className="space-y-2">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
@@ -287,7 +291,7 @@ export default function NewCollection({ open, onOpenChange, onSubmit, availableP
                       </div>
                       
                       <div className="max-h-80 overflow-y-auto space-y-2 bg-white/5 rounded-lg p-3 border border-[var(--flare-cyan)]/20">
-                        {availablePrompts.map((prompt) => {
+                        {prompts.map((prompt) => {
                           const isSelected = (formData.prompts || []).some(p => p === prompt.id)
                           return (
                             <div
@@ -487,6 +491,8 @@ export default function NewCollection({ open, onOpenChange, onSubmit, availableP
                           {(formData.images || []).map((url, index) => (
                             <div key={index} className="relative group">
                               <Image
+                                width={24}
+                                height={24}
                                 src={url}
                                 alt={`Upload ${index + 1}`}
                                 className="w-full h-16 object-cover rounded border border-[var(--flare-cyan)]/30"
@@ -602,6 +608,8 @@ export default function NewCollection({ open, onOpenChange, onSubmit, availableP
                 <div className="text-center mb-8">
                   <div className="flex justify-center mb-6">
                     <Image 
+                      width={96}
+                      height={96}
                       src="/wisp.svg" 
                       alt="Wisp Mascot" 
                       className="w-24 h-24 opacity-90 drop-shadow-[0_0_12px_rgba(14,165,233,0.4)]"

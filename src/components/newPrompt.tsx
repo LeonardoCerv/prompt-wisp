@@ -393,6 +393,8 @@ export default function NewPromptPage({ onSubmit, onCancel }: NewPromptPageProps
                         {(formData.images || []).map((url, index) => (
                           <div key={index} className="relative group">
                             <Image
+                              width={96}
+                              height={96}
                               src={url}
                               alt={`Upload ${index + 1}`}
                               className="w-full h-16 object-cover rounded border border-[var(--flare-cyan)]/30"
@@ -526,6 +528,8 @@ export default function NewPromptPage({ onSubmit, onCancel }: NewPromptPageProps
               <div className="text-center mb-8">
                 <div className="flex justify-center mb-6">
                   <Image 
+                    width={96}
+                    height={96}
                     src="/wisp.svg" 
                     alt="Wisp Mascot" 
                     className="w-24 h-24 opacity-90 drop-shadow-[0_0_12px_rgba(14,165,233,0.4)]"
