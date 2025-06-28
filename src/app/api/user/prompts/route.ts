@@ -83,7 +83,7 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: 'Missing prompt_id' }, { status: 400 });
     }
 
-    const result = await UsersPrompts.delete(prompt_id, user.id);
+    const result = await UsersPrompts.hardDelete(prompt_id);
     console.log('Connection deleted successfully:', result);
 
     return NextResponse.json(result, { status: 201 });

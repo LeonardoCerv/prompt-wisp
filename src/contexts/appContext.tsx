@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { createContext, useContext, useReducer, useCallback, useEffect, useMemo } from "react"
-import type { PromptData, PromptInsert, CollectionData, CollectionInsert, UserData, CollectionUpdate } from "@/lib/models"
+import { type PromptData, type PromptInsert, type CollectionData, type CollectionInsert, type UserData, type CollectionUpdate, UsersPrompts, CollectionPrompts } from "@/lib/models"
 
 // Types
 interface AppState {
@@ -90,7 +90,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
         ...state,
         prompts: state.prompts.map((prompt) => {
           if (action.payload.promptIds.includes(prompt.id)) {
-            const currentCollections = prompt.collections || []
+            const currentCollections = await CollectionPrompts.getCollections(prompt.id)
             const updatedCollections = currentCollections.includes(action.payload.collectionId)
               ? currentCollections // Already in collection
               : [...currentCollections, action.payload.collectionId] // Add to collection
@@ -324,17 +324,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const toggleFavorite = useCallback(
     async (id: string) => {
       try {
-        const response = await fetch("/api/prompts/favorite", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ promptId: id }),
-        })
-
-        if (!response.ok) {
-          throw new Error("Failed to toggle favorite")
+        if (!state.user) {
+          throw new Error("User not authenticated")
         }
-
-        const result = await response.json()
+        const fav = await UsersPrompts.isFavorite(state.user.id, id)
+        const response = await UsersPrompts.updateFavorite(state.user.id, id, !fav)
 
         // Update user favorites immediately for instant UI feedback
         if (state.user) {

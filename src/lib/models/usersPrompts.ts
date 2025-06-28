@@ -249,7 +249,7 @@ class UsersPrompts {
      * @param userId - The user's ID
      * @param promptId - The prompt's ID
      */
-    static async delete(userId: string, promptId: string): Promise<void> {
+    static async softDelete(userId: string, promptId: string): Promise<void> {
         try {
             const supabase = await createClient();
     
@@ -257,6 +257,29 @@ class UsersPrompts {
                 .from('users_prompts')
                 .delete()
                 .eq('user_id', userId)
+                .eq('prompt_id', promptId);
+
+            if (error) {
+                throw new Error(`Error removing user from prompt: ${error.message}`);
+            }
+        } catch (error) {
+            console.error("Error removing user from prompt:", error);
+            throw error;
+        }
+    }
+
+        /**
+     * Remove the link between a user and a prompt.
+     * @param userId - The user's ID
+     * @param promptId - The prompt's ID
+     */
+    static async hardDelete(promptId: string): Promise<void> {
+        try {
+            const supabase = await createClient();
+    
+            const { error } = await supabase
+                .from('users_prompts')
+                .delete()
                 .eq('prompt_id', promptId);
 
             if (error) {
