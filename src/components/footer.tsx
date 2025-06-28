@@ -67,7 +67,7 @@ export default function Footer() {
                   <span>Examples</span>
                 </Link>
                 */}
-                 <Link href="/prompts" className="text-moonlight-silver hover:text-moonlight-silver-bright transition-colors inline-flex items-center gap-1.5">
+                 <Link href="/prompt" className="text-moonlight-silver hover:text-moonlight-silver-bright transition-colors inline-flex items-center gap-1.5">
                   <AppWindow size={16} />
                   <span>Dashboard</span>
                 </Link>

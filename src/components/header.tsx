@@ -44,7 +44,7 @@ export default function Header( { user }: { user: User | null }) {
           </Link>
         
           */}
-          <Link href="/prompts" className="flex items-center gap-2 text-moonlight-silver hover:text-moonlight-silver-bright transition-colors">
+          <Link href="/prompt" className="flex items-center gap-2 text-moonlight-silver hover:text-moonlight-silver-bright transition-colors">
             <AppWindow size={16} />
             <span>Dashboard</span>
           </Link>

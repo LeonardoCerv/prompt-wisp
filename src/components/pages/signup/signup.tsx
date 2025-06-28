@@ -32,7 +32,7 @@ export default function SignupPage() {
 
         <Card className="wispy-border">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl wispy-text-glow">Sign In</CardTitle>
+            <CardTitle className="text-2xl wispy-text-glow">Sign Up</CardTitle>
             <CardDescription className="text-moonlight-silver">
               Enter your username or email and password to access Wisp
             </CardDescription>
@@ -78,7 +78,7 @@ export default function SignupPage() {
                 type="submit" 
                 className="w-full"
               >
-                  'Sign Up'
+                Sign Up
               </Button>
             </form>
 
