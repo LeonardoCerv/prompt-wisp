@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { signup } from './actions'
+import { handleSignInWithGoogle, signup } from './actions'
 
 import Link from "next/link"
 import Image from "next/image"
@@ -85,7 +85,7 @@ export default function SignupPage() {
             </div>
 
             {/* Social Login */}
-            <Button variant="outline" className="w-full h-10 border-border hover:bg-muted bg-transparent">
+            <Button variant="outline" className="w-full h-10 border-border hover:bg-muted bg-transparent" onClick={() => handleSignInWithGoogle()}>
               <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
                 <path
                   fill="currentColor"

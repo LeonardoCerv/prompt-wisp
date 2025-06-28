@@ -9,14 +9,13 @@ export async function GET() {
     
     // Get authenticated user
     const { data:{ user}, error: authError } = await supabase.auth.getUser();
+    console.log("Authenticated user:", user);
     
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const userData: UserData = await User.findById(user.id);
-
-    return NextResponse.json(userData);
+    return NextResponse.json(user);
   } catch (error) {
     console.error("Error getting user info:", error);
     return NextResponse.json(
