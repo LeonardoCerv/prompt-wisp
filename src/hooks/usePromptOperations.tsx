@@ -4,6 +4,7 @@ import { useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { useApp } from "../contexts/appContext"
+import type { PromptInsert } from "../lib/models/prompt"
 
 export function usePromptOperations() {
   const router = useRouter()
@@ -74,7 +75,7 @@ export function usePromptOperations() {
   )
 
   const createPrompt = useCallback(
-    async (promptData: Record<string, unknown>) => {
+    async (promptData: PromptInsert) => {
       try {
         const newPrompt = await actions.createPrompt(promptData)
         toast.success("Prompt created successfully")

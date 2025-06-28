@@ -83,17 +83,19 @@ export default function EditCollectionDialog({
     if (!form.title.trim()) return
     setIsSubmitting(true)
     try {
-      await actions.editCollection && actions.editCollection(
-        initialData.id || form.id,
-        {
-          ...form,
-          tags: form.tags.split(',').map((t: string) => t.trim()).filter(Boolean),
-          collaborators: form.collaborators.map(u => u),
-          visibility: (['public', 'private', 'unlisted'].includes(form.visibility)
-            ? form.visibility
-            : 'private') as 'public' | 'private' | 'unlisted',
-        }
-      )
+      if (actions.editCollection) {
+        await actions.editCollection(
+          initialData.id || form.id,
+          {
+            ...form,
+            tags: form.tags.split(',').map((t: string) => t.trim()).filter(Boolean),
+            collaborators: form.collaborators.map(u => u),
+            visibility: (['public', 'private', 'unlisted'].includes(form.visibility)
+              ? form.visibility
+              : 'private') as 'public' | 'private' | 'unlisted',
+          }
+        )
+      }
       onClose()
     } catch (error) {
       console.error('Failed to update collection:', error)

@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { createContext, useContext, useReducer, useCallback, useEffect, useMemo } from "react"
-import type { PromptData, CollectionData, UserData, CollectionUpdate } from "@/lib/models"
+import type { PromptData, PromptInsert, CollectionData, CollectionInsert, UserData, CollectionUpdate } from "@/lib/models"
 
 // Types
 interface AppState {
@@ -149,7 +149,7 @@ interface AppContextType {
     loadTags: () => Promise<void>
 
     // Prompt operations
-    createPrompt: (prompt: any) => Promise<PromptData>
+    createPrompt: (prompt: PromptInsert) => Promise<PromptData>
     updatePrompt: (id: string, updates: Partial<PromptData>) => Promise<void>
     deletePrompt: (id: string) => Promise<void>
     restorePrompt: (id: string) => Promise<void>
@@ -158,7 +158,7 @@ interface AppContextType {
     savePromptChanges: (id: string, updates: Partial<PromptData>) => Promise<void>
 
     // Collection operations
-    createCollection: (collection: any) => Promise<CollectionData>
+    createCollection: (collection: CollectionInsert) => Promise<CollectionData>
     addPromptToCollection: (collectionId: string, promptIds: string[]) => Promise<void>
     editCollection: (collectionId: string, updates: Partial<CollectionData>) => Promise<void>
     renameCollection: (collectionId: string, newTitle: string) => Promise<void>
@@ -259,7 +259,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   // Prompt operations
-  const createPrompt = useCallback(async (promptData: any): Promise<PromptData> => {
+  const createPrompt = useCallback(async (promptData: PromptInsert): Promise<PromptData> => {
     const response = await fetch("/api/prompts", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -394,7 +394,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: "UPDATE_PROMPT", payload: updatedPrompt })
   }, [])
 
-  const createCollection = useCallback(async (collectionData: any): Promise<CollectionData> => {
+  const createCollection = useCallback(async (collectionData: CollectionInsert): Promise<CollectionData> => {
     const response = await fetch("/api/collections", {
       method: "POST",
       headers: { "Content-Type": "application/json" },

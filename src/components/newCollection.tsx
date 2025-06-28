@@ -25,50 +25,26 @@ import {
   X
 } from 'lucide-react'
 import Image from 'next/image'
+import { CollectionInsert, PromptData } from '@/lib/models'
 
-interface User {
-  id: string
-  name: string
-  username: string
-  email: string
-  profile_picture?: string
-  display: string
-}
-
-interface Prompt {
-  id: string
-  title: string
-  description?: string
-  content: string
-  tags: string[]
-}
-
-interface NewCollection {
-  title: string
-  description: string
-  tags: string
-  visibility: 'public' | 'private' | 'unlisted'
-  images: string[]
-  collaborators: string[]
-  prompts: Prompt[]
-}
 
 interface NewCollectionProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onSubmit: (collection: NewCollection) => Promise<void>
-  availablePrompts?: Prompt[]
+  onSubmit: (collection: CollectionInsert) => Promise<void>
+  availablePrompts?: PromptData[]
 } 
 
 export default function NewCollection({ open, onOpenChange, onSubmit, availablePrompts = [] }: NewCollectionProps) {
-  const [formData, setFormData] = useState<NewCollection>({
+  const [formData, setFormData] = useState<CollectionInsert>({
     title: '',
     description: '',
-    tags: '',
+    tags: [],
     visibility: 'private',
     images: [],
     collaborators: [],
-    prompts: []
+    prompts: [],
+    user_id: '',
   })
   
   const [currentStep, setCurrentStep] = useState(1)
@@ -88,11 +64,12 @@ export default function NewCollection({ open, onOpenChange, onSubmit, availableP
     setFormData({
       title: '',
       description: '',
-      tags: '',
+      tags: [],
       visibility: 'private',
       images: [],
       collaborators: [],
-      prompts: []
+      prompts: [],
+      user_id: '',
     })
     setCurrentStep(1)
     setUploadError(null)
@@ -117,7 +94,7 @@ export default function NewCollection({ open, onOpenChange, onSubmit, availableP
     }
   }
 
-  const handleChange = (field: keyof NewCollection, value: string | string[] | User[] | Prompt[]) => {
+  const handleChange = (field: keyof CollectionInsert, value: string | string[] | PromptData[]) => {
     setFormData(prev => ({ ...prev, [field]: value }))
   }
 
@@ -150,7 +127,7 @@ export default function NewCollection({ open, onOpenChange, onSubmit, availableP
       
       setFormData(prev => ({
         ...prev,
-        images: [...prev.images, ...uploadedUrls]
+        images: [...(prev.images || []), ...uploadedUrls]
       }))
 
     } catch (error) {
@@ -167,7 +144,7 @@ export default function NewCollection({ open, onOpenChange, onSubmit, availableP
   const removeImage = (indexToRemove: number) => {
     setFormData(prev => ({
       ...prev,
-      images: prev.images.filter((_, index) => index !== indexToRemove)
+      images: (prev.images || []).filter((_, index) => index !== indexToRemove)
     }))
   }
 
@@ -175,7 +152,7 @@ export default function NewCollection({ open, onOpenChange, onSubmit, availableP
     if (url.trim()) {
       setFormData(prev => ({
         ...prev,
-        images: [...prev.images, url.trim()]
+        images: [...(prev.images || []), url.trim()]
       }))
     }
   }
@@ -305,13 +282,13 @@ export default function NewCollection({ open, onOpenChange, onSubmit, availableP
                           </Label>
                         </div>
                         <span className="text-xs text-[var(--flare-cyan)]/70">
-                          {formData.prompts.length} selected
+                          {formData.prompts?.length} selected
                         </span>
                       </div>
                       
                       <div className="max-h-80 overflow-y-auto space-y-2 bg-white/5 rounded-lg p-3 border border-[var(--flare-cyan)]/20">
                         {availablePrompts.map((prompt) => {
-                          const isSelected = formData.prompts.some(p => p.id === prompt.id)
+                          const isSelected = (formData.prompts || []).some(p => p === prompt.id)
                           return (
                             <div
                               key={prompt.id}
@@ -322,9 +299,9 @@ export default function NewCollection({ open, onOpenChange, onSubmit, availableP
                               }`}
                               onClick={() => {
                                 if (isSelected) {
-                                  handleChange('prompts', formData.prompts.filter(p => p.id !== prompt.id))
+                                  handleChange('prompts', (formData.prompts || []).filter(p => p !== prompt.id))
                                 } else {
-                                  handleChange('prompts', [...formData.prompts, prompt])
+                                  handleChange('prompts', [...(formData.prompts || []), prompt.id])
                                 }
                               }}
                             >
@@ -400,7 +377,7 @@ export default function NewCollection({ open, onOpenChange, onSubmit, availableP
                     </div>
                     <Textarea
                       id="description"
-                      value={formData.description}
+                      value={formData.description || ''}
                       onChange={(e) => handleChange('description', e.target.value)}
                       placeholder="Describe what this collection is about..."
                       className="min-h-[80px] bg-white/10 border-[var(--flare-cyan)]/40 text-white placeholder:text-white/70 focus:border-[var(--wisp-blue)] focus:ring-1 focus:ring-[var(--wisp-blue)]/50 transition-all duration-300 resize-none"
@@ -417,8 +394,13 @@ export default function NewCollection({ open, onOpenChange, onSubmit, availableP
                     </div>
                     <Input
                       id="tags"
-                      value={formData.tags}
-                      onChange={(e) => handleChange('tags', e.target.value)}
+                      value={Array.isArray(formData.tags) ? formData.tags.join(', ') : formData.tags}
+                      onChange={(e) => {
+                        // Accept comma-separated string and convert to array
+                        const value = e.target.value
+                        const tagsArray = value.split(',').map(tag => tag.trim()).filter(Boolean)
+                        handleChange('tags', tagsArray)
+                      }}
                       placeholder="coding, templates, productivity..."
                       className="bg-white/10 border-[var(--flare-cyan)]/50 text-white placeholder:text-white/70 focus:border-[var(--wisp-blue)] focus:ring-1 focus:ring-[var(--wisp-blue)]/40 transition-all duration-300"
                     />
@@ -496,13 +478,13 @@ export default function NewCollection({ open, onOpenChange, onSubmit, availableP
                     </div>
                     
                     {/* Image Preview */}
-                    {formData.images.length > 0 && (
+                    {Array.isArray(formData.images) && formData.images.length > 0 && (
                       <div className="space-y-2">
                         <p className="text-xs text-[var(--flare-cyan)]/70">
                           {formData.images.length} image{formData.images.length !== 1 ? 's' : ''} added:
                         </p>
                         <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto">
-                          {formData.images.map((url, index) => (
+                          {(formData.images || []).map((url, index) => (
                             <div key={index} className="relative group">
                               <Image
                                 src={url}
@@ -601,7 +583,7 @@ export default function NewCollection({ open, onOpenChange, onSubmit, availableP
                       </Label>
                     </div>
                     <UserSearchDropdown
-                      selectedUsers={formData.collaborators}
+                      selectedUsers={formData.collaborators || []}
                       onUsersChange={(users) => handleChange('collaborators', users)}
                       placeholder="Search for collaborators..."
                       className="bg-white/10 border-[var(--flare-cyan)]/40 text-white placeholder:text-white/70 focus:border-[var(--wisp-blue)] focus:ring-1 focus:ring-[var(--wisp-blue)]/40 transition-all duration-300"
@@ -671,13 +653,13 @@ export default function NewCollection({ open, onOpenChange, onSubmit, availableP
                           <Hash className="w-4 h-4 text-[var(--warning-amber)]" />
                           <span className="text-sm text-white/80">Tags:</span>
                         </div>
-                        <span className="text-sm text-white/90 max-w-[200px] truncate" title={formData.tags}>
-                          {formData.tags}
+                        <span className="text-sm text-white/90 max-w-[200px] truncate" title={Array.isArray(formData.tags) ? formData.tags.join(', ') : formData.tags}>
+                          {Array.isArray(formData.tags) ? formData.tags.join(', ') : formData.tags}
                         </span>
                       </div>
                     )}
                     
-                    {formData.images.length > 0 && (
+                    {Array.isArray(formData.images) && formData.images.length > 0 && (
                       <div className="flex items-center justify-between py-2 px-3 bg-white/5 rounded-lg border border-white/10">
                         <div className="flex items-center gap-2">
                           <Camera className="w-4 h-4 text-[var(--warning-amber)]" />
@@ -689,7 +671,7 @@ export default function NewCollection({ open, onOpenChange, onSubmit, availableP
                       </div>
                     )}
                     
-                    {formData.prompts.length > 0 && (
+                    {Array.isArray(formData.prompts) && formData.prompts.length > 0 && (
                       <div className="flex items-center justify-between py-2 px-3 bg-white/5 rounded-lg border border-white/10">
                         <div className="flex items-center gap-2">
                           <Plus className="w-4 h-4 text-[var(--warning-amber)]" />
@@ -701,7 +683,7 @@ export default function NewCollection({ open, onOpenChange, onSubmit, availableP
                       </div>
                     )}
                     
-                    {formData.collaborators.length > 0 && (
+                    {Array.isArray(formData.collaborators) && formData.collaborators.length > 0 && (
                       <div className="flex items-center justify-between py-2 px-3 bg-white/5 rounded-lg border border-white/10">
                         <div className="flex items-center gap-2">
                           <Users className="w-4 h-4 text-[var(--warning-amber)]" />

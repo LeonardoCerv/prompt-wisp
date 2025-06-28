@@ -1,12 +1,12 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { Label } from '@/components/ui/label'
-import UserSearchDropdown from '@/components/userSearchDropdown'
-import CollectionSearchDropdown from '@/components/collectionSearchDropdown'
+import { Label } from './ui/label'
+import { Input } from './ui/input'
+import { Textarea } from './ui/textarea'
+import { Button } from './ui/button'
+import UserSearchDropdown from './userSearchDropdown'
+import CollectionSearchDropdown from './collectionSearchDropdown'
 import { 
   Sparkles, 
   Star,
@@ -27,45 +27,26 @@ import {
   X,
   BotMessageSquare
 } from 'lucide-react'
-import CollectionData from '@/lib/models/collection'
 import Image from 'next/image'
-
-interface User {
-  id: string
-  name: string
-  username: string
-  email: string
-  profile_picture?: string
-  display: string
-}
-
-interface NewPrompt {
-  title: string
-  description: string
-  tags: string
-  content: string
-  visibility: 'public' | 'private' | 'unlisted'
-  images: string[]
-  collaborators: string[]
-  collections: string[]
-}
-
+import { PromptInsert } from '@/lib/models'
 
 interface NewPromptPageProps {
-  onSubmit: (prompt: NewPrompt) => Promise<void>
+  onSubmit: (prompt: PromptInsert) => Promise<void>
   onCancel: () => void
 } 
 
 export default function NewPromptPage({ onSubmit, onCancel }: NewPromptPageProps) {
-  const [formData, setFormData] = useState<NewPrompt>({
+  const [formData, setFormData] = useState<PromptInsert>({
     title: '',
-    description: '',
-    tags: '',
     content: '',
-    visibility: 'private',
+    description: '',
+    tags: [],
+    user_id: '',
     images: [],
     collaborators: [],
-    collections: []
+    visibility: 'private',
+    collections: [],
+    deleted: false,
   })
   
   const [currentStep, setCurrentStep] = useState(1)
@@ -98,7 +79,7 @@ export default function NewPromptPage({ onSubmit, onCancel }: NewPromptPageProps
     }
   }
 
-  const handleChange = (field: keyof NewPrompt, value: string | string[] | User[] | CollectionData[]) => {
+  const handleChange = <K extends keyof PromptInsert>(field: K, value: PromptInsert[K]) => {
     setFormData(prev => ({ ...prev, [field]: value }))
   }
 
@@ -128,10 +109,9 @@ export default function NewPromptPage({ onSubmit, onCancel }: NewPromptPageProps
       })
 
       const uploadedUrls = await Promise.all(uploadPromises)
-      
       setFormData(prev => ({
         ...prev,
-        images: [...prev.images, ...uploadedUrls]
+        images: [...(prev.images || []), ...uploadedUrls]
       }))
 
     } catch (error) {
@@ -148,7 +128,7 @@ export default function NewPromptPage({ onSubmit, onCancel }: NewPromptPageProps
   const removeImage = (indexToRemove: number) => {
     setFormData(prev => ({
       ...prev,
-      images: prev.images.filter((_, index) => index !== indexToRemove)
+      images: (prev.images || []).filter((_, index) => index !== indexToRemove)
     }))
   }
 
@@ -156,7 +136,7 @@ export default function NewPromptPage({ onSubmit, onCancel }: NewPromptPageProps
     if (url.trim()) {
       setFormData(prev => ({
         ...prev,
-        images: [...prev.images, url.trim()]
+        images: [...(prev.images || []), url.trim()]
       }))
     }
   }
@@ -257,7 +237,7 @@ export default function NewPromptPage({ onSubmit, onCancel }: NewPromptPageProps
                   <Input
                     id="title"
                     value={formData.title}
-                    onChange={(e) => handleChange('title', e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange('title', e.target.value)}
                     placeholder="Enter a descriptive title for your prompt..."
                     className="bg-white/10 border-[var(--flare-cyan)]/40 text-white placeholder:text-white/70 focus:border-[var(--wisp-blue)] focus:ring-1 focus:ring-[var(--wisp-blue)]/50 transition-all duration-300"
                     required
@@ -274,7 +254,7 @@ export default function NewPromptPage({ onSubmit, onCancel }: NewPromptPageProps
                   <Textarea
                     id="content"
                     value={formData.content}
-                    onChange={(e) => handleChange('content', e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleChange('content', e.target.value)}
                     placeholder="Write your prompt instructions here. Be clear and specific about what you want the AI to do..."
                     className="min-h-[120px] bg-white/10 border-[var(--flare-cyan)]/40 text-white placeholder:text-white/70 focus:border-[var(--wisp-blue)] focus:ring-1 focus:ring-[var(--wisp-blue)]/50 transition-all duration-300 resize-none"
                     required
@@ -306,8 +286,8 @@ export default function NewPromptPage({ onSubmit, onCancel }: NewPromptPageProps
                   </div>
                   <Input
                     id="description"
-                    value={formData.description}
-                    onChange={(e) => handleChange('description', e.target.value)}
+                    value={formData.description || ''}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange('description', e.target.value)}
                     placeholder="Brief description of what this prompt does..."
                     className="bg-white/10 border-[var(--flare-cyan)]/50 text-white placeholder:text-white/70 focus:border-[var(--wisp-blue)] focus:ring-1 focus:ring-[var(--wisp-blue)]/40 transition-all duration-300"
                   />
@@ -322,8 +302,11 @@ export default function NewPromptPage({ onSubmit, onCancel }: NewPromptPageProps
                   </div>
                   <Input
                     id="tags"
-                    value={formData.tags}
-                    onChange={(e) => handleChange('tags', e.target.value)}
+                    value={formData.tags ? formData.tags.join(', ') : ''}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                      const tagsArray = e.target.value.split(',').map(tag => tag.trim()).filter(Boolean)
+                      handleChange('tags', tagsArray)
+                    }}
                     placeholder="coding, creative, business, writing..."
                     className="bg-white/10 border-[var(--flare-cyan)]/50 text-white placeholder:text-white/70 focus:border-[var(--wisp-blue)] focus:ring-1 focus:ring-[var(--wisp-blue)]/40 transition-all duration-300"
                   />
@@ -358,7 +341,7 @@ export default function NewPromptPage({ onSubmit, onCancel }: NewPromptPageProps
                         type="file"
                         multiple
                         accept="image/*"
-                        onChange={(e) => handleImageUpload(e.target.files)}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleImageUpload(e.target.files)}
                         className="hidden"
                       />
                     </div>
@@ -374,7 +357,7 @@ export default function NewPromptPage({ onSubmit, onCancel }: NewPromptPageProps
                       <Input
                         placeholder="Or paste image URL..."
                         className="bg-white/10 border-[var(--flare-cyan)]/40 text-white placeholder:text-white/70 focus:border-[var(--wisp-blue)] focus:ring-1 focus:ring-[var(--wisp-blue)]/40 transition-all duration-300"
-                        onKeyDown={(e) => {
+                        onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
                           if (e.key === 'Enter') {
                             e.preventDefault()
                             const input = e.target as HTMLInputElement
@@ -386,7 +369,7 @@ export default function NewPromptPage({ onSubmit, onCancel }: NewPromptPageProps
                       <Button
                         type="button"
                         variant="outline"
-                        onClick={(e) => {
+                        onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
                           const input = (e.target as HTMLElement).parentElement?.querySelector('input') as HTMLInputElement
                           if (input) {
                             addImageUrl(input.value)
@@ -401,13 +384,13 @@ export default function NewPromptPage({ onSubmit, onCancel }: NewPromptPageProps
                   </div>
                   
                   {/* Image Preview */}
-                  {formData.images.length > 0 && (
+                  {Array.isArray(formData.images) && formData.images.length > 0 && (
                     <div className="space-y-2">
                       <p className="text-xs text-[var(--flare-cyan)]/70">
                         {formData.images.length} image{formData.images.length !== 1 ? 's' : ''} added:
                       </p>
                       <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto dialog-scroll">
-                        {formData.images.map((url, index) => (
+                        {(formData.images || []).map((url, index) => (
                           <div key={index} className="relative group">
                             <Image
                               src={url}
@@ -506,7 +489,7 @@ export default function NewPromptPage({ onSubmit, onCancel }: NewPromptPageProps
                     </Label>
                   </div>
                   <UserSearchDropdown
-                    selectedUsers={formData.collaborators}
+                    selectedUsers={formData.collaborators || []}
                     onUsersChange={(users) => handleChange('collaborators', users)}
                     placeholder="Search for collaborators..."
                     className="bg-white/10 border-[var(--flare-cyan)]/40 text-white placeholder:text-white/70 focus:border-[var(--wisp-blue)] focus:ring-1 focus:ring-[var(--wisp-blue)]/40 transition-all duration-300"
@@ -524,8 +507,8 @@ export default function NewPromptPage({ onSubmit, onCancel }: NewPromptPageProps
                     </Label>
                   </div>
                   <CollectionSearchDropdown
-                    selectedCollections={formData.collections}
-                    onCollectionsChange={(collections) => handleChange('collections', collections)}
+                    selectedCollections={formData.collections || []}
+                    onCollectionsChange={(collections) => handleChange('collections', collections.map((c: { id: string }) => c.id))}
                     placeholder="Search for collections..."
                     className="bg-white/10 border-[var(--flare-cyan)]/40 text-white placeholder:text-white/70 focus:border-[var(--wisp-blue)] focus:ring-1 focus:ring-[var(--wisp-blue)]/40 transition-all duration-300"
                   />
@@ -594,13 +577,13 @@ export default function NewPromptPage({ onSubmit, onCancel }: NewPromptPageProps
                         <Hash className="w-4 h-4 text-[var(--warning-amber)]" />
                         <span className="text-sm text-white/80">Tags:</span>
                       </div>
-                      <span className="text-sm text-white/90 max-w-[200px] truncate" title={formData.tags}>
-                        {formData.tags}
+                      <span className="text-sm text-white/90 max-w-[200px] truncate" title={formData.tags ? formData.tags.join(', ') : ''}>
+                        {formData.tags ? formData.tags.join(', ') : ''}
                       </span>
                     </div>
                   )}
                   
-                  {formData.images.length > 0 && (
+                  {Array.isArray(formData.images) && formData.images.length > 0 && (
                     <div className="flex items-center justify-between py-2 px-3 bg-white/5 rounded-lg border border-white/10">
                       <div className="flex items-center gap-2">
                         <Camera className="w-4 h-4 text-[var(--warning-amber)]" />
@@ -612,7 +595,7 @@ export default function NewPromptPage({ onSubmit, onCancel }: NewPromptPageProps
                     </div>
                   )}
                   
-                  {formData.collaborators.length > 0 && (
+                  {Array.isArray(formData.collaborators) && formData.collaborators.length > 0 && (
                     <div className="flex items-center justify-between py-2 px-3 bg-white/5 rounded-lg border border-white/10">
                       <div className="flex items-center gap-2">
                         <Users className="w-4 h-4 text-[var(--warning-amber)]" />
@@ -624,7 +607,7 @@ export default function NewPromptPage({ onSubmit, onCancel }: NewPromptPageProps
                     </div>
                   )}
                   
-                  {formData.collections.length > 0 && (
+                  {Array.isArray(formData.collections) && formData.collections.length > 0 && (
                     <div className="flex items-center justify-between py-2 px-3 bg-white/5 rounded-lg border border-white/10">
                       <div className="flex items-center gap-2">
                         <FolderOpen className="w-4 h-4 text-[var(--warning-amber)]" />

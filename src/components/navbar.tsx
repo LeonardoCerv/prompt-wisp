@@ -10,36 +10,49 @@ import NewPromptPage from "@/components/newPrompt"
 import { Sidebar } from "./sidebar"
 import { PromptList } from "./promptList"
 import { useApp } from "@/contexts/appContext"
+import { CollectionInsert, PromptInsert } from "@/lib/models"
 
 interface NavbarProps {
   children?: React.ReactNode
 }
 
-
 export default function Navbar({ children }: NavbarProps) {
   const router = useRouter()
   const { state, actions } = useApp()
-  const { prompts, user } = state
+  const {  user } = state
 
   const [isNewCollectionOpen, setIsNewCollectionOpen] = useState(false)
   const [showCreateDialog, setShowCreateDialog] = useState(false)
 
-  const handleCreateCollection = async (collectionData: any) => {
+  const allowedVisibilities = ["public", "private", "unlisted"] as const;
+  type Visibility = typeof allowedVisibilities[number];
+
+  const handleCreateCollection = async (collectionData: CollectionInsert) => {
     try {
+      if (!user?.id) {
+        toast.error("User not authenticated");
+        return;
+      }
       const title = collectionData.title?.trim() || ""
       const description = collectionData.description ? collectionData.description.trim() : null
-      // Handle tags as string or string[]
-      const tags = collectionData.tags.map((tag: string) => tag.trim()).filter(Boolean)
-
-      const requestBody = {
+      // Handle tags as comma-separated string or array, default to empty string if undefined
+      const tags = Array.isArray(collectionData.tags)
+        ? collectionData.tags.map((tag: string) => tag.trim()).filter(Boolean)
+        : (collectionData.tags ?? "").split(",").map((tag: string) => tag.trim()).filter(Boolean)
+      const visibility: Visibility = allowedVisibilities.includes(collectionData.visibility as Visibility)
+        ? (collectionData.visibility as Visibility)
+        : "private";
+      const requestBody: CollectionInsert = {
         title,
         description,
         tags,
-        visibility: collectionData.visibility,
+        visibility,
         images: collectionData.images && collectionData.images.length > 0 ? collectionData.images : null,
         collaborators: collectionData.collaborators ?? [],
-        prompts: collectionData.prompts.map((p: string) => ( p)),
-        user_id: user?.id,
+        prompts: Array.isArray(collectionData.prompts)
+          ? collectionData.prompts.map((p) => p)
+          : [],
+        user_id: user.id,
       }
 
       console.log("Creating collection with data:", requestBody)
@@ -58,21 +71,29 @@ export default function Navbar({ children }: NavbarProps) {
     }
   }
 
-  const handleCreatePrompt = async (promptData: any) => {
+  const handleCreatePrompt = async (promptData: PromptInsert) => {
     try {
-      // Handle tags as string or string[]
-      const tags = promptData.tags.map((tag: string) => tag.trim()).filter(Boolean)
-
-      const transformedPrompt = {
+      if (!user?.id) {
+        toast.error("User not authenticated");
+        return;
+      }
+      // Handle tags as comma-separated string or array, default to empty string if undefined
+      const tags = Array.isArray(promptData.tags)
+        ? promptData.tags.map((tag: string) => tag.trim()).filter(Boolean)
+        : (promptData.tags ?? "").split(",").map((tag: string) => tag.trim()).filter(Boolean)
+      const visibility: Visibility = allowedVisibilities.includes(promptData.visibility as Visibility)
+        ? (promptData.visibility as Visibility)
+        : "private";
+      const transformedPrompt: PromptInsert = {
         title: promptData.title,
         description: promptData.description,
         tags,
         content: promptData.content,
-        visibility: promptData.visibility,
+        visibility,
         images: promptData.images,
         collaborators: promptData.collaborators ?? [],
         collections: promptData.collections ?? [],
-        user_id: user?.id,
+        user_id: user.id,
       }
 
       const newPrompt = await actions.createPrompt(transformedPrompt)
@@ -107,7 +128,8 @@ export default function Navbar({ children }: NavbarProps) {
         open={isNewCollectionOpen}
         onOpenChange={setIsNewCollectionOpen}
         onSubmit={handleCreateCollection}
-        availablePrompts={prompts
+        /*
+          availablePrompts={prompts
           .filter((p) => !p.deleted)
           .map((p) => ({
             id: p.id,
@@ -116,6 +138,7 @@ export default function Navbar({ children }: NavbarProps) {
             content: p.content,
             tags: p.tags,
           }))}
+        */
       />
 
       {/* Create Prompt Dialog */}

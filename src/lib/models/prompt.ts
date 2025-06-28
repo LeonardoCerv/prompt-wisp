@@ -382,13 +382,13 @@ class Prompt {
             const { data, error } = await supabase
                 .from('prompts')
                 .select('*')
-                .or(`title.ilike.%\${query}%,description.ilike.%\${query}%,content.ilike.%\${query}%`)
+                .or(`title.ilike.%${query}%,description.ilike.%${query}%,content.ilike.%${query}%`)
                 .eq('visibility', 'public')
                 .eq('deleted', false)
                 .order('created_at', { ascending: false });
 
             if (error) {
-                throw new Error(`Error searching prompts: \${error.message}`);
+                throw new Error(`Error searching prompts: ${error.message}`);
             }
 
             return data as PromptData[];

@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from "react"
+import { useRef, useEffect, useState, useCallback } from "react"
 import { Plus, Edit, Trash2, Type } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useApp } from "@/contexts/appContext"
@@ -64,6 +64,20 @@ export function CollectionActions({ collectionId, collectionTitle = '', popupPos
     }
   }, [showRenameDialog])
 
+
+  const closeAllDialogs = useCallback(() => {
+    setShowRenameDialog(false)
+    setRenameValue(collectionTitle)
+    setRenamePosition(null)
+    setShowAddPromptDialog(false)
+    setAddPromptPosition(null)
+    setPromptSearch("")
+    setSelectedPromptIds([])
+    setShowEditDialog(false)
+    setEditForm(null)
+    if (onRequestClose) onRequestClose()
+  }, [collectionTitle, onRequestClose])
+
   useEffect(() => {
     if (!showRenameDialog && !showAddPromptDialog && !showEditDialog && !popupRef.current) return
     const handleClick = (e: MouseEvent) => {
@@ -78,25 +92,6 @@ export function CollectionActions({ collectionId, collectionTitle = '', popupPos
     window.addEventListener("mousedown", handleClick)
     return () => window.removeEventListener("mousedown", handleClick)
   }, [showRenameDialog, showAddPromptDialog, showEditDialog, popupRef, closeAllDialogs])
-
-  function closeAllDialogs() {
-    setShowRenameDialog(false)
-    setRenameValue(collectionTitle)
-    setRenamePosition(null)
-    setShowAddPromptDialog(false)
-    setAddPromptPosition(null)
-    setPromptSearch("")
-    setSelectedPromptIds([])
-    setShowEditDialog(false)
-    setEditForm(null)
-    onRequestClose && onRequestClose()
-  }
-
-  function openRenameDialog(mouseX: number, mouseY: number) {
-    setShowRenameDialog(true)
-    setRenameValue(collectionTitle)
-    setRenamePosition({ x: mouseX, y: mouseY })
-  }
 
   function closeRenameDialog(forceAll = false) {
     if (forceAll) return closeAllDialogs()
@@ -155,6 +150,12 @@ export function CollectionActions({ collectionId, collectionTitle = '', popupPos
   function closeEditDialog() {
     setShowEditDialog(false)
     setEditForm(null)
+  }
+
+  function openRenameDialog(mouseX: number, mouseY: number) {
+    setShowRenameDialog(true)
+    setRenameValue(collectionTitle)
+    setRenamePosition({ x: mouseX, y: mouseY })
   }
 
   return (
