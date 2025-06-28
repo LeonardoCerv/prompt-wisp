@@ -15,6 +15,7 @@ interface NavbarProps {
   children?: React.ReactNode
 }
 
+
 export default function Navbar({ children }: NavbarProps) {
   const router = useRouter()
   const { state, actions } = useApp()
@@ -25,18 +26,19 @@ export default function Navbar({ children }: NavbarProps) {
 
   const handleCreateCollection = async (collectionData: any) => {
     try {
+      const title = collectionData.title?.trim() || ""
+      const description = collectionData.description ? collectionData.description.trim() : null
+      // Handle tags as string or string[]
+      const tags = collectionData.tags.map((tag: string) => tag.trim()).filter(Boolean)
+
       const requestBody = {
-        title: collectionData.title.trim(),
-        description: collectionData.description.trim() || null,
-        tags: collectionData.tags
-          .split(",")
-          .map((tag: string) => tag.trim())
-          .filter(Boolean),
+        title,
+        description,
+        tags,
         visibility: collectionData.visibility,
-        images: collectionData.images.length > 0 ? collectionData.images : null,
-        collaborators:
-          collectionData.collaborators.length > 0 ? collectionData.collaborators.map((c: any) => c.id) : null,
-        prompts: collectionData.prompts.length > 0 ? collectionData.prompts.map((p: any) => p.id) : [],
+        images: collectionData.images && collectionData.images.length > 0 ? collectionData.images : null,
+        collaborators: collectionData.collaborators ?? [],
+        prompts: collectionData.prompts.map((p: string) => ( p)),
         user_id: user?.id,
       }
 
@@ -58,15 +60,19 @@ export default function Navbar({ children }: NavbarProps) {
 
   const handleCreatePrompt = async (promptData: any) => {
     try {
+      // Handle tags as string or string[]
+      const tags = promptData.tags.map((tag: string) => tag.trim()).filter(Boolean)
+
       const transformedPrompt = {
         title: promptData.title,
         description: promptData.description,
-        tags: promptData.tags,
+        tags,
         content: promptData.content,
         visibility: promptData.visibility,
         images: promptData.images,
-        collaborators: promptData.collaborators.map((user: any) => user.id),
-        collections: promptData.collections.map((collection: any) => collection),
+        collaborators: promptData.collaborators ?? [],
+        collections: promptData.collections ?? [],
+        user_id: user?.id,
       }
 
       const newPrompt = await actions.createPrompt(transformedPrompt)

@@ -3,7 +3,7 @@ import { Plus, Edit, Trash2, Type } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useApp } from "@/contexts/appContext"
 import EditCollectionDialog from "@/components/editCollection"
-import { CollectionData } from "@/lib/models"
+import { CollectionData } from "@/lib/models/collection";
 
 interface CollectionActionsProps {
   collectionId: string
@@ -28,7 +28,15 @@ export function CollectionActions({ collectionId, collectionTitle = '', popupPos
 
   // Edit Collection dialog state
   const [showEditDialog, setShowEditDialog] = useState(false)
-  const [editForm, setEditForm] = useState<any>(null)
+  const [editForm, setEditForm] = useState<{
+    id: string;
+    title: string;
+    description: string;
+    tags: string;
+    visibility: string;
+    images: string[];
+    collaborators: string[];
+  } | null>(null)
 
   // Get all prompts not already in this collection
   const prompts = state.prompts.filter(
@@ -69,7 +77,7 @@ export function CollectionActions({ collectionId, collectionTitle = '', popupPos
     }
     window.addEventListener("mousedown", handleClick)
     return () => window.removeEventListener("mousedown", handleClick)
-  }, [showRenameDialog, showAddPromptDialog, showEditDialog, popupRef])
+  }, [showRenameDialog, showAddPromptDialog, showEditDialog, popupRef, closeAllDialogs])
 
   function closeAllDialogs() {
     setShowRenameDialog(false)
@@ -138,7 +146,7 @@ export function CollectionActions({ collectionId, collectionTitle = '', popupPos
       visibility: collectionData?.visibility || 'private',
       images: collectionData?.images || [],
       collaborators: Array.isArray(collectionData?.collaborators)
-        ? collectionData.collaborators.filter((c: any) => c !== null && 'id' in c)
+        ? collectionData.collaborators.filter((c): c is string => typeof c === 'string')
         : [],
       id: collectionId,
     })
@@ -321,7 +329,7 @@ export function CollectionActions({ collectionId, collectionTitle = '', popupPos
         </div>
       )}
       {/* Edit Collection Dialog */}
-      {showEditDialog && (
+      {showEditDialog && editForm && (
         <EditCollectionDialog
           open={showEditDialog}
           onClose={closeEditDialog}

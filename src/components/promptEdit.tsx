@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { 
   Star, 
@@ -85,11 +85,10 @@ export default function PromptEdit({
   }
 
   // Handle saving changes
-  const handleSaveChanges = async () => {
+  const handleSaveChanges = useCallback(async () => {
     if (!selectedPrompt || !hasUnsavedChanges) return
 
     try {
-      
       await actions.savePromptChanges(selectedPrompt.id, {
         title: editedTitle,
         content: editedContent,
@@ -102,7 +101,7 @@ export default function PromptEdit({
       console.error("Error updating prompt:", error)
       toast.error("Failed to update prompt")
     }
-  }
+  }, [selectedPrompt, hasUnsavedChanges, actions, editedTitle, editedContent, editedDescription, editedTags])
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -118,7 +117,7 @@ export default function PromptEdit({
 
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [selectedPrompt, handleSaveChanges])
+  }, [selectedPrompt, handleSaveChanges, utils])
 
   // Auto-focus title on mount
   useEffect(() => {

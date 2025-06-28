@@ -3,12 +3,13 @@
 import { useCallback } from "react"
 import { toast } from "sonner"
 import { useApp } from "@/contexts/appContext"
+import type { CollectionInsert } from "@/lib/models/collection"
 
 export function useCollectionOperations() {
   const { state, actions } = useApp()
 
   const createCollectionWithPrompts = useCallback(
-    async (collectionData: any) => {
+    async (collectionData: CollectionInsert) => {
       try {
         console.log("Creating collection with prompts:", collectionData)
 

@@ -19,7 +19,7 @@ interface EditCollectionDialogProps {
     tags: string
     visibility: string
     images: string[]
-    collaborators: any[]
+    collaborators: string[]
   }
 }
 
@@ -74,11 +74,11 @@ export default function EditCollectionDialog({
     }
   }
 
-  const handleChange = (field: string, value: any) => {
+  const handleChange = (field: string, value: string | string[]) => {
     setForm((prev) => ({ ...prev, [field]: value }))
   }
 
-  const handleSubmit = async (e: any) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (!form.title.trim()) return
     setIsSubmitting(true)
@@ -88,7 +88,7 @@ export default function EditCollectionDialog({
         {
           ...form,
           tags: form.tags.split(',').map((t: string) => t.trim()).filter(Boolean),
-          // Ensure visibility is one of the allowed values
+          collaborators: form.collaborators.map(u => u),
           visibility: (['public', 'private', 'unlisted'].includes(form.visibility)
             ? form.visibility
             : 'private') as 'public' | 'private' | 'unlisted',

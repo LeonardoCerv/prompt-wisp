@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import {  Search } from 'lucide-react'
 import { type User } from '@supabase/supabase-js'
 import Image from 'next/image'
 import { useApp } from '@/contexts/appContext'
 import PromptCard from './promptCard'
+import { type PromptData } from '@/lib/models';
 
 interface PromptHomeProps {
   user: User
@@ -14,10 +15,10 @@ interface PromptHomeProps {
 export default function PromptHome({
   user,
 }: PromptHomeProps) {
-  const { actions, search } = useApp() as any;
+  const { actions, search } = useApp()
   const [query, setQuery] = useState("");
-  const allFilteredPrompts = search?.searchPrompts(query) || [];
-  const handlePromptSelect = (prompt: any) => {
+  const allFilteredPrompts: PromptData[] = search?.searchPrompts(query) || [];
+  const handlePromptSelect = (prompt: PromptData) => {
     actions.setSelectedPrompt?.(prompt);
     window.location.href = `/prompt/${prompt.id}`;
   };
@@ -111,7 +112,7 @@ export default function PromptHome({
               ) : (
                 <div className="flex-1 overflow-y-auto px-2 py-4 text-left">
                   <ul className="grid gap-2">
-                    {allFilteredPrompts.map((prompt: any) => (
+                    {allFilteredPrompts.map((prompt: PromptData) => (
                       <li key={prompt.id} className="min-h-[60px] max-h-[120px] overflow-hidden">
                         {prompt.deleted ? (
                           <div className="relative cursor-pointer opacity-60 group" onClick={() => handlePromptSelect(prompt)}>

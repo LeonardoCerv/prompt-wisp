@@ -46,7 +46,7 @@ interface NewPrompt {
   content: string
   visibility: 'public' | 'private' | 'unlisted'
   images: string[]
-  collaborators: User[]
+  collaborators: string[]
   collections: string[]
 }
 

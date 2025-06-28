@@ -49,7 +49,7 @@ interface NewCollection {
   tags: string
   visibility: 'public' | 'private' | 'unlisted'
   images: string[]
-  collaborators: User[]
+  collaborators: string[]
   prompts: Prompt[]
 }
 

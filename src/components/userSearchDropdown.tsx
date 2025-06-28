@@ -2,21 +2,11 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { Input } from '@/components/ui/input'
-import { X, User, Search } from 'lucide-react'
-import Image from 'next/image'
-
-interface User {
-  id: string
-  name: string
-  username: string
-  email: string
-  profile_picture?: string
-  display: string
-}
+import { X, Search } from 'lucide-react'
 
 interface UserSearchDropdownProps {
-  selectedUsers: User[]
-  onUsersChange: (users: User[]) => void
+  selectedUsers: string[]
+  onUsersChange: (users: string[]) => void
   placeholder?: string
   className?: string
 }
@@ -29,7 +19,7 @@ export default function UserSearchDropdown({
 }: UserSearchDropdownProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
-  const [searchResults, setSearchResults] = useState<User[]>([])
+  const [searchResults, setSearchResults] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -61,8 +51,8 @@ export default function UserSearchDropdown({
         
         if (response.ok) {
           // Filter out already selected users
-          const filteredResults = data.users.filter((user: User) => 
-            !selectedUsers.some(selected => selected.id === user.id)
+          const filteredResults = data.users.filter((user: string) => 
+            !selectedUsers.some(selected => selected === user)
           )
           setSearchResults(filteredResults)
         }
@@ -78,7 +68,7 @@ export default function UserSearchDropdown({
     return () => clearTimeout(timeoutId)
   }, [searchQuery, selectedUsers])
 
-  const handleSelectUser = (user: User) => {
+  const handleSelectUser = (user: string) => {
     onUsersChange([...selectedUsers, user])
     setSearchQuery('')
     setSearchResults([])
@@ -86,7 +76,7 @@ export default function UserSearchDropdown({
   }
 
   const handleRemoveUser = (userId: string) => {
-    onUsersChange(selectedUsers.filter(user => user.id !== userId))
+    onUsersChange(selectedUsers.filter(user => user !== userId))
   }
 
   const handleInputFocus = () => {
@@ -100,9 +90,10 @@ export default function UserSearchDropdown({
         <div className="flex flex-wrap gap-2 mb-2">
           {selectedUsers.map((user) => (
             <div
-              key={user.id}
+              key={user}
               className="flex items-center gap-2 bg-[var(--wisp-blue)]/20 border border-[var(--wisp-blue)]/40 rounded-md px-2 py-1 text-xs"
             >
+              {/* 
               {user.profile_picture ? (
                 <Image
                   src={user.profile_picture}
@@ -113,9 +104,10 @@ export default function UserSearchDropdown({
                 <User className="w-4 h-4 text-[var(--wisp-blue)]" />
               )}
               <span className="text-white">{user.display}</span>
+              */}
               <button
                 type="button"
-                onClick={() => handleRemoveUser(user.id)}
+                onClick={() => handleRemoveUser(user)}
                 className="text-white/70 hover:text-white"
               >
                 <X className="w-3 h-3" />
@@ -148,11 +140,11 @@ export default function UserSearchDropdown({
           ) : searchResults.length > 0 ? (
             searchResults.map((user) => (
               <button
-                key={user.id}
+                key={user}
                 type="button"
                 onClick={() => handleSelectUser(user)}
                 className="w-full px-3 py-2 text-left hover:bg-[var(--wisp-blue)]/20 transition-colors duration-200 flex items-center gap-2"
-              >
+              >{/* 
                 {user.profile_picture ? (
                   <Image
                     src={user.profile_picture}
@@ -170,6 +162,7 @@ export default function UserSearchDropdown({
                     @{user.username} • {user.email}
                   </div>
                 </div>
+                */}
               </button>
             ))
           ) : searchQuery.trim().length >= 2 ? (

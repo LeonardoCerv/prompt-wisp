@@ -26,7 +26,7 @@ export function usePromptOperations() {
       try {
         await actions.savePrompt(id)
         toast.success("Prompt saved")
-      } catch (error) {
+      } catch {
         toast.error("Failed to save prompt")
       }
     },
@@ -41,7 +41,7 @@ export function usePromptOperations() {
         if (redirectAfterDelete) {
           router.push("/prompt")
         }
-      } catch (error) {
+      } catch {
         toast.error("Failed to delete prompt")
       }
     },
@@ -53,7 +53,7 @@ export function usePromptOperations() {
       try {
         await actions.restorePrompt(id)
         toast.success("Prompt restored")
-      } catch (error) {
+      } catch {
         toast.error("Failed to restore prompt")
       }
     },
@@ -61,7 +61,7 @@ export function usePromptOperations() {
   )
 
   const updatePrompt = useCallback(
-    async (id: string, updates: any) => {
+    async (id: string, updates: Record<string, unknown>) => {
       try {
         await actions.updatePrompt(id, updates)
         toast.success("Prompt updated successfully")
@@ -74,7 +74,7 @@ export function usePromptOperations() {
   )
 
   const createPrompt = useCallback(
-    async (promptData: any) => {
+    async (promptData: Record<string, unknown>) => {
       try {
         const newPrompt = await actions.createPrompt(promptData)
         toast.success("Prompt created successfully")

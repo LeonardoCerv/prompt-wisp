@@ -14,7 +14,7 @@ import type { PromptData } from "@/lib/models/prompt"
 
 interface PromptSlugPageProps {
   slug: string
-  promptData?: any
+  promptData?: PromptData
   user: {
     id: string
     email?: string
@@ -22,7 +22,7 @@ interface PromptSlugPageProps {
 }
 
 // Helper function to safely parse dates
-const safeParseDate = (dateString: any): string => {
+const safeParseDate = (dateString: string | Date | undefined | null): string => {
   if (!dateString) return new Date().toISOString()
 
   try {
@@ -71,21 +71,21 @@ const safeParseDate = (dateString: any): string => {
 }
 
 // Transform prompt data to standard PromptData format
-const transformPromptData = (prompt: any): PromptData => {
+const transformPromptData = (prompt: Record<string, unknown>): PromptData => {
   return {
-    id: prompt.id,
-    title: prompt.title,
-    description: prompt.description || null,
-    content: prompt.content,
-    tags: prompt.tags || [],
-    created_at: safeParseDate(prompt.created_at),
-    updated_at: safeParseDate(prompt.updated_at),
-    user_id: prompt.user_id,
-    images: prompt.images || null,
-    collaborators: prompt.collaborators || null,
-    visibility: prompt.visibility || "private",
-    deleted: prompt.deleted || false,
-    collections: prompt.collections || null,
+    id: prompt.id as string,
+    title: prompt.title as string,
+    description: (prompt.description as string) || null,
+    content: prompt.content as string,
+    tags: (prompt.tags as string[]) || [],
+    created_at: safeParseDate(prompt.created_at as string | Date | null | undefined),
+    updated_at: safeParseDate(prompt.updated_at as string | Date | null | undefined),
+    user_id: prompt.user_id as string,
+    images: (prompt.images as string[] | null) || null,
+    collaborators: (prompt.collaborators as string[] | null) || null,
+    visibility: (prompt.visibility as "private" | "public" | "unlisted") || "private",
+    deleted: (prompt.deleted as boolean) || false,
+    collections: (prompt.collections as string[] | null) || null,
   }
 }
 
@@ -171,7 +171,10 @@ export default function PromptSlugPage({ slug, promptData, user }: PromptSlugPag
   useEffect(() => {
     // If we have server-side data, use it immediately
     if (promptData && !selectedPrompt) {
-      const transformedPrompt = transformPromptData(promptData)
+      // If promptData is already PromptData, use as is, else transform
+      const transformedPrompt = (promptData as PromptData).id && (promptData as PromptData).title
+        ? (promptData as PromptData)
+        : transformPromptData(promptData as unknown as Record<string, unknown>)
       setSelectedPrompt(transformedPrompt)
       setPromptFound(true)
       setIsLoading(false)
