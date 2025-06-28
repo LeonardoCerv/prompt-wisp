@@ -9,6 +9,7 @@ import { PromptActions } from "./promptActions"
 
 import PromptCard from "@/components/promptCard"
 import { useRouter } from "next/navigation"
+import { PromptData } from "@/lib/models"
 
 interface PromptListProps {
   onCreatePrompt: () => void
@@ -31,7 +32,7 @@ export function PromptList({ onCreatePrompt }: PromptListProps) {
 
   const displayPrompts = selectedFilter === "home" ? prompts : filteredPrompts
 
-  const handlePromptSelect = (prompt: any) => {
+  const handlePromptSelect = (prompt: PromptData) => {
     actions.setSelectedPrompt(prompt)
     router.push(`/prompt/${prompt.id}`)
   }
@@ -43,7 +44,7 @@ export function PromptList({ onCreatePrompt }: PromptListProps) {
   return (
     <div className="h-full flex-col w-[300px] flex">
       <div className="flex flex-col bg-[var(--blackblack)] p-0 h-screen">
-        <PromptActions onCreatePrompt={onCreatePrompt} />
+        <PromptActions />
 
         <div className="flex-1 overflow-y-auto px-3">
           <Button

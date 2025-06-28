@@ -22,7 +22,7 @@ export default function SignupPage() {
                 width={120}
                 height={120}
                 priority
-                className="object-contain"jookkookookokokokokokokokokojojjojoipppppppppppppppppppppppppppppppppppppppppppppppppppppojojojoojjooooooooooooooooooo
+                className="object-contain"
               />
             </Link>
           </div>

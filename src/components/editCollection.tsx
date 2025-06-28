@@ -7,7 +7,6 @@ import Dialog from "@/components/ui/dialog"
 import UserSearchDropdown from "@/components/userSearchDropdown"
 import { Camera, Plus, Save, X } from "lucide-react"
 import { useApp } from "@/contexts/appContext"
-import { UserData } from "@/lib/models"
 import Image from "next/image"
 
 interface EditCollectionDialogProps {
@@ -97,6 +96,7 @@ export default function EditCollectionDialog({
       )
       onClose()
     } catch (error) {
+      console.error('Failed to update collection:', error)
       setUploadError('Failed to update collection')
     } finally {
       setIsSubmitting(false)

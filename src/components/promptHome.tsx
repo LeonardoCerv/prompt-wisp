@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react'
 import {  Search } from 'lucide-react'
 import { type User } from '@supabase/supabase-js'
-
 import Image from 'next/image'
 import { useApp } from '@/contexts/appContext'
 import PromptCard from './promptCard'
@@ -15,12 +14,7 @@ interface PromptHomeProps {
 export default function PromptHome({
   user,
 }: PromptHomeProps) {
-  const [error, setError] = useState<string | null>(null)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [searchResults, setSearchResults] = useState<any[]>([])
-  const [isSearching, setIsSearching] = useState(false)
-  const [showSearchResults] = useState(true) // Always true now
-  const { state, actions, search } = useApp() as any;
+  const { actions, search } = useApp() as any;
   const [query, setQuery] = useState("");
   const allFilteredPrompts = search?.searchPrompts(query) || [];
   const handlePromptSelect = (prompt: any) => {
@@ -41,48 +35,6 @@ export default function PromptHome({
            user.email?.split('@')[0] || 
            'Creator'
   }
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (searchQuery.trim()) {
-      // Navigate to prompt page with search query
-      window.location.href = `/prompt?search=${encodeURIComponent(searchQuery.trim())}`
-    }
-  }
-
-  // Real-time search functionality
-  useEffect(() => {
-    const searchPrompts = async () => {
-      if (searchQuery.trim().length === 0) {
-        setSearchResults([])
-        setIsSearching(false)
-        return
-      }
-
-      if (searchQuery.trim().length < 2) {
-        return
-      }
-
-      setIsSearching(true)
-
-      try {
-        // Simulate API call - replace with actual search endpoint
-        const response = await fetch(`/api/prompts?search=${encodeURIComponent(searchQuery.trim())}&limit=5`)
-        if (response.ok) {
-          const data = await response.json()
-          setSearchResults(data.prompts || [])
-        }
-      } catch (error) {
-        console.error('Search error:', error)
-        setSearchResults([])
-      } finally {
-        setIsSearching(false)
-      }
-    }
-
-    const debounceTimer = setTimeout(searchPrompts, 300)
-    return () => clearTimeout(debounceTimer)
-  }, [searchQuery])
 
   // Keep results dialog always open when component is focused
   // (No longer needed since showSearchResults is always true)
@@ -153,7 +105,7 @@ export default function PromptHome({
                   </div>
                   <h4 className="text-white text-lg font-medium mb-2">No results found</h4>
                   <p className="text-[var(--moonlight-silver)]/60 text-sm mb-4">
-                    We couldn't find any prompts matching "{query}"
+                    We couldn&apos;t find any prompts matching &quot;{query}&quot;
                   </p>
                 </div>
               ) : (

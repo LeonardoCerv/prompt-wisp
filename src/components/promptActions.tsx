@@ -32,6 +32,7 @@ export function PromptActions() {
         toast.success("Prompt moved to Recently Deleted")
       }
     } catch (error) {
+      console.error("Failed to delete prompt:", error)
       toast.error("Failed to delete prompt")
     }
   }
@@ -43,6 +44,7 @@ export function PromptActions() {
       await actions.restorePrompt(selectedPrompt.id)
       toast.success("Prompt restored")
     } catch (error) {
+      console.error("Failed to restore prompt:", error)
       toast.error("Failed to restore prompt")
     }
   }

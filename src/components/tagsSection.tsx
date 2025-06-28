@@ -8,7 +8,7 @@ export function TagsSection() {
   const { state, actions } = useApp()
   const { tags } = state
   const { tagsExpanded } = state.ui
-  const { selectedFilter, selectedTags } = state.filters
+  const { selectedTags } = state.filters
 
   const handleTagClick = (tag: string) => {
     const newSelectedTags = selectedTags.includes(tag) ? selectedTags.filter((t) => t !== tag) : [...selectedTags, tag]

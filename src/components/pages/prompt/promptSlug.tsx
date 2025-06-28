@@ -119,6 +119,7 @@ export default function PromptSlugPage({ slug, promptData, user }: PromptSlugPag
       await actions.toggleFavorite(id)
       toast.success("Favorite status updated")
     } catch (error) {
+      console.error("Error toggling favorite status:", error)
       toast.error("Failed to update favorite status")
     }
   }
@@ -139,6 +140,7 @@ export default function PromptSlugPage({ slug, promptData, user }: PromptSlugPag
       await actions.savePrompt(id)
       toast.success("Prompt saved")
     } catch (error) {
+      console.error("Error saving prompt:", error)
       toast.error("Failed to save prompt")
     }
   }
@@ -150,6 +152,7 @@ export default function PromptSlugPage({ slug, promptData, user }: PromptSlugPag
       // Navigate back to prompts list since this prompt is now deleted
       router.push("/prompt")
     } catch (error) {
+      console.error("Error deleting prompt:", error)
       toast.error("Failed to delete prompt")
     }
   }
@@ -159,6 +162,7 @@ export default function PromptSlugPage({ slug, promptData, user }: PromptSlugPag
       await actions.restorePrompt(id)
       toast.success("Prompt restored")
     } catch (error) {
+      console.error("Error restoring prompt:", error)
       toast.error("Failed to restore prompt")
     }
   }

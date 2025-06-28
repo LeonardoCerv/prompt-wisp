@@ -23,7 +23,6 @@ export default function CollectionSearchDropdown({
   const [allCollections, setAllCollections] = useState<CollectionData[]>([])
   const [filteredCollections, setFilteredCollections] = useState<CollectionData[]>([])
   const [isLoading, setIsLoading] = useState(false)
-  const [ setIsCreating] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 

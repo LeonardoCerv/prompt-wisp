@@ -242,7 +242,7 @@ export default function NewPromptPage({ onSubmit, onCancel }: NewPromptPageProps
                   Essential Information
                 </h4>
                 <p className="text-sm text-[var(--flare-cyan)]/80">
-                  Let's start with the basics for your prompt
+                  Let&apos;s start with the basics for your prompt
                 </p>
               </div>
 
@@ -549,11 +549,11 @@ export default function NewPromptPage({ onSubmit, onCancel }: NewPromptPageProps
                   />
                 </div>
                 <h4 className="text-xl font-medium text-white mb-3">
-                  You're All Set!
+                  You&apos;re All Set!
                 </h4>
                 <p className="text-sm text-[var(--flare-cyan)]/80 max-w-md mx-auto leading-relaxed">
                   Your prompt has been configured and is ready to be created. 
-                  All the details look great, and you're good to go!
+                  All the details look great, and you&apos;re good to go!
                 </p>
               </div>
 

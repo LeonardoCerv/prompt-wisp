@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { 
   Star, 
@@ -40,14 +40,13 @@ export default function PromptEdit({
   onSave,
   onDelete,
   onRestore,
-  onUpdatePrompt,
   currentFilter
 }: PromptEditProps) {
   const [editedTitle, setEditedTitle] = useState('')
   const [editedContent, setEditedContent] = useState('')
   const [editedDescription, setEditedDescription] = useState('')
   const [editedTags, setEditedTags] = useState<string[]>([])
-  const [isSaving, setIsSaving] = useState(false)
+
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const titleRef = useRef<HTMLTextAreaElement>(null)
   const contentRef = useRef<HTMLTextAreaElement>(null)
@@ -202,7 +201,6 @@ export default function PromptEdit({
                 <Button
                   size="sm"
                   onClick={handleSaveChanges}
-                  disabled={isSaving}
                   className="bg-blue-600 hover:bg-blue-700 text-white p-1.5"
                 >
                   <Save size={16} />
