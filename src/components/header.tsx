@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
-import { HomeIcon, BookOpenText, Layers, Menu, PlusCircle, LogOut, User2, ShoppingBag } from 'lucide-react'
+import { HomeIcon, BookOpenText, Layers, Menu, PlusCircle, LogOut, User2, ShoppingBag, AppWindow, Contact } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {signout} from './actions'
 
@@ -29,6 +29,7 @@ export default function Header( { user }: { user: User | null }) {
             <HomeIcon size={16} />
             <span>Home</span>
           </Link>
+          { /* Uncomment if you have a marketplace page}
           <Link href="/marketplace" className="flex items-center gap-2 text-moonlight-silver hover:text-moonlight-silver-bright transition-colors">
             <ShoppingBag size={16} />
             <span>Marketplace</span>
@@ -41,8 +42,17 @@ export default function Header( { user }: { user: User | null }) {
             <BookOpenText size={16} />
             <span>Documentation</span>
           </Link>
-        </nav>
         
+          */}
+          <Link href="/prompts" className="flex items-center gap-2 text-moonlight-silver hover:text-moonlight-silver-bright transition-colors">
+            <AppWindow size={16} />
+            <span>Dashboard</span>
+          </Link>
+           <Link href="/contact" className="flex items-center gap-2 text-moonlight-silver hover:text-moonlight-silver-bright transition-colors">
+            <Contact size={16} />
+            <span>Contact</span>
+          </Link>
+        </nav>
         <div className="flex items-center gap-2">
             { user ? (
             <>

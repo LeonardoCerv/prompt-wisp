@@ -1,9 +1,20 @@
-'use server'
+import Header from "@/components/header";
+import Footer from "@/components/footer";
+import { createClient } from '@/lib/utils/supabase/server';
 
-import ErrorPage from '@/components/pages/error/error'
+export default async function ErrorPage() {
+    const supabase = await createClient()
+  
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+  
 
-export default async function Error() {
   return (
-    <ErrorPage />
+    <main className="flex flex-col min-h-screen">
+      <Header user={user} />
+      <p>Sorry, something went wrong</p>
+      <Footer />
+      </main>
   );
 }
