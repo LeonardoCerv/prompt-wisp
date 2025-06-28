@@ -38,6 +38,35 @@ class UsersCollections {
         }
     }
 
+        /**
+     * Get all collections for a user.
+     * @param userId - The prompt's ID
+     * @returns Array of collection IDs (empty if none found)
+     */
+    static async getCollections(userId: string): Promise<string[]> {
+        try {
+            const supabase = await createClient();
+            const { data, error } = await supabase
+                .from('users_collections')
+                .select('collection_id')
+                .eq('user_id', userId);
+
+            if (error) {
+                if (error.code === 'PGRST116') { // No rows returned
+                    return [];
+                } 
+                throw new Error(`Error getting users for collection: ${error.message}`);
+            }
+
+            if (!data) return [];
+            return data.map(row => row.collection_id);
+        } catch (error) {
+            console.error("Error getting users by collection ID:", error);
+            throw error;
+        }
+    }
+
+
     /**
      * Get all user ID in a collection.
      * @param collectionId - The collection's ID

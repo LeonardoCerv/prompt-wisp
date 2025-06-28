@@ -65,7 +65,7 @@ class UsersPrompts {
         }
     }
 
-        /**
+    /**
      * Get all user IDs for a prompt.
      * @param promptId - The prompt's ID
      * @returns Array of user IDs (empty if none found)
