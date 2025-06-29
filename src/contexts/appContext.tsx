@@ -2,20 +2,13 @@
 
 import type React from "react"
 import { createContext, useContext, useReducer, useCallback, useEffect, useMemo } from "react"
-import type {
-  PromptData,
-  PromptInsert,
-  CollectionData,
-  CollectionInsert,
-  UserData,
-  CollectionUpdate
-} from "@/lib/models"
+import type { PromptData, PromptInsert, CollectionData, CollectionInsert, CollectionUpdate } from "@/lib/models"
 import Prompt from "@/lib/models/prompt"
 
 import UsersPrompts from "@/lib/models/usersPrompts"
 import UsersCollections from "@/lib/models/usersCollections"
 import CollectionPrompts from "@/lib/models/collectionPrompts"
-import { User } from "@supabase/supabase-js"
+import type { User } from "@supabase/supabase-js"
 
 // Types
 interface AppState {
@@ -29,6 +22,10 @@ interface AppState {
   favoriteCollections: string[] // Favorite collection IDs
   promptCollectionMap: Record<string, string[]> // promptId -> collectionIds
   collectionPromptMap: Record<string, string[]> // collectionId -> promptIds
+  userRoles: {
+    prompts: Record<string, "owner" | "buyer" | "collaborator"> // promptId -> role
+    collections: Record<string, "owner" | "buyer" | "collaborator"> // collectionId -> role
+  }
   loading: {
     prompts: boolean
     collections: boolean
@@ -65,6 +62,13 @@ type AppAction =
   | { type: "SET_FAVORITE_COLLECTIONS"; payload: string[] }
   | { type: "SET_PROMPT_COLLECTION_MAP"; payload: Record<string, string[]> }
   | { type: "SET_COLLECTION_PROMPT_MAP"; payload: Record<string, string[]> }
+  | {
+      type: "SET_USER_ROLES"
+      payload: {
+        prompts?: Record<string, "owner" | "buyer" | "collaborator">
+        collections?: Record<string, "owner" | "buyer" | "collaborator">
+      }
+    }
   | { type: "SET_LOADING"; payload: { key: keyof AppState["loading"]; value: boolean } }
   | { type: "SET_FILTER"; payload: { selectedFilter: string; selectedCollection?: string; selectedTags?: string[] } }
   | { type: "SET_UI"; payload: Partial<AppState["ui"]> }
@@ -80,6 +84,10 @@ const initialState: AppState = {
   favoriteCollections: [],
   promptCollectionMap: {},
   collectionPromptMap: {},
+  userRoles: {
+    prompts: {},
+    collections: {},
+  },
   loading: {
     prompts: false,
     collections: false,
@@ -161,6 +169,15 @@ function appReducer(state: AppState, action: AppAction): AppState {
     case "SET_COLLECTION_PROMPT_MAP":
       return { ...state, collectionPromptMap: action.payload }
 
+    case "SET_USER_ROLES":
+      return {
+        ...state,
+        userRoles: {
+          prompts: { ...state.userRoles.prompts, ...action.payload.prompts },
+          collections: { ...state.userRoles.collections, ...action.payload.collections },
+        },
+      }
+
     case "SET_LOADING":
       return {
         ...state,
@@ -219,28 +236,31 @@ interface AppContextType {
     toggleTagsExpanded: () => void
   }
   utils: {
-    // Prompt status utilities
-    isOwner: (prompt: PromptData, userId?: string) => Promise<boolean>
+    // Prompt status utilities (now synchronous)
+    isOwner: (prompt: PromptData, userId?: string) => boolean
     isFavorite: (promptId: string, userId?: string) => boolean
     isFavoritePrompt: (promptId: string) => boolean
     isFavoriteCollection: (collectionId: string) => boolean
-    isSaved: (promptId: string, userId?: string) => Promise<boolean>
+    isSaved: (promptId: string, userId?: string) => boolean
     hasAccessToPrompt: (promptId: string) => boolean
     hasAccessToCollection: (collectionId: string) => boolean
     isDeleted: (item: PromptData | CollectionData) => boolean
-    canEdit: (prompt: PromptData, userId?: string) => Promise<boolean>
+    canEdit: (prompt: PromptData, userId?: string) => boolean
     canView: (prompt: PromptData, userId?: string) => boolean
 
     // User relationship utilities
     getUserPrompts: (userId?: string) => PromptData[]
     getUserCollections: (userId?: string) => CollectionData[]
-    getUserOwnedPrompts: (userId?: string) => Promise<PromptData[]>
+    getUserOwnedPrompts: (userId?: string) => PromptData[]
     getUserFavoritePrompts: (userId?: string) => PromptData[]
-    getUserSavedPrompts: (userId?: string) => Promise<PromptData[]>
+    getUserSavedPrompts: (userId?: string) => PromptData[]
 
     // Collection utilities
     getCollectionPrompts: (collectionId: string) => PromptData[]
     getPromptCollections: (promptId: string) => CollectionData[]
+
+    // Filtering utilities
+    getFilteredPrompts: (filter: string, collection?: string, tags?: string[]) => PromptData[]
 
     // General utilities
     formatDate: (dateString: string) => string
@@ -272,7 +292,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         for (const prompt of promptsRaw) {
           // If prompt is an id, fetch the full object
           if (typeof prompt === "string") {
-            // @ts-ignore
             const fullPrompt = await Prompt.findById(prompt)
             if (fullPrompt) prompts.push(fullPrompt)
           } else {
@@ -355,6 +374,32 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       // Load favorite collections
       const favoriteCollections = await UsersCollections.getFavorites(state.user.id)
       dispatch({ type: "SET_FAVORITE_COLLECTIONS", payload: favoriteCollections })
+
+      // Load user roles for prompts and collections
+      const promptRoles: Record<string, "owner" | "buyer" | "collaborator"> = {}
+      const collectionRoles: Record<string, "owner" | "buyer" | "collaborator"> = {}
+
+      // Get roles for each user prompt
+      for (const promptId of userPrompts) {
+        try {
+          const role = await UsersPrompts.getUserRole(promptId, state.user.id)
+          if (role) promptRoles[promptId] = role
+        } catch (error) {
+          console.error(`Error loading role for prompt ${promptId}:`, error)
+        }
+      }
+
+      // Get roles for each user collection
+      for (const collectionId of userCollections) {
+        try {
+          const role = await UsersCollections.getUserRole(collectionId, state.user.id)
+          if (role) collectionRoles[collectionId] = role
+        } catch (error) {
+          console.error(`Error loading role for collection ${collectionId}:`, error)
+        }
+      }
+
+      dispatch({ type: "SET_USER_ROLES", payload: { prompts: promptRoles, collections: collectionRoles } })
 
       // Load prompt-collection relationships
       const promptCollectionMap: Record<string, string[]> = {}
@@ -662,21 +707,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [state.user?.id, loadUserRelationships])
 
-  // Utility functions
+  // Utility functions (now synchronous using cached state)
   const utils = useMemo(
     () => ({
-      // Prompt status utilities - using intermediary tables
-      isOwner: async (prompt: PromptData, userId?: string): Promise<boolean> => {
+      // Prompt status utilities - now synchronous using cached roles
+      isOwner: (prompt: PromptData, userId?: string): boolean => {
         const currentUserId = userId || state.user?.id
         if (!currentUserId) return false
-
-        try {
-          const role = await UsersPrompts.getUserRole(prompt.id, currentUserId)
-          return role === "owner"
-        } catch (error) {
-          console.error("Error checking ownership:", error)
-          return false
-        }
+        return state.userRoles.prompts[prompt.id] === "owner"
       },
 
       isFavorite: (promptId: string, userId?: string): boolean => {
@@ -693,22 +731,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return state.favoriteCollections.includes(collectionId)
       },
 
-      isSaved: async (promptId: string, userId?: string): Promise<boolean> => {
+      isSaved: (promptId: string, userId?: string): boolean => {
         const currentUserId = userId || state.user?.id
         if (!currentUserId) return false
 
-        try {
-          // Check if user has access to this prompt
-          const hasAccess = state.userPrompts.includes(promptId)
-          if (!hasAccess) return false
+        // Check if user has access to this prompt
+        const hasAccess = state.userPrompts.includes(promptId)
+        if (!hasAccess) return false
 
-          // Check if user is not the owner (saved means has access but doesn't own)
-          const role = await UsersPrompts.getUserRole(promptId, currentUserId)
-          return role !== "owner" && role !== null
-        } catch (error) {
-          console.error("Error checking saved status:", error)
-          return false
-        }
+        // Check if user is not the owner (saved means has access but doesn't own)
+        const role = state.userRoles.prompts[promptId]
+        return role !== "owner" && role !== undefined
       },
 
       hasAccessToPrompt: (promptId: string): boolean => {
@@ -723,18 +756,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return item.deleted || false
       },
 
-      canEdit: async (prompt: PromptData, userId?: string): Promise<boolean> => {
+      canEdit: (prompt: PromptData, userId?: string): boolean => {
         const currentUserId = userId || state.user?.id
         if (!currentUserId) return false
         if (prompt.deleted) return false
 
-        try {
-          const role = await UsersPrompts.getUserRole(prompt.id, currentUserId)
-          return role === "owner" || role === "collaborator"
-        } catch (error) {
-          console.error("Error checking edit permissions:", error)
-          return false
-        }
+        const role = state.userRoles.prompts[prompt.id]
+        return role === "owner" || role === "collaborator"
       },
 
       canView: (prompt: PromptData, userId?: string): boolean => {
@@ -763,25 +791,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return state.collections.filter((c) => state.userCollections.includes(c.id) && !c.deleted)
       },
 
-      getUserOwnedPrompts: async (userId?: string): Promise<PromptData[]> => {
+      getUserOwnedPrompts: (userId?: string): PromptData[] => {
         const currentUserId = userId || state.user?.id
         if (!currentUserId) return []
 
-        const userPrompts = state.prompts.filter((p) => state.userPrompts.includes(p.id) && !p.deleted)
-        const ownedPrompts: PromptData[] = []
-
-        for (const prompt of userPrompts) {
-          try {
-            const role = await UsersPrompts.getUserRole(prompt.id, currentUserId)
-            if (role === "owner") {
-              ownedPrompts.push(prompt)
-            }
-          } catch (error) {
-            console.error(`Error checking ownership for prompt ${prompt.id}:`, error)
-          }
-        }
-
-        return ownedPrompts
+        return state.prompts.filter((p) => {
+          const hasAccess = state.userPrompts.includes(p.id)
+          const isOwner = state.userRoles.prompts[p.id] === "owner"
+          return hasAccess && isOwner && !p.deleted
+        })
       },
 
       getUserFavoritePrompts: (userId?: string): PromptData[] => {
@@ -790,25 +808,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return state.prompts.filter((p) => state.favoritePrompts.includes(p.id) && !p.deleted)
       },
 
-      getUserSavedPrompts: async (userId?: string): Promise<PromptData[]> => {
+      getUserSavedPrompts: (userId?: string): PromptData[] => {
         const currentUserId = userId || state.user?.id
         if (!currentUserId) return []
 
-        const userPrompts = state.prompts.filter((p) => state.userPrompts.includes(p.id) && !p.deleted)
-        const savedPrompts: PromptData[] = []
-
-        for (const prompt of userPrompts) {
-          try {
-            const role = await UsersPrompts.getUserRole(prompt.id, currentUserId)
-            if (role !== "owner" && role !== null) {
-              savedPrompts.push(prompt)
-            }
-          } catch (error) {
-            console.error(`Error checking saved status for prompt ${prompt.id}:`, error)
-          }
-        }
-
-        return savedPrompts
+        return state.prompts.filter((p) => {
+          const hasAccess = state.userPrompts.includes(p.id)
+          const role = state.userRoles.prompts[p.id]
+          const isSaved = role !== "owner" && role !== undefined
+          return hasAccess && isSaved && !p.deleted
+        })
       },
 
       // Collection utilities
@@ -820,6 +829,67 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       getPromptCollections: (promptId: string): CollectionData[] => {
         const collectionIds = state.promptCollectionMap[promptId] || []
         return state.collections.filter((collection) => collectionIds.includes(collection.id) && !collection.deleted)
+      },
+
+      // Filtering utilities
+      getFilteredPrompts: (filter: string, collection?: string, tags?: string[]): PromptData[] => {
+        const userId = state.user?.id
+        if (!userId) return []
+
+        let filtered: PromptData[] = []
+
+        switch (filter) {
+          case "home":
+            // Show all prompts user has access to
+            filtered = state.prompts.filter((p) => state.userPrompts.includes(p.id) && !p.deleted)
+            break
+
+          case "owned":
+            filtered = state.prompts.filter((p) => {
+              const hasAccess = state.userPrompts.includes(p.id)
+              const isOwner = state.userRoles.prompts[p.id] === "owner"
+              return hasAccess && isOwner && !p.deleted
+            })
+            break
+
+          case "saved":
+            filtered = state.prompts.filter((p) => {
+              const hasAccess = state.userPrompts.includes(p.id)
+              const role = state.userRoles.prompts[p.id]
+              const isSaved = role !== "owner" && role !== undefined
+              return hasAccess && isSaved && !p.deleted
+            })
+            break
+
+          case "favorites":
+            filtered = state.prompts.filter((p) => state.favoritePrompts.includes(p.id) && !p.deleted)
+            break
+
+          case "collection":
+            if (collection) {
+              const promptIds = state.collectionPromptMap[collection] || []
+              filtered = state.prompts.filter((prompt) => promptIds.includes(prompt.id) && !prompt.deleted)
+            } else {
+              filtered = []
+            }
+            break
+
+          case "deleted":
+            // Show deleted prompts user has access to
+            filtered = state.prompts.filter((p) => state.userPrompts.includes(p.id) && p.deleted)
+            break
+
+          default:
+            filtered = state.prompts.filter((p) => state.userPrompts.includes(p.id) && !p.deleted)
+            break
+        }
+
+        // Apply tag filters
+        if (tags && tags.length > 0) {
+          filtered = filtered.filter((prompt) => tags.some((tag) => prompt.tags?.includes(tag)))
+        }
+
+        return filtered
       },
 
       // General utilities
@@ -851,6 +921,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       state.favoriteCollections,
       state.promptCollectionMap,
       state.collectionPromptMap,
+      state.userRoles,
     ],
   )
 

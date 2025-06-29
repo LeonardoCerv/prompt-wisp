@@ -1,8 +1,7 @@
 "use client"
-import { notFound } from "next/navigation"
+import { notFound, useParams } from "next/navigation"
 import { useEffect, useState } from "react"
 import PromptEdit from "@/components/prompt-edit"
-import PromptSlugPreview from "@/components/prompt-preview"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Home, FileX } from "lucide-react"
@@ -11,13 +10,9 @@ import { useApp } from "@/contexts/appContext"
 import type { PromptData } from "@/lib/models/prompt"
 import Prompt from "@/lib/models/prompt"
 
-interface PromptSlugProps {
-  params: {
-    slug: string
-  }
-}
-
-export default function PromptSlug({ params }: PromptSlugProps) {
+export default function PromptSlug() {
+  const params = useParams();
+  const { slug } = params;
   const { state, actions, utils } = useApp()
   const { prompts, user } = state
 
@@ -26,8 +21,6 @@ export default function PromptSlug({ params }: PromptSlugProps) {
   const [promptFound, setPromptFound] = useState(false)
   const [canEdit, setCanEdit] = useState(false)
   const [error, setError] = useState<string | null>(null)
-
-  const { slug } = params
 
   // Validate slug format - treating it as prompt ID
   useEffect(() => {
@@ -160,9 +153,9 @@ export default function PromptSlug({ params }: PromptSlugProps) {
 
   // Show preview component for read-only access
   return (
-    <PromptSlugPreview
-      prompt={selectedPrompt}
-    />
+    <div>
+      You do not have permission to edit this prompt.
+    </div>
   )
 }
 

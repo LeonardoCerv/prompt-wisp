@@ -4,12 +4,12 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { BookOpen, Plus, PlusCircle, Loader2 } from "lucide-react"
 import { useApp } from "@/contexts/appContext"
-import { useFilteredPrompts } from "@/hooks/useFilteredPrompts"
 import { PromptActions } from "./prompt-actions"
 
 import PromptCard from "@/components/prompt-card"
 import { useRouter } from "next/navigation"
 import type { PromptData } from "@/lib/models"
+import { useMemo } from "react"
 
 interface PromptListProps {
   onCreatePrompt: () => void
@@ -17,13 +17,20 @@ interface PromptListProps {
 
 export function PromptList({ onCreatePrompt }: PromptListProps) {
   const router = useRouter()
-  const { state, actions } = useApp()
+  const { state, actions, utils } = useApp()
   const { user } = state
   const { selectedFilter, selectedCollection, selectedTags } = state.filters
   const { selectedPrompt } = state.ui
 
-  // Use the hook correctly - it gets data from context internally
-  const { filteredPrompts, totalCount, isLoading } = useFilteredPrompts()
+  // Get filtered prompts using the context utility
+  const { filteredPrompts, totalCount, isLoading } = useMemo(() => {
+    const filtered = utils.getFilteredPrompts(selectedFilter, selectedCollection, selectedTags)
+    return {
+      filteredPrompts: filtered,
+      totalCount: filtered.length,
+      isLoading: state.loading.prompts || state.loading.relationships,
+    }
+  }, [utils, selectedFilter, selectedCollection, selectedTags, state.loading.prompts, state.loading.relationships])
 
   const handlePromptSelect = (prompt: PromptData) => {
     actions.setSelectedPrompt(prompt)
