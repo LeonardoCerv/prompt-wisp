@@ -42,7 +42,7 @@ export function useCollectionOperations() {
       try {
         await actions.toggleFavoriteCollection(collectionId)
         const wasFavorite = utils.isFavoriteCollection(collectionId)
-        toast.success(wasFavorite ? "Added to favorites" : "Removed from favorites")
+        toast.success(wasFavorite ? "Removed from favorites" : "Added to favorites")
       } catch (error) {
         console.error("Error toggling collection favorite:", error)
         toast.error("Failed to update favorite status")

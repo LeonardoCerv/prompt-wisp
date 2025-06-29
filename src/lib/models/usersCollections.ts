@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/utils/supabase/server";
+import { createClient } from "@/lib/utils/supabase/client";
 type user_role = 'owner' | 'buyer' | 'collaborator';
 
 /**
@@ -37,6 +37,8 @@ class UsersCollections {
             throw error;
         }
     }
+
+
 
         /**
      * Get all collections for a user.
@@ -216,6 +218,7 @@ class UsersCollections {
             throw error;
         }
     }
+    
 
     /**
      * update the favorite in a collection for a user.

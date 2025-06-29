@@ -27,7 +27,8 @@ export function usePromptOperations() {
       try {
         await actions.savePrompt(id)
         toast.success("Prompt saved")
-      } catch {
+      } catch (error) {
+        console.error("Error saving prompt:", error)
         toast.error("Failed to save prompt")
       }
     },
@@ -42,7 +43,8 @@ export function usePromptOperations() {
         if (redirectAfterDelete) {
           router.push("/prompt")
         }
-      } catch {
+      } catch (error) {
+        console.error("Error deleting prompt:", error)
         toast.error("Failed to delete prompt")
       }
     },
@@ -54,7 +56,8 @@ export function usePromptOperations() {
       try {
         await actions.restorePrompt(id)
         toast.success("Prompt restored")
-      } catch {
+      } catch (error) {
+        console.error("Error restoring prompt:", error)
         toast.error("Failed to restore prompt")
       }
     },
@@ -102,8 +105,9 @@ export function usePromptOperations() {
       try {
         await actions.toggleFavoritePrompt(promptId)
         const wasFavorite = utils.isFavoritePrompt(promptId)
-        toast.success(wasFavorite ? "Added to favorites" : "Removed from favorites")
+        toast.success(wasFavorite ? "Removed from favorites" : "Added to favorites")
       } catch (error) {
+        console.error("Error toggling favorite:", error)
         toast.error("Failed to update favorite status")
         throw error
       }

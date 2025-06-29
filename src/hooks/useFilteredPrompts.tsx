@@ -1,93 +1,70 @@
 "use client"
 
 import { useMemo } from "react"
-import type { PromptData, UserData } from "@/lib/models"
+import { useApp } from "@/contexts/appContext"
+import type { PromptData } from "@/lib/models"
 
-interface UseFilteredPromptsProps {
-  prompts: PromptData[]
-  user: UserData | null
-  selectedFilter: string
-  selectedCollection?: string
-  selectedTags: string[]
-}
+export function useFilteredPrompts() {
+  const { state, utils } = useApp()
+  const { prompts, filters, user } = state
+  const { selectedFilter, selectedCollection, selectedTags } = filters
 
-export function useFilteredPrompts({
-  prompts,
-  user,
-  selectedFilter,
-  selectedCollection,
-  selectedTags,
-}: UseFilteredPromptsProps) {
-  return useMemo(() => {
-    console.log("Filtering prompts:", {
-      selectedFilter,
-      selectedCollection,
-      totalPrompts: prompts.length,
-      promptsWithCollections: prompts.filter((p) => p.collections && p.collections.length > 0).length,
-    })
-
-    if (selectedFilter === "home") {
-      return []
-    }
+  const filteredPrompts = useMemo(() => {
+    if (!user?.id) return []
 
     let filtered: PromptData[] = []
 
     switch (selectedFilter) {
-      case "favorites":
-        if (!user?.favorites || user.favorites.length === 0) return []
-        filtered = prompts.filter((prompt) => user.favorites?.includes(prompt.id))
+      case "home":
+        // Show all prompts user has access to
+        filtered = utils.getUserPrompts(user.id)
         break
 
-      case "deleted":
-        filtered = prompts.filter((prompt) => prompt.deleted)
-        break
-
-      case "all":
-        filtered = prompts.filter((prompt) => !prompt.deleted)
-        break
-
-      case "your":
-        if (!user) return []
-        filtered = prompts.filter((prompt) => prompt.user_id === user.id && !prompt.deleted)
+      case "owned":
+        // Show prompts owned by user - need to use async function
+        filtered = prompts.filter((p) => utils.hasAccessToPrompt(p.id) && !p.deleted)
+        // Note: This will need to be handled differently since getUserOwnedPrompts is async
         break
 
       case "saved":
-        if (!user?.bought || user.bought.length === 0) return []
-        filtered = prompts.filter(
-          (prompt) => user.bought?.includes(prompt.id) && prompt.user_id !== user?.id && !prompt.deleted,
-        )
+        // Show prompts saved by user (not owned) - need to use async function
+        filtered = prompts.filter((p) => utils.hasAccessToPrompt(p.id) && !p.deleted)
+        // Note: This will need to be handled differently since getUserSavedPrompts is async
+        break
+
+      case "favorites":
+        filtered = utils.getUserFavoritePrompts(user.id)
         break
 
       case "collection":
-        if (!selectedCollection) {
-          console.log("No collection selected")
-          return []
+        if (selectedCollection) {
+          filtered = utils.getCollectionPrompts(selectedCollection)
+        } else {
+          filtered = []
         }
-
-        filtered = prompts.filter((prompt) => {
-          const hasCollection = prompt.collections?.includes(selectedCollection) && !prompt.deleted
-          if (hasCollection) {
-            console.log("Prompt in collection:", prompt.title, prompt.collections)
-          }
-          return hasCollection
-        })
-
-        console.log("Collection filter result:", {
-          selectedCollection,
-          filteredCount: filtered.length,
-          filteredTitles: filtered.map((p) => p.title),
-        })
         break
 
-      case "tags":
-        if (selectedTags.length === 0) return []
-        filtered = prompts.filter((prompt) => prompt.tags.some((tag) => selectedTags.includes(tag)) && !prompt.deleted)
+      case "deleted":
+        // Show deleted prompts user has access to
+        filtered = prompts.filter((p) => utils.hasAccessToPrompt(p.id) && utils.isDeleted(p))
         break
 
       default:
-        filtered = []
+        filtered = utils.getUserPrompts(user.id)
+        break
+    }
+
+    // Apply tag filters
+    if (selectedTags.length > 0) {
+      filtered = filtered.filter((prompt) => selectedTags.some((tag) => prompt.tags?.includes(tag)))
     }
 
     return filtered
-  }, [prompts, user, selectedFilter, selectedCollection, selectedTags])
+  }, [prompts, selectedFilter, selectedCollection, selectedTags, user?.id, utils])
+
+  return {
+    filteredPrompts,
+    totalCount: filteredPrompts.length,
+    isLoading: state.loading.prompts || state.loading.relationships,
+  }
 }

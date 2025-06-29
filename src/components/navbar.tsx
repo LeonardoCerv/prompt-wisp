@@ -35,7 +35,7 @@ export default function Navbar({ children }: NavbarProps) {
       }
 
       const title = collectionData.title?.trim() || ""
-      const description = collectionData.description ? collectionData.description.trim() : null
+      const description = collectionData.description ? collectionData.description.trim() : undefined
       const tags = Array.isArray(collectionData.tags)
         ? collectionData.tags.map((tag: string) => tag.trim()).filter(Boolean)
         : (collectionData.tags ?? "")

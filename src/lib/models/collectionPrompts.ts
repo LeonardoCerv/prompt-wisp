@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/utils/supabase/server"
+import { createClient } from "@/lib/utils/supabase/client"
 
 /**
  * Data model for a collection-prompt relationship.

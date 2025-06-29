@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { useApp } from "@/contexts/appContext"
 import EditCollectionDialog from "@/components/editCollection"
 import type { CollectionData } from "@/lib/models/collection"
+import { toast } from "sonner"
 
 interface CollectionActionsProps {
   collectionId: string
@@ -42,12 +43,13 @@ export function CollectionActions({
     tags: string
     visibility: string
     images: string[]
+    collaborators: string[]
   } | null>(null)
 
   // Get all prompts that user has access to but not already in this collection
   const collectionPromptIds = utils.getCollectionPrompts(collectionId).map((p) => p.id)
   const availablePrompts = state.prompts.filter(
-    (p) => !p.deleted && state.userPrompts.includes(p.id) && !collectionPromptIds.includes(p.id),
+    (p) => !p.deleted && utils.hasAccessToPrompt(p.id) && !collectionPromptIds.includes(p.id),
   )
 
   const filteredPrompts = availablePrompts.filter(
@@ -108,13 +110,27 @@ export function CollectionActions({
 
   async function handleRenameSubmit() {
     if (renameValue.trim() && renameValue.trim() !== collectionTitle) {
-      await actions.updateCollection(collectionId, { title: renameValue.trim() })
+      try {
+        await actions.updateCollection(collectionId, { title: renameValue.trim() })
+        toast.success("Collection renamed successfully")
+      } catch (error) {
+        console.error("Error renaming collection:", error)
+        toast.error("Failed to rename collection")
+      }
     }
     closeRenameDialog()
   }
 
   async function handleDelete() {
-    await actions.deleteCollection(collectionId)
+    try {
+      if (confirm("Are you sure you want to delete this collection?")) {
+        await actions.deleteCollection(collectionId)
+        toast.success("Collection deleted successfully")
+      }
+    } catch (error) {
+      console.error("Error deleting collection:", error)
+      toast.error("Failed to delete collection")
+    }
   }
 
   function openAddPromptDialog(mouseX: number, mouseY: number) {
@@ -133,8 +149,14 @@ export function CollectionActions({
   }
 
   async function handleAddPrompts() {
-    await actions.addPromptToCollection(collectionId, selectedPromptIds)
-    closeAddPromptDialog()
+    try {
+      await actions.addPromptToCollection(collectionId, selectedPromptIds)
+      toast.success(`Added ${selectedPromptIds.length} prompt(s) to collection`)
+      closeAddPromptDialog()
+    } catch (error) {
+      console.error("Error adding prompts to collection:", error)
+      toast.error("Failed to add prompts to collection")
+    }
   }
 
   function openEditDialog() {
@@ -146,6 +168,7 @@ export function CollectionActions({
       visibility: collectionData?.visibility || "private",
       images: collectionData?.images || [],
       id: collectionId,
+      collaborators: [], // Add empty collaborators array for now
     })
   }
 
@@ -345,7 +368,11 @@ export function CollectionActions({
       )}
       {/* Edit Collection Dialog */}
       {showEditDialog && editForm && (
-        <EditCollectionDialog open={showEditDialog} onClose={closeEditDialog} initialData={editForm} />
+        <EditCollectionDialog
+          open={showEditDialog}
+          onClose={closeEditDialog}
+          initialData={editForm}
+        />
       )}
     </>
   )

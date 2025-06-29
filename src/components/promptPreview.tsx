@@ -1,337 +1,218 @@
-'use client'
+"use client"
 
-import { useState, useEffect } from 'react'
-import { Button } from '@/components/ui/button'
-import { 
-  Star, 
-  Copy,
-  Save,
-  Hash,
-  Clock,
-  Folder,
-  Share,
-  Eye,
-} from 'lucide-react'
-import Link from 'next/link'
-import { PromptData } from '@/lib/models/prompt'
-import { useApp } from '@/contexts/appContext'
+import { useState } from "react"
+import { useApp } from "@/contexts/appContext"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { Heart, Bookmark, Edit, Trash2, Eye, Copy, Share } from "lucide-react"
+import { toast } from "sonner"
+import type { PromptData } from "@/lib/models"
 
-interface PromptSlugPreviewProps {
-  selectedPrompt: PromptData | null
-  onToggleFavorite?: (id: string) => void
-  onCopy: (content: string, title: string) => void
-  onSave?: (id: string) => void
-  currentFilter?: string
-  user?: {
-    id: string
-    email?: string
-  }
+interface PromptPreviewProps {
+  prompt: PromptData
+  onEdit?: () => void
+  onDelete?: () => void
 }
 
-export default function PromptSlugPreview({
-  selectedPrompt,
-  onToggleFavorite,
-  onCopy,
-  onSave,
-  currentFilter,
-  user
-}: PromptSlugPreviewProps) {
+export default function PromptPreview({ prompt, onEdit, onDelete }: PromptPreviewProps) {
+  const { state, actions, utils } = useApp()
+  const { user } = state
+  const [isLoading, setIsLoading] = useState(false)
 
-  const {utils} = useApp()
-  const [showFullContent, setShowFullContent] = useState(false)
+  // Status checks using utility functions
+  const isFavorite = utils.isFavoritePrompt(prompt.id)
+  const hasAccess = utils.hasAccessToPrompt(prompt.id)
+  const canView = utils.canView(prompt, user?.id)
+  const isDeleted = utils.isDeleted(prompt)
 
+  // Async status checks - we'll need to handle these differently
+  const [isOwner, setIsOwner] = useState<boolean | null>(null)
+  const [canEdit, setCanEdit] = useState<boolean | null>(null)
+  const [isSaved, setIsSaved] = useState<boolean | null>(null)
 
-
-  // Auto-expand content if it's not too long
-  useEffect(() => {
-    if (selectedPrompt && selectedPrompt.content.length < 1000) {
-      setShowFullContent(true)
+  // Load async status on mount
+  useState(() => {
+    if (user?.id) {
+      utils.isOwner(prompt, user.id).then(setIsOwner)
+      utils.canEdit(prompt, user.id).then(setCanEdit)
+      utils.isSaved(prompt.id, user.id).then(setIsSaved)
     }
-  }, [selectedPrompt])
+  })
 
-  // Generate directory path based on how the prompt was accessed
-  const getDirectoryPath = () => {
-    if (!selectedPrompt) return ''
-    
-    const filterMap: Record<string, string> = {
-      'all-prompts': 'All Prompts',
-      'favorites': 'Favorites',
-      'your-prompts': 'Your Prompts',
-      'saved': 'Saved',
-      'deleted': 'Deleted'
+  const handleToggleFavorite = async () => {
+    if (!user) {
+      toast.error("Please log in to favorite prompts")
+      return
     }
-    
-    // Determine the primary category based on prompt properties
-    let category = 'All Prompts'
-    
-    if (currentFilter && currentFilter !== 'all' && filterMap[currentFilter]) {
-      category = filterMap[currentFilter]
-    } else {
-      // Fallback logic based on prompt properties
-      if (selectedPrompt.deleted || selectedPrompt.deleted) {
-        category = 'Deleted'
-      } else if (utils.isSaved(selectedPrompt.id) && selectedPrompt.user_id !== user?.id) {
-        category = 'Saved'
-      } else if (utils.isFavorite(selectedPrompt.id)) {
-        category = 'Favorites'
-      } else if (selectedPrompt.user_id === user?.id) {
-        category = 'Your Prompts'
-      }
+
+    setIsLoading(true)
+    try {
+      await actions.toggleFavoritePrompt(prompt.id)
+      toast.success(isFavorite ? "Removed from favorites" : "Added to favorites")
+    } catch (error) {
+      console.error("Error toggling favorite:", error)
+      toast.error("Failed to update favorite status")
+    } finally {
+      setIsLoading(false)
     }
-    
-    return `${category}/${selectedPrompt.title || 'Untitled'}`
   }
 
-  const getStatusBadge = () => {
-    if (!selectedPrompt) return null
-    
-    if (selectedPrompt.deleted || selectedPrompt.deleted) {
-      return (
-        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-900/20 text-red-400 border border-red-800/30">
-          Deleted
-        </span>
-      )
+  const handleSavePrompt = async () => {
+    if (!user) {
+      toast.error("Please log in to save prompts")
+      return
     }
-    
-    if (selectedPrompt.visibility === 'private') {
-      return (
-        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-900/20 text-yellow-400 border border-yellow-800/30">
-          Private
-        </span>
-      )
+
+    setIsLoading(true)
+    try {
+      await actions.savePrompt(prompt.id)
+      toast.success("Prompt saved to your library")
+      // Refresh saved status
+      utils.isSaved(prompt.id, user.id).then(setIsSaved)
+    } catch (error) {
+      console.error("Error saving prompt:", error)
+      toast.error("Failed to save prompt")
+    } finally {
+      setIsLoading(false)
     }
-    
-    if (selectedPrompt.visibility === 'unlisted') {
-      return (
-        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-900/20 text-blue-400 border border-blue-800/30">
-          Unlisted
-        </span>
-      )
+  }
+
+  const handleCopyPrompt = async () => {
+    try {
+      await navigator.clipboard.writeText(prompt.content)
+      toast.success("Prompt copied to clipboard")
+    } catch (error) {
+      console.error("Error copying prompt:", error)
+      toast.error("Failed to copy prompt")
     }
-    
+  }
+
+  const handleSharePrompt = async () => {
+    try {
+      const url = `${window.location.origin}/prompt/${prompt.id}`
+      await navigator.clipboard.writeText(url)
+      toast.success("Prompt link copied to clipboard")
+    } catch (error) {
+      console.error("Error sharing prompt:", error)
+      toast.error("Failed to copy link")
+    }
+  }
+
+  if (!canView) {
     return (
-      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-900/20 text-green-400 border border-green-800/30">
-        Public
-      </span>
+      <Card className="w-full">
+        <CardContent className="p-6">
+          <div className="text-center text-muted-foreground">
+            <Eye className="h-8 w-8 mx-auto mb-2" />
+            <p>You don't have permission to view this prompt.</p>
+          </div>
+        </CardContent>
+      </Card>
     )
   }
 
   return (
-    <div className="flex flex-col bg-[var(--prompts)] h-screen">
-      {selectedPrompt ? (
-        <div className="flex flex-col h-full">
-          {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b border-[var(--moonlight-silver-dim)]/30">
-            <div className="flex items-center gap-2 min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <Folder size={14} className="text-gray-400 flex-shrink-0" />
-                <span className="text-sm text-gray-400 truncate font-medium opacity-80">{getDirectoryPath()}</span>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              {getStatusBadge()}
-              
-              <span className="text-xs text-[var(--moonlight-silver)] flex items-center gap-1">
-                <Clock size={12} />
-                {new Date(selectedPrompt.updated_at).toLocaleDateString()}
-              </span>
-
-              {onToggleFavorite && (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => onToggleFavorite(selectedPrompt.id)}
-                  className={`p-1.5 ${
-                    utils.isFavorite(selectedPrompt.id)
-                      ? 'text-[var(--glow-ember)] hover:text-[var(--glow-ember)]/80' 
-                      : 'text-[var(--moonlight-silver)] hover:text-[var(--moonlight-silver-bright)]'
-                  }`}
-                >
-                  <Star size={16} className={utils.isFavorite(selectedPrompt.id) ? 'fill-current' : ''} />
-                </Button>
-              )}
-
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => {
-                  // Share functionality - copy link to clipboard
-                  const shareUrl = `${window.location.origin}/prompt/${selectedPrompt.id}`
-                  navigator.clipboard.writeText(shareUrl)
-                  // You might want to show a toast notification here
-                }}
-                className="p-1.5 text-[var(--moonlight-silver)] hover:text-[var(--moonlight-silver-bright)]"
-              >
-                <Share size={16} />
-              </Button>
-
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => onCopy(selectedPrompt.content, selectedPrompt.title)}
-                className="p-1.5 text-[var(--moonlight-silver)] hover:text-[var(--moonlight-silver-bright)]"
-              >
-                <Copy size={16} />
-              </Button>
-            </div>
-          </div>
-
-          {/* Content - Read-only view */}
-          <div className="flex-1 p-4 space-y-6 overflow-y-auto">
-            {/* Title and Author */}
-            <div className="space-y-3">
-              <h1 className="text-4xl font-bold text-white leading-tight">
-                {selectedPrompt.title || 'Untitled Prompt'}
-              </h1>
-              
-              {/* Author info 
-              <div className="flex items-center gap-2 text-sm text-[var(--moonlight-silver)]">
-                <User size={14} />
-                <span>Created by {selectedPrompt.profiles?.full_name || selectedPrompt.profiles?.username || 'Anonymous'}</span>
-                <span>•</span>
-                <span>{new Date(selectedPrompt.created_at).toLocaleDateString()}</span>
-              </div>
-              */}
-            </div>
-
-            {/* Description */}
-            {selectedPrompt.description && (
-              <div className="space-y-2 border-l-2 border-[var(--moonlight-silver-dim)]/30 pl-4">
-                <label className="text-xs font-medium text-[var(--moonlight-silver)]/80 uppercase tracking-wide">
-                  Description
-                </label>
-                <p className="text-base text-[var(--moonlight-silver-bright)] leading-relaxed">
-                  {selectedPrompt.description}
-                </p>
-              </div>
+    <Card className="w-full">
+      <CardHeader className="pb-3">
+        <div className="flex items-start justify-between">
+          <div className="flex-1">
+            <h2 className="text-xl font-semibold mb-2">{prompt.title}</h2>
+            {prompt.description && (
+              <p className="text-sm text-muted-foreground mb-3">{utils.truncateText(prompt.description, 150)}</p>
             )}
-
-            {/* Main Content */}
-            <div className="space-y-3 bg-[var(--moonlight-silver-dim)]/5 rounded-lg p-6 border border-[var(--moonlight-silver-dim)]/20">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-medium text-[var(--moonlight-silver)]/80 uppercase tracking-wide">
-                  Prompt Content
-                </label>
-                <div className="flex items-center gap-2">
-                  {selectedPrompt.content.length > 1000 && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => setShowFullContent(!showFullContent)}
-                      className="p-1.5 text-[var(--moonlight-silver)] hover:text-[var(--moonlight-silver-bright)]"
-                    >
-                      <Eye size={14} />
-                      <span className="ml-1 text-xs">
-                        {showFullContent ? 'Show Less' : 'Show More'}
-                      </span>
-                    </Button>
-                  )}
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => onCopy(selectedPrompt.content, selectedPrompt.title)}
-                    className="p-1.5 text-[var(--moonlight-silver)] hover:text-[var(--moonlight-silver-bright)]"
-                  >
-                    <Copy size={14} />
-                  </Button>
-                </div>
-              </div>
-              
-              <div className="relative">
-                <pre className={`whitespace-pre-wrap font-mono text-[var(--moonlight-silver-bright)] leading-relaxed ${
-                  !showFullContent && selectedPrompt.content.length > 1000 
-                    ? 'max-h-80 overflow-hidden' 
-                    : ''
-                }`}>
-                  {selectedPrompt.content}
-                </pre>
-                
-                {!showFullContent && selectedPrompt.content.length > 1000 && (
-                  <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-[var(--moonlight-silver-dim)]/10 to-transparent pointer-events-none" />
-                )}
-              </div>
-            </div>
 
             {/* Tags */}
-            {selectedPrompt.tags && selectedPrompt.tags.length > 0 && (
-              <div className="border-t border-[var(--moonlight-silver-dim)]/30 pt-6">
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <Hash size={14} className="text-[var(--moonlight-silver)]" />
-                    <label className="text-xs font-medium text-[var(--moonlight-silver)]/80 uppercase tracking-wide">Tags</label>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedPrompt.tags.map((tag, index) => (
-                      <span
-                        key={index}
-                        className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-[var(--moonlight-silver-dim)]/20 text-[var(--moonlight-silver-bright)] border border-[var(--moonlight-silver-dim)]/30"
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                </div>
+            {prompt.tags && prompt.tags.length > 0 && (
+              <div className="flex flex-wrap gap-1 mb-3">
+                {prompt.tags.map((tag) => (
+                  <Badge key={tag} variant="secondary" className="text-xs">
+                    {tag}
+                  </Badge>
+                ))}
               </div>
             )}
+
+            {/* Status indicators */}
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span>Created {utils.formatDate(prompt.created_at)}</span>
+              {prompt.updated_at !== prompt.created_at && <span>• Updated {utils.formatDate(prompt.updated_at)}</span>}
+              {isDeleted && <Badge variant="destructive">Deleted</Badge>}
+            </div>
           </div>
 
-          {/* Footer */}
-          <div className="border-t border-[var(--moonlight-silver-dim)]/30 p-4">
-            <div className="flex justify-between items-center">
-              <Link 
-                href="/prompt"
-                className="text-sm text-[var(--moonlight-silver)] hover:text-[var(--moonlight-silver-bright)] transition-colors"
+          {/* Action buttons */}
+          <div className="flex items-center gap-1 ml-4">
+            {/* Favorite button */}
+            {hasAccess && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleToggleFavorite}
+                disabled={isLoading}
+                className={isFavorite ? "text-red-500 hover:text-red-600" : ""}
               >
-                ← Back to prompts
-              </Link>
+                <Heart className={`h-4 w-4 ${isFavorite ? "fill-current" : ""}`} />
+              </Button>
+            )}
 
-              <div className="flex items-center gap-2">
-                {onSave && selectedPrompt.user_id !== user?.id && !selectedPrompt.deleted && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => onSave(selectedPrompt.id)}
-                    className={`text-xs border-[var(--moonlight-silver-dim)] ${
-                      utils.isSaved(selectedPrompt.id)
-                        ? 'text-[var(--glow-ember)] border-[var(--glow-ember)]/50' 
-                        : 'text-[var(--moonlight-silver-bright)] hover:bg-[var(--slate-grey)]'
-                    }`}
-                  >
-                    <Save size={12} className="mr-1" />
-                    {utils.isSaved(selectedPrompt.id) ? 'Saved' : 'Save'}
-                  </Button>
-                )}
-              </div>
-            </div>
+            {/* Save button - only show if not owned and not already saved */}
+            {!isOwner && !isSaved && (
+              <Button variant="ghost" size="sm" onClick={handleSavePrompt} disabled={isLoading}>
+                <Bookmark className="h-4 w-4" />
+              </Button>
+            )}
+
+            {/* Copy button */}
+            <Button variant="ghost" size="sm" onClick={handleCopyPrompt}>
+              <Copy className="h-4 w-4" />
+            </Button>
+
+            {/* Share button */}
+            <Button variant="ghost" size="sm" onClick={handleSharePrompt}>
+              <Share className="h-4 w-4" />
+            </Button>
+
+            {/* Edit button - only show if user can edit */}
+            {canEdit && onEdit && (
+              <Button variant="ghost" size="sm" onClick={onEdit}>
+                <Edit className="h-4 w-4" />
+              </Button>
+            )}
+
+            {/* Delete button - only show if user is owner */}
+            {isOwner && onDelete && (
+              <Button variant="ghost" size="sm" onClick={onDelete}>
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
           </div>
         </div>
-      ) : (
-        <div className="flex-1 flex items-center justify-center p-8">
-          <div className="text-center">
-            <div className="relative mb-6">
-              <div className="h-16 w-16 rounded-lg mx-auto flex items-center justify-center">
-                <Eye className="h-8 w-8 text-[var(--moonlight-silver)]" />
-              </div>
-              <div className="absolute -top-1 -right-1 h-6 w-6 bg-[var(--glow-ember)] rounded-full flex items-center justify-center">
-                <span className="text-xs text-white font-bold">!</span>
-              </div>
-            </div>
-            <h3 className="text-xl font-semibold text-[var(--moonlight-silver-bright)] mb-2">
-              Prompt not found
-            </h3>
-            <p className="text-[var(--moonlight-silver)]/80 max-w-sm mb-4">
-              This prompt may have been deleted or you don&#39;t have permission to view it.
-            </p>
-            <Link 
-              href="/prompt"
-              className="text-[var(--glow-ember)] hover:text-[var(--glow-ember)]/80 transition-colors"
-            >
-              ← Back to prompts
-            </Link>
-          </div>
+      </CardHeader>
+
+      <CardContent>
+        {/* Prompt content */}
+        <div className="bg-muted/50 rounded-lg p-4">
+          <pre className="whitespace-pre-wrap text-sm font-mono">{prompt.content}</pre>
         </div>
-      )}
-    </div>
+
+        {/* Collections this prompt belongs to */}
+        {hasAccess && (
+          <div className="mt-4">
+            <h4 className="text-sm font-medium mb-2">Collections</h4>
+            <div className="flex flex-wrap gap-1">
+              {utils.getPromptCollections(prompt.id).map((collection) => (
+                <Badge key={collection.id} variant="outline" className="text-xs">
+                  {collection.title}
+                </Badge>
+              ))}
+              {utils.getPromptCollections(prompt.id).length === 0 && (
+                <span className="text-xs text-muted-foreground">Not in any collections</span>
+              )}
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   )
 }

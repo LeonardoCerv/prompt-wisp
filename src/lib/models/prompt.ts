@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/utils/supabase/server";
+import { createClient } from "@/lib/utils/supabase/client";
 
 type VisibilityType = 'public' | 'private' | 'unlisted';
 

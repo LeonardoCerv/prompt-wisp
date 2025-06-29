@@ -8,8 +8,10 @@ import type {
   CollectionData,
   CollectionInsert,
   UserData,
-  CollectionUpdate,
+  CollectionUpdate
 } from "@/lib/models"
+import Prompt from "@/lib/models/prompt"
+
 import UsersPrompts from "@/lib/models/usersPrompts"
 import UsersCollections from "@/lib/models/usersCollections"
 import CollectionPrompts from "@/lib/models/collectionPrompts"
@@ -203,6 +205,7 @@ interface AppContextType {
     // Collection operations
     createCollection: (collection: CollectionInsert) => Promise<CollectionData>
     updateCollection: (id: string, updates: Partial<CollectionUpdate>) => Promise<void>
+    editCollection: (id: string, updates: Partial<CollectionUpdate>) => Promise<void>
     deleteCollection: (id: string) => Promise<void>
     toggleFavoriteCollection: (id: string) => Promise<void>
     addPromptToCollection: (collectionId: string, promptIds: string[]) => Promise<void>
@@ -216,14 +219,23 @@ interface AppContextType {
   }
   utils: {
     // Prompt status utilities
-    isOwner: (prompt: PromptData, userId?: string) => boolean
+    isOwner: (prompt: PromptData, userId?: string) => Promise<boolean>
+    isFavorite: (promptId: string, userId?: string) => boolean
     isFavoritePrompt: (promptId: string) => boolean
     isFavoriteCollection: (collectionId: string) => boolean
+    isSaved: (promptId: string, userId?: string) => Promise<boolean>
     hasAccessToPrompt: (promptId: string) => boolean
     hasAccessToCollection: (collectionId: string) => boolean
     isDeleted: (item: PromptData | CollectionData) => boolean
-    canEdit: (prompt: PromptData, userId?: string) => boolean
+    canEdit: (prompt: PromptData, userId?: string) => Promise<boolean>
     canView: (prompt: PromptData, userId?: string) => boolean
+
+    // User relationship utilities
+    getUserPrompts: (userId?: string) => PromptData[]
+    getUserCollections: (userId?: string) => CollectionData[]
+    getUserOwnedPrompts: (userId?: string) => Promise<PromptData[]>
+    getUserFavoritePrompts: (userId?: string) => PromptData[]
+    getUserSavedPrompts: (userId?: string) => Promise<PromptData[]>
 
     // Collection utilities
     getCollectionPrompts: (collectionId: string) => PromptData[]
@@ -247,10 +259,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const loadPrompts = useCallback(async () => {
     dispatch({ type: "SET_LOADING", payload: { key: "prompts", value: true } })
     try {
-      const response = await fetch("/api/prompts/user")
+      const response = await fetch("/api/user/prompts")
       if (response.ok) {
         const data = await response.json()
-        dispatch({ type: "SET_PROMPTS", payload: data.prompts || data || [] })
+        console.log("Loaded prompts:", data)
+
+        // For each prompt in data, call await Prompt.findById(prompt)
+        // and return the array of objects
+        const promptsRaw = data.prompts || data || []
+        const prompts: PromptData[] = []
+        for (const prompt of promptsRaw) {
+          // If prompt is an id, fetch the full object
+          if (typeof prompt === "string") {
+            // @ts-ignore
+            const fullPrompt = await Prompt.findById(prompt)
+            if (fullPrompt) prompts.push(fullPrompt)
+          } else {
+            prompts.push(prompt)
+          }
+        }
+
+        dispatch({ type: "SET_PROMPTS", payload: prompts })
       }
     } catch (error) {
       console.error("Error loading prompts:", error)
@@ -635,44 +664,79 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // Utility functions
   const utils = useMemo(
     () => ({
-      // Prompt status utilities
-      isOwner: (prompt: PromptData, userId?: string) => {
+      // Prompt status utilities - using intermediary tables
+      isOwner: async (prompt: PromptData, userId?: string): Promise<boolean> => {
         const currentUserId = userId || state.user?.id
         if (!currentUserId) return false
 
-        // Check if user has access to this prompt (simplified - could check role)
-        return state.userPrompts.includes(prompt.id)
+        try {
+          const role = await UsersPrompts.getUserRole(prompt.id, currentUserId)
+          return role === "owner"
+        } catch (error) {
+          console.error("Error checking ownership:", error)
+          return false
+        }
       },
 
-      isFavoritePrompt: (promptId: string) => {
+      isFavorite: (promptId: string, userId?: string): boolean => {
+        const currentUserId = userId || state.user?.id
+        if (!currentUserId) return false
         return state.favoritePrompts.includes(promptId)
       },
 
-      isFavoriteCollection: (collectionId: string) => {
+      isFavoritePrompt: (promptId: string): boolean => {
+        return state.favoritePrompts.includes(promptId)
+      },
+
+      isFavoriteCollection: (collectionId: string): boolean => {
         return state.favoriteCollections.includes(collectionId)
       },
 
-      hasAccessToPrompt: (promptId: string) => {
-        return state.userPrompts.includes(promptId)
-      },
-
-      hasAccessToCollection: (collectionId: string) => {
-        return state.userCollections.includes(collectionId)
-      },
-
-      isDeleted: (item: PromptData | CollectionData) => {
-        return item.deleted || false
-      },
-
-      canEdit: (prompt: PromptData, userId?: string) => {
+      isSaved: async (promptId: string, userId?: string): Promise<boolean> => {
         const currentUserId = userId || state.user?.id
         if (!currentUserId) return false
 
-        // For now, assume user can edit if they have access and it's not deleted
-        return state.userPrompts.includes(prompt.id) && !prompt.deleted
+        try {
+          // Check if user has access to this prompt
+          const hasAccess = state.userPrompts.includes(promptId)
+          if (!hasAccess) return false
+
+          // Check if user is not the owner (saved means has access but doesn't own)
+          const role = await UsersPrompts.getUserRole(promptId, currentUserId)
+          return role !== "owner" && role !== null
+        } catch (error) {
+          console.error("Error checking saved status:", error)
+          return false
+        }
       },
 
-      canView: (prompt: PromptData, userId?: string) => {
+      hasAccessToPrompt: (promptId: string): boolean => {
+        return state.userPrompts.includes(promptId)
+      },
+
+      hasAccessToCollection: (collectionId: string): boolean => {
+        return state.userCollections.includes(collectionId)
+      },
+
+      isDeleted: (item: PromptData | CollectionData): boolean => {
+        return item.deleted || false
+      },
+
+      canEdit: async (prompt: PromptData, userId?: string): Promise<boolean> => {
+        const currentUserId = userId || state.user?.id
+        if (!currentUserId) return false
+        if (prompt.deleted) return false
+
+        try {
+          const role = await UsersPrompts.getUserRole(prompt.id, currentUserId)
+          return role === "owner" || role === "collaborator"
+        } catch (error) {
+          console.error("Error checking edit permissions:", error)
+          return false
+        }
+      },
+
+      canView: (prompt: PromptData, userId?: string): boolean => {
         const currentUserId = userId || state.user?.id
 
         // Public prompts can be viewed by anyone
@@ -685,19 +749,80 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return state.userPrompts.includes(prompt.id)
       },
 
+      // User relationship utilities - using state arrays
+      getUserPrompts: (userId?: string): PromptData[] => {
+        const currentUserId = userId || state.user?.id
+        if (!currentUserId) return []
+        return state.prompts.filter((p) => state.userPrompts.includes(p.id) && !p.deleted)
+      },
+
+      getUserCollections: (userId?: string): CollectionData[] => {
+        const currentUserId = userId || state.user?.id
+        if (!currentUserId) return []
+        return state.collections.filter((c) => state.userCollections.includes(c.id) && !c.deleted)
+      },
+
+      getUserOwnedPrompts: async (userId?: string): Promise<PromptData[]> => {
+        const currentUserId = userId || state.user?.id
+        if (!currentUserId) return []
+
+        const userPrompts = state.prompts.filter((p) => state.userPrompts.includes(p.id) && !p.deleted)
+        const ownedPrompts: PromptData[] = []
+
+        for (const prompt of userPrompts) {
+          try {
+            const role = await UsersPrompts.getUserRole(prompt.id, currentUserId)
+            if (role === "owner") {
+              ownedPrompts.push(prompt)
+            }
+          } catch (error) {
+            console.error(`Error checking ownership for prompt ${prompt.id}:`, error)
+          }
+        }
+
+        return ownedPrompts
+      },
+
+      getUserFavoritePrompts: (userId?: string): PromptData[] => {
+        const currentUserId = userId || state.user?.id
+        if (!currentUserId) return []
+        return state.prompts.filter((p) => state.favoritePrompts.includes(p.id) && !p.deleted)
+      },
+
+      getUserSavedPrompts: async (userId?: string): Promise<PromptData[]> => {
+        const currentUserId = userId || state.user?.id
+        if (!currentUserId) return []
+
+        const userPrompts = state.prompts.filter((p) => state.userPrompts.includes(p.id) && !p.deleted)
+        const savedPrompts: PromptData[] = []
+
+        for (const prompt of userPrompts) {
+          try {
+            const role = await UsersPrompts.getUserRole(prompt.id, currentUserId)
+            if (role !== "owner" && role !== null) {
+              savedPrompts.push(prompt)
+            }
+          } catch (error) {
+            console.error(`Error checking saved status for prompt ${prompt.id}:`, error)
+          }
+        }
+
+        return savedPrompts
+      },
+
       // Collection utilities
-      getCollectionPrompts: (collectionId: string) => {
+      getCollectionPrompts: (collectionId: string): PromptData[] => {
         const promptIds = state.collectionPromptMap[collectionId] || []
         return state.prompts.filter((prompt) => promptIds.includes(prompt.id) && !prompt.deleted)
       },
 
-      getPromptCollections: (promptId: string) => {
+      getPromptCollections: (promptId: string): CollectionData[] => {
         const collectionIds = state.promptCollectionMap[promptId] || []
         return state.collections.filter((collection) => collectionIds.includes(collection.id) && !collection.deleted)
       },
 
       // General utilities
-      formatDate: (dateString: string) => {
+      formatDate: (dateString: string): string => {
         try {
           const date = new Date(dateString)
           return date.toLocaleDateString("en-US", {
@@ -710,7 +835,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }
       },
 
-      truncateText: (text: string, maxLength: number) => {
+      truncateText: (text: string, maxLength: number): string => {
         if (text.length <= maxLength) return text
         return text.substring(0, maxLength) + "..."
       },
@@ -755,6 +880,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [state.prompts, state.user, state.userPrompts],
   )
 
+  // Add the editCollection implementation:
+  const editCollection = useCallback(
+    async (id: string, updates: Partial<CollectionUpdate>) => {
+      try {
+        await updateCollection(id, updates)
+      } catch (error) {
+        console.error("Error editing collection:", error)
+        throw error
+      }
+    },
+    [updateCollection],
+  )
+
   // Memoize the actions object to prevent infinite re-renders
   const contextActions = useMemo(
     () => ({
@@ -772,6 +910,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       savePromptChanges,
       createCollection,
       updateCollection,
+      editCollection,
       deleteCollection,
       toggleFavoriteCollection,
       addPromptToCollection,
@@ -796,6 +935,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       savePromptChanges,
       createCollection,
       updateCollection,
+      editCollection,
       deleteCollection,
       toggleFavoriteCollection,
       addPromptToCollection,

@@ -2,14 +2,14 @@
 
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { BookOpen, Plus, PlusCircle } from "lucide-react"
+import { BookOpen, Plus, PlusCircle, Loader2 } from "lucide-react"
 import { useApp } from "@/contexts/appContext"
 import { useFilteredPrompts } from "@/hooks/useFilteredPrompts"
 import { PromptActions } from "./promptActions"
 
 import PromptCard from "@/components/promptCard"
 import { useRouter } from "next/navigation"
-import { PromptData } from "@/lib/models"
+import type { PromptData } from "@/lib/models"
 
 interface PromptListProps {
   onCreatePrompt: () => void
@@ -18,25 +18,19 @@ interface PromptListProps {
 export function PromptList({ onCreatePrompt }: PromptListProps) {
   const router = useRouter()
   const { state, actions } = useApp()
-  const { prompts, user } = state
+  const { user } = state
   const { selectedFilter, selectedCollection, selectedTags } = state.filters
   const { selectedPrompt } = state.ui
 
-  const filteredPrompts = useFilteredPrompts({
-    prompts,
-    user,
-    selectedFilter,
-    selectedCollection,
-    selectedTags,
-  })
-
-  const displayPrompts = selectedFilter === "home" ? prompts : filteredPrompts
+  // Use the hook correctly - it gets data from context internally
+  const { filteredPrompts, totalCount, isLoading } = useFilteredPrompts()
 
   const handlePromptSelect = (prompt: PromptData) => {
     actions.setSelectedPrompt(prompt)
     router.push(`/prompt/${prompt.id}`)
   }
 
+  // Don't render the prompt list on home page
   if (selectedFilter === "home") {
     return null
   }
@@ -53,15 +47,60 @@ export function PromptList({ onCreatePrompt }: PromptListProps) {
             className="w-full gap-3 mb-3 py-6 text-sm text-[var(--wisp-blue)] rounded-lg hover:bg-[var(--wisp-blue)]/20 hover:text-[var(--wisp-blue)] border border-dashed border-[var(--wisp-blue)]/40"
             title="Create new prompt"
           >
-              <Plus size={14} className="flex-shrink-0" />
+            <Plus size={14} className="flex-shrink-0" />
             <span className="truncate">Create new prompt</span>
           </Button>
 
-          {prompts.length === 0 ? (
+          {/* Loading state */}
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-[var(--wisp-blue)]" />
+              <span className="ml-2 text-sm text-[var(--moonlight-silver)]">Loading prompts...</span>
+            </div>
+          ) : !user ? (
+            /* Not authenticated */
             <Card className="bg-[var(--deep-charcoal)] border-[var(--moonlight-silver-dim)] text-center py-8">
               <CardContent>
                 <BookOpen className="h-8 w-8 text-slate-400 mx-auto mb-3" />
-                <h3 className="text-sm font-semibold text-slate-300 mb-2">No prompts found</h3>
+                <h3 className="text-sm font-semibold text-slate-300 mb-2">Please log in</h3>
+                <p className="text-xs text-slate-400">You need to be logged in to view prompts.</p>
+              </CardContent>
+            </Card>
+          ) : !Array.isArray(filteredPrompts) || filteredPrompts.length === 0 ? (
+            /* No prompts found */
+            <Card className="bg-[var(--deep-charcoal)] border-[var(--moonlight-silver-dim)] text-center py-8">
+              <CardContent>
+                <BookOpen className="h-8 w-8 text-slate-400 mx-auto mb-3" />
+                <h3 className="text-sm font-semibold text-slate-300 mb-2">
+                  {selectedFilter === "collection" && selectedCollection
+                    ? "No prompts in this collection"
+                    : selectedFilter === "favorites"
+                      ? "No favorite prompts"
+                      : selectedFilter === "owned"
+                        ? "No owned prompts"
+                        : selectedFilter === "saved"
+                          ? "No saved prompts"
+                          : selectedFilter === "deleted"
+                            ? "No deleted prompts"
+                            : selectedTags.length > 0
+                              ? "No prompts with selected tags"
+                              : "No prompts found"}
+                </h3>
+                <p className="text-xs text-slate-400 mb-4">
+                  {selectedFilter === "collection" && selectedCollection
+                    ? "This collection doesn't have any prompts yet."
+                    : selectedFilter === "favorites"
+                      ? "You haven't favorited any prompts yet."
+                      : selectedFilter === "owned"
+                        ? "You haven't created any prompts yet."
+                        : selectedFilter === "saved"
+                          ? "You haven't saved any prompts yet."
+                          : selectedFilter === "deleted"
+                            ? "You don't have any deleted prompts."
+                            : selectedTags.length > 0
+                              ? "Try removing some tag filters or create a new prompt."
+                              : "Get started by creating your first prompt."}
+                </p>
                 <Button
                   onClick={onCreatePrompt}
                   size="sm"
@@ -73,24 +112,36 @@ export function PromptList({ onCreatePrompt }: PromptListProps) {
               </CardContent>
             </Card>
           ) : (
-            displayPrompts.map((prompt, index) => {
-              const isSelected = selectedPrompt?.id === prompt.id
-              const isLast = index === displayPrompts.length - 1
-              const isBeforeSelected =
-                index < displayPrompts.length - 1 && displayPrompts[index + 1]?.id === selectedPrompt?.id
+            /* Render prompts */
+            <>
+              {/* Show count */}
+              <div className="text-xs text-[var(--moonlight-silver)] mb-3 px-2">
+                {totalCount} {totalCount === 1 ? "prompt" : "prompts"}
+                {selectedTags.length > 0 && (
+                  <span className="ml-1">with {selectedTags.map((tag) => `#${tag}`).join(", ")}</span>
+                )}
+              </div>
 
-              return (
-                <div key={prompt.id}>
-                  <PromptCard
-                    prompt={prompt}
-                    isSelected={isSelected}
-                    isLast={isLast}
-                    isBeforeSelected={isBeforeSelected}
-                    onSelect={() => handlePromptSelect(prompt)}
-                  />
-                </div>
-              )
-            })
+              {/* Render prompt cards */}
+              {filteredPrompts.map((prompt, index) => {
+                const isSelected = selectedPrompt?.id === prompt.id
+                const isLast = index === filteredPrompts.length - 1
+                const isBeforeSelected =
+                  index < filteredPrompts.length - 1 && filteredPrompts[index + 1]?.id === selectedPrompt?.id
+
+                return (
+                  <div key={prompt.id}>
+                    <PromptCard
+                      prompt={prompt}
+                      isSelected={isSelected}
+                      isLast={isLast}
+                      isBeforeSelected={isBeforeSelected}
+                      onSelect={() => handlePromptSelect(prompt)}
+                    />
+                  </div>
+                )
+              })}
+            </>
           )}
         </div>
       </div>

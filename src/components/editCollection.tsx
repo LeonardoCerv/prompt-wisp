@@ -1,3 +1,7 @@
+"use client"
+
+import type React from "react"
+
 import { useRef, useState } from "react"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -19,18 +23,17 @@ interface EditCollectionDialogProps {
     tags: string
     visibility: string
     images: string[]
-    collaborators: string[]
+    collaborators?: string[]
   }
 }
 
-export default function EditCollectionDialog({
-  open,
-  onClose,
-  initialData
-}: EditCollectionDialogProps) {
+export default function EditCollectionDialog({ open, onClose, initialData }: EditCollectionDialogProps) {
   const { actions } = useApp()
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const [form, setForm] = useState(initialData)
+  const [form, setForm] = useState({
+    ...initialData,
+    collaborators: initialData.collaborators || [],
+  })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
 
@@ -40,14 +43,14 @@ export default function EditCollectionDialog({
     try {
       const uploadPromises = Array.from(files).map(async (file) => {
         const formData = new FormData()
-        formData.append('file', file)
-        const response = await fetch('/api/upload', {
-          method: 'POST',
-          body: formData
+        formData.append("file", file)
+        const response = await fetch("/api/upload", {
+          method: "POST",
+          body: formData,
         })
         if (!response.ok) {
           const error = await response.json()
-          throw new Error(error.error || 'Upload failed')
+          throw new Error(error.error || "Upload failed")
         }
         const result = await response.json()
         return result.url
@@ -55,16 +58,16 @@ export default function EditCollectionDialog({
       const uploadedUrls = await Promise.all(uploadPromises)
       setForm((prev) => ({ ...prev, images: [...prev.images, ...uploadedUrls] }))
     } catch (error) {
-      setUploadError(error instanceof Error ? error.message : 'Upload failed')
+      setUploadError(error instanceof Error ? error.message : "Upload failed")
     } finally {
-      if (fileInputRef.current) fileInputRef.current.value = ''
+      if (fileInputRef.current) fileInputRef.current.value = ""
     }
   }
 
   const removeImage = (indexToRemove: number) => {
     setForm((prev) => ({
       ...prev,
-      images: prev.images.filter((_, index) => index !== indexToRemove)
+      images: prev.images.filter((_, index) => index !== indexToRemove),
     }))
   }
 
@@ -83,23 +86,21 @@ export default function EditCollectionDialog({
     if (!form.title.trim()) return
     setIsSubmitting(true)
     try {
-      if (actions.editCollection) {
-        await actions.editCollection(
-          initialData.id || form.id,
-          {
-            ...form,
-            tags: form.tags.split(',').map((t: string) => t.trim()).filter(Boolean),
-            collaborators: form.collaborators.map(u => u),
-            visibility: (['public', 'private', 'unlisted'].includes(form.visibility)
-              ? form.visibility
-              : 'private') as 'public' | 'private' | 'unlisted',
-          }
-        )
-      }
+      await actions.updateCollection(initialData.id || form.id, {
+        ...form,
+        tags: form.tags
+          .split(",")
+          .map((t: string) => t.trim())
+          .filter(Boolean),
+        visibility: (["public", "private", "unlisted"].includes(form.visibility) ? form.visibility : "private") as
+          | "public"
+          | "private"
+          | "unlisted",
+      })
       onClose()
     } catch (error) {
-      console.error('Failed to update collection:', error)
-      setUploadError('Failed to update collection')
+      console.error("Failed to update collection:", error)
+      setUploadError("Failed to update collection")
     } finally {
       setIsSubmitting(false)
     }
@@ -117,12 +118,14 @@ export default function EditCollectionDialog({
             <div className="space-y-4">
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <Label htmlFor="edit-title" className="text-sm font-medium text-white">Collection Name *</Label>
+                  <Label htmlFor="edit-title" className="text-sm font-medium text-white">
+                    Collection Name *
+                  </Label>
                 </div>
                 <Input
                   id="edit-title"
                   value={form.title}
-                  onChange={e => handleChange('title', e.target.value)}
+                  onChange={(e) => handleChange("title", e.target.value)}
                   placeholder="Enter a name for your collection..."
                   className="bg-white/10 border-[var(--flare-cyan)]/40 text-white placeholder:text-white/70 focus:border-[var(--wisp-blue)] focus:ring-1 focus:ring-[var(--wisp-blue)]/50 transition-all duration-300"
                   required
@@ -130,32 +133,40 @@ export default function EditCollectionDialog({
               </div>
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <Label htmlFor="edit-description" className="text-sm font-medium text-white">Description</Label>
+                  <Label htmlFor="edit-description" className="text-sm font-medium text-white">
+                    Description
+                  </Label>
                 </div>
                 <Textarea
                   id="edit-description"
                   value={form.description}
-                  onChange={e => handleChange('description', e.target.value)}
+                  onChange={(e) => handleChange("description", e.target.value)}
                   placeholder="Describe what this collection is about..."
                   className="min-h-[80px] bg-white/10 border-[var(--flare-cyan)]/40 text-white placeholder:text-white/70 focus:border-[var(--wisp-blue)] focus:ring-1 focus:ring-[var(--wisp-blue)]/50 transition-all duration-300 resize-none"
                 />
               </div>
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <Label htmlFor="edit-tags" className="text-sm font-medium text-white">Tags</Label>
+                  <Label htmlFor="edit-tags" className="text-sm font-medium text-white">
+                    Tags
+                  </Label>
                 </div>
                 <Input
                   id="edit-tags"
                   value={form.tags}
-                  onChange={e => handleChange('tags', e.target.value)}
+                  onChange={(e) => handleChange("tags", e.target.value)}
                   placeholder="coding, templates, productivity..."
                   className="bg-white/10 border-[var(--flare-cyan)]/50 text-white placeholder:text-white/70 focus:border-[var(--wisp-blue)] focus:ring-1 focus:ring-[var(--wisp-blue)]/40 transition-all duration-300"
                 />
-                <p className="text-xs text-[var(--flare-cyan)]/70">Add tags to help organize and find your collection</p>
+                <p className="text-xs text-[var(--flare-cyan)]/70">
+                  Add tags to help organize and find your collection
+                </p>
               </div>
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <Label htmlFor="edit-images" className="text-sm font-medium text-white">Cover Images</Label>
+                  <Label htmlFor="edit-images" className="text-sm font-medium text-white">
+                    Cover Images
+                  </Label>
                 </div>
                 <div className="space-y-3">
                   <div className="flex gap-2">
@@ -173,34 +184,34 @@ export default function EditCollectionDialog({
                       type="file"
                       multiple
                       accept="image/*"
-                      onChange={e => handleImageUpload(e.target.files)}
+                      onChange={(e) => handleImageUpload(e.target.files)}
                       className="hidden"
                     />
                   </div>
-                  {uploadError && (
-                    <p className="text-xs text-red-400">{uploadError}</p>
-                  )}
+                  {uploadError && <p className="text-xs text-red-400">{uploadError}</p>}
                   <div className="flex gap-2">
                     <Input
                       placeholder="Or paste image URL..."
                       className="bg-white/10 border-[var(--flare-cyan)]/40 text-white placeholder:text-white/70 focus:border-[var(--wisp-blue)] focus:ring-1 focus:ring-[var(--wisp-blue)]/40 transition-all duration-300"
-                      onKeyDown={e => {
-                        if (e.key === 'Enter') {
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
                           e.preventDefault()
                           const input = e.target as HTMLInputElement
                           addImageUrl(input.value)
-                          input.value = ''
+                          input.value = ""
                         }
                       }}
                     />
                     <Button
                       type="button"
                       variant="outline"
-                      onClick={e => {
-                        const input = (e.target as HTMLElement).parentElement?.querySelector('input') as HTMLInputElement
+                      onClick={(e) => {
+                        const input = (e.target as HTMLElement).parentElement?.querySelector(
+                          "input",
+                        ) as HTMLInputElement
                         if (input) {
                           addImageUrl(input.value)
-                          input.value = ''
+                          input.value = ""
                         }
                       }}
                       className="border-[var(--flare-cyan)]/50 text-[var(--flare-cyan)]/70 hover:bg-[var(--flare-cyan)]/10 hover:border-[var(--flare-cyan)] hover:text-[var(--flare-cyan)] transition-all duration-300"
@@ -211,22 +222,27 @@ export default function EditCollectionDialog({
                 </div>
                 {form.images.length > 0 && (
                   <div className="space-y-2">
-                    <p className="text-xs text-[var(--flare-cyan)]/70">{form.images.length} image{form.images.length !== 1 ? 's' : ''} added:</p>
+                    <p className="text-xs text-[var(--flare-cyan)]/70">
+                      {form.images.length} image{form.images.length !== 1 ? "s" : ""} added:
+                    </p>
                     <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto">
                       {form.images.map((url, index) => (
                         <div key={index} className="relative group">
                           <Image
-                            src={url}
+                            src={url || "/placeholder.svg"}
                             alt={`Upload ${index + 1}`}
+                            width={100}
+                            height={64}
                             className="w-full h-16 object-cover rounded border border-[var(--flare-cyan)]/30"
-                            onError={e => {
+                            onError={(e) => {
                               const target = e.target as HTMLImageElement
-                              target.style.display = 'none'
+                              target.style.display = "none"
                               const parent = target.parentElement
                               if (parent) {
-                                const errorDiv = document.createElement('div')
-                                errorDiv.className = 'w-full h-16 bg-white/5 border border-red-400/50 rounded flex items-center justify-center text-xs text-red-400'
-                                errorDiv.textContent = 'Failed to load'
+                                const errorDiv = document.createElement("div")
+                                errorDiv.className =
+                                  "w-full h-16 bg-white/5 border border-red-400/50 rounded flex items-center justify-center text-xs text-red-400"
+                                errorDiv.textContent = "Failed to load"
                                 parent.appendChild(errorDiv)
                               }
                             }}
@@ -243,16 +259,20 @@ export default function EditCollectionDialog({
                     </div>
                   </div>
                 )}
-                <p className="text-xs text-[var(--flare-cyan)]/70">Add cover images for your collection (max 5MB per file)</p>
+                <p className="text-xs text-[var(--flare-cyan)]/70">
+                  Add cover images for your collection (max 5MB per file)
+                </p>
               </div>
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <Label htmlFor="edit-visibility" className="text-sm font-medium text-white">Visibility</Label>
+                  <Label htmlFor="edit-visibility" className="text-sm font-medium text-white">
+                    Visibility
+                  </Label>
                 </div>
                 <select
                   id="edit-visibility"
                   value={form.visibility}
-                  onChange={e => handleChange('visibility', e.target.value)}
+                  onChange={(e) => handleChange("visibility", e.target.value)}
                   className="w-full px-3 py-2.5 bg-white/10 border border-[var(--flare-cyan)]/50 text-white rounded-md focus:outline-none focus:border-[var(--wisp-blue)] focus:ring-1 focus:ring-[var(--wisp-blue)]/40 transition-all duration-300"
                 >
                   <option value="private">Private (only you can see)</option>
@@ -262,11 +282,13 @@ export default function EditCollectionDialog({
               </div>
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <Label htmlFor="edit-collaborators" className="text-sm font-medium text-white">Collaborators</Label>
+                  <Label htmlFor="edit-collaborators" className="text-sm font-medium text-white">
+                    Collaborators
+                  </Label>
                 </div>
                 <UserSearchDropdown
                   selectedUsers={form.collaborators}
-                  onUsersChange={users => handleChange('collaborators', users)}
+                  onUsersChange={(users) => handleChange("collaborators", users)}
                   placeholder="Search for collaborators..."
                   className="bg-white/10 border-[var(--flare-cyan)]/40 text-white placeholder:text-white/70 focus:border-[var(--wisp-blue)] focus:ring-1 focus:ring-[var(--wisp-blue)]/40 transition-all duration-300"
                 />
@@ -279,7 +301,7 @@ export default function EditCollectionDialog({
             type="button"
             variant="outline"
             onClick={onClose}
-            className="border-[var(--flare-cyan)]/60 text-[var(--flare-cyan)]/70 hover:bg-[var(--flare-cyan)]/10 hover:border-[var(--flare-cyan)] hover:text-[var(--flare-cyan)] transition-all duration-300"
+            className="border-[var(--flare-cyan)]/60 text-[var(--flare-cyan)]/70 hover:bg-[var(--flare-cyan)]/10 hover:border-[var(--flare-cyan)] hover:text-[var(--flare-cyan)] transition-all duration-300 bg-transparent"
           >
             Cancel
           </Button>

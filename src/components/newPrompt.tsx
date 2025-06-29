@@ -43,7 +43,6 @@ export default function NewPromptPage({ onSubmit, onCancel }: NewPromptPageProps
     tags: [],
     images: [],
     visibility: 'private',
-    deleted: false,
   })
   
   const [currentStep, setCurrentStep] = useState(1)
