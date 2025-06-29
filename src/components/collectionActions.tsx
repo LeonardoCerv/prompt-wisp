@@ -1,9 +1,11 @@
+"use client"
+
 import { useRef, useEffect, useState, useCallback } from "react"
 import { Plus, Edit, Trash2, Type } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useApp } from "@/contexts/appContext"
 import EditCollectionDialog from "@/components/editCollection"
-import { CollectionData } from "@/lib/models/collection";
+import type { CollectionData } from "@/lib/models/collection"
 
 interface CollectionActionsProps {
   collectionId: string
@@ -12,13 +14,18 @@ interface CollectionActionsProps {
   onRequestClose: () => void
 }
 
-export function CollectionActions({ collectionId, collectionTitle = '', popupPosition, onRequestClose }: CollectionActionsProps) {
+export function CollectionActions({
+  collectionId,
+  collectionTitle = "",
+  popupPosition,
+  onRequestClose,
+}: CollectionActionsProps) {
   const popupRef = useRef<HTMLDivElement>(null)
   const [showRenameDialog, setShowRenameDialog] = useState(false)
   const [renameValue, setRenameValue] = useState(collectionTitle)
   const [renamePosition, setRenamePosition] = useState<{ x: number; y: number } | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
-  const { actions, state } = useApp()
+  const { actions, state, utils } = useApp()
 
   // Add Prompt dialog state
   const [showAddPromptDialog, setShowAddPromptDialog] = useState(false)
@@ -29,30 +36,30 @@ export function CollectionActions({ collectionId, collectionTitle = '', popupPos
   // Edit Collection dialog state
   const [showEditDialog, setShowEditDialog] = useState(false)
   const [editForm, setEditForm] = useState<{
-    id: string;
-    title: string;
-    description: string;
-    tags: string;
-    visibility: string;
-    images: string[];
-    collaborators: string[];
+    id: string
+    title: string
+    description: string
+    tags: string
+    visibility: string
+    images: string[]
   } | null>(null)
 
-  // Get all prompts not already in this collection
-  const prompts = state.prompts.filter(
-    p => !p.deleted && (!p.collections || !p.collections.includes(collectionId))
+  // Get all prompts that user has access to but not already in this collection
+  const collectionPromptIds = utils.getCollectionPrompts(collectionId).map((p) => p.id)
+  const availablePrompts = state.prompts.filter(
+    (p) => !p.deleted && state.userPrompts.includes(p.id) && !collectionPromptIds.includes(p.id),
   )
-  const filteredPrompts = prompts.filter(
-    p =>
+
+  const filteredPrompts = availablePrompts.filter(
+    (p) =>
       p.title.toLowerCase().includes(promptSearch.toLowerCase()) ||
       (p.description?.toLowerCase().includes(promptSearch.toLowerCase()) ?? false) ||
-      (p.tags && p.tags.some(tag => tag.toLowerCase().includes(promptSearch.toLowerCase())))
+      (p.tags && p.tags.some((tag) => tag.toLowerCase().includes(promptSearch.toLowerCase()))),
   )
 
   // Sort prompts alphabetically by title if not searching
-  const sortedPrompts = promptSearch.trim() === ""
-    ? [...prompts].sort((a, b) => a.title.localeCompare(b.title))
-    : filteredPrompts
+  const sortedPrompts =
+    promptSearch.trim() === "" ? [...availablePrompts].sort((a, b) => a.title.localeCompare(b.title)) : filteredPrompts
 
   // Find the current collection data from state
   const collectionData = state.collections?.find((c: CollectionData) => c.id === collectionId)
@@ -63,7 +70,6 @@ export function CollectionActions({ collectionId, collectionTitle = '', popupPos
       inputRef.current.select()
     }
   }, [showRenameDialog])
-
 
   const closeAllDialogs = useCallback(() => {
     setShowRenameDialog(false)
@@ -81,7 +87,7 @@ export function CollectionActions({ collectionId, collectionTitle = '', popupPos
   useEffect(() => {
     if (!showRenameDialog && !showAddPromptDialog && !showEditDialog && !popupRef.current) return
     const handleClick = (e: MouseEvent) => {
-      const addPromptDialog = document.getElementById('add-prompt-dialog')
+      const addPromptDialog = document.getElementById("add-prompt-dialog")
       const isInRename = showRenameDialog && inputRef.current && inputRef.current.contains(e.target as Node)
       const isInAddPrompt = showAddPromptDialog && addPromptDialog && addPromptDialog.contains(e.target as Node)
       const isInMainPopup = popupRef.current && popupRef.current.contains(e.target as Node)
@@ -102,7 +108,7 @@ export function CollectionActions({ collectionId, collectionTitle = '', popupPos
 
   async function handleRenameSubmit() {
     if (renameValue.trim() && renameValue.trim() !== collectionTitle) {
-      await actions.renameCollection(collectionId, renameValue.trim())
+      await actions.updateCollection(collectionId, { title: renameValue.trim() })
     }
     closeRenameDialog()
   }
@@ -128,21 +134,17 @@ export function CollectionActions({ collectionId, collectionTitle = '', popupPos
 
   async function handleAddPrompts() {
     await actions.addPromptToCollection(collectionId, selectedPromptIds)
-    await actions.loadPrompts() // Refresh the prompt list
     closeAddPromptDialog()
   }
 
   function openEditDialog() {
     setShowEditDialog(true)
     setEditForm({
-      title: collectionData?.title || collectionTitle || '',
-      description: collectionData?.description || '',
-      tags: Array.isArray(collectionData?.tags) ? collectionData.tags.join(", ") : (collectionData?.tags || ''),
-      visibility: collectionData?.visibility || 'private',
+      title: collectionData?.title || collectionTitle || "",
+      description: collectionData?.description || "",
+      tags: Array.isArray(collectionData?.tags) ? collectionData.tags.join(", ") : collectionData?.tags || "",
+      visibility: collectionData?.visibility || "private",
       images: collectionData?.images || [],
-      collaborators: Array.isArray(collectionData?.collaborators)
-        ? collectionData.collaborators.filter((c): c is string => typeof c === 'string')
-        : [],
       id: collectionId,
     })
   }
@@ -163,13 +165,13 @@ export function CollectionActions({ collectionId, collectionTitle = '', popupPos
       {(showRenameDialog || showAddPromptDialog || showEditDialog) && (
         <div
           style={{
-            position: 'fixed',
+            position: "fixed",
             top: 0,
             left: 0,
-            width: '100vw',
-            height: '100vh',
+            width: "100vw",
+            height: "100vh",
             zIndex: 99,
-            background: 'rgba(0,0,0,0.01)',
+            background: "rgba(0,0,0,0.01)",
           }}
         />
       )}
@@ -186,16 +188,16 @@ export function CollectionActions({ collectionId, collectionTitle = '', popupPos
           borderRadius: 12,
           boxShadow: "0 8px 32px rgba(0,0,0,0.25)",
           padding: "10px 0",
-          display: showRenameDialog || showAddPromptDialog || showEditDialog ? 'none' : 'flex',
+          display: showRenameDialog || showAddPromptDialog || showEditDialog ? "none" : "flex",
           flexDirection: "column",
           gap: 2,
           transition: "all 0.15s cubic-bezier(.4,0,.2,1)",
         }}
-        onClick={e => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
       >
         <button
           className="flex items-center gap-2 text-left text-sm text-white hover:bg-[var(--wisp-blue)]/10 rounded-md px-4 py-2 transition-colors cursor-pointer font-medium"
-          onClick={e => {
+          onClick={(e) => {
             if (e && e.nativeEvent) {
               const mouseX = e.nativeEvent.clientX
               const mouseY = e.nativeEvent.clientY
@@ -217,7 +219,7 @@ export function CollectionActions({ collectionId, collectionTitle = '', popupPos
         </button>
         <button
           className="flex items-center gap-2 text-left text-sm text-white hover:bg-[var(--wisp-blue)]/10 rounded-md px-4 py-2 transition-colors cursor-pointer font-medium"
-          onClick={e => {
+          onClick={(e) => {
             if (e && e.nativeEvent) {
               const mouseX = e.nativeEvent.clientX
               const mouseY = e.nativeEvent.clientY
@@ -252,18 +254,18 @@ export function CollectionActions({ collectionId, collectionTitle = '', popupPos
             padding: "12px 18px",
             minWidth: 220,
             display: "flex",
-            alignItems: "center"
+            alignItems: "center",
           }}
         >
           <input
             ref={inputRef}
             className="w-full bg-transparent text-white text-base font-semibold px-2 py-1 outline-none border-b border-[var(--wisp-blue)] focus:border-[var(--wisp-blue)]"
             value={renameValue}
-            onChange={e => setRenameValue(e.target.value)}
+            onChange={(e) => setRenameValue(e.target.value)}
             onBlur={handleRenameSubmit}
-            onKeyDown={e => {
-              if (e.key === 'Enter') handleRenameSubmit()
-              if (e.key === 'Escape') closeRenameDialog()
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleRenameSubmit()
+              if (e.key === "Escape") closeRenameDialog()
             }}
             autoFocus
           />
@@ -286,14 +288,14 @@ export function CollectionActions({ collectionId, collectionTitle = '', popupPos
             minHeight: 220,
             maxHeight: 400,
             display: "flex",
-            flexDirection: "column"
+            flexDirection: "column",
           }}
         >
           <input
             className="mb-3 rounded border border-[var(--moonlight-silver-dim)] bg-[var(--deep-charcoal)] text-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--wisp-blue)] text-base placeholder:text-gray-400"
             placeholder="Search prompts..."
             value={promptSearch}
-            onChange={e => setPromptSearch(e.target.value)}
+            onChange={(e) => setPromptSearch(e.target.value)}
             autoFocus
           />
           <div className="flex-1 overflow-y-auto mb-3" style={{ maxHeight: 250 }}>
@@ -301,14 +303,17 @@ export function CollectionActions({ collectionId, collectionTitle = '', popupPos
               <div className="text-xs text-gray-400 py-6 text-center">No prompts found.</div>
             ) : (
               <ul className="space-y-1">
-                {sortedPrompts.map(prompt => (
-                  <li key={prompt.id} className="flex items-center gap-2 px-1 py-1 rounded hover:bg-[var(--wisp-blue)]/10 cursor-pointer">
+                {sortedPrompts.map((prompt) => (
+                  <li
+                    key={prompt.id}
+                    className="flex items-center gap-2 px-1 py-1 rounded hover:bg-[var(--wisp-blue)]/10 cursor-pointer"
+                  >
                     <input
                       type="checkbox"
                       checked={selectedPromptIds.includes(prompt.id)}
-                      onChange={e => {
-                        if (e.target.checked) setSelectedPromptIds(ids => [...ids, prompt.id])
-                        else setSelectedPromptIds(ids => ids.filter(id => id !== prompt.id))
+                      onChange={(e) => {
+                        if (e.target.checked) setSelectedPromptIds((ids) => [...ids, prompt.id])
+                        else setSelectedPromptIds((ids) => ids.filter((id) => id !== prompt.id))
                       }}
                       className="accent-[var(--wisp-blue)]"
                     />
@@ -319,23 +324,28 @@ export function CollectionActions({ collectionId, collectionTitle = '', popupPos
             )}
           </div>
           <div className="flex gap-2 justify-end">
-            <Button variant="ghost" className="rounded px-4 py-2 text-gray-300 hover:bg-gray-700" onClick={() => closeAddPromptDialog(true)}>Cancel</Button>
+            <Button
+              variant="ghost"
+              className="rounded px-4 py-2 text-gray-300 hover:bg-gray-700"
+              onClick={() => closeAddPromptDialog(true)}
+            >
+              Cancel
+            </Button>
             <Button
               variant="default"
               className="rounded px-4 py-2 bg-[var(--wisp-blue)] hover:bg-[var(--wisp-blue-dark)] text-white font-semibold"
               onClick={handleAddPrompts}
               disabled={selectedPromptIds.length === 0}
-            >Add {selectedPromptIds.length > 0 ? selectedPromptIds.length : ''} Prompt{selectedPromptIds.length === 1 ? '' : 's'}</Button>
+            >
+              Add {selectedPromptIds.length > 0 ? selectedPromptIds.length : ""} Prompt
+              {selectedPromptIds.length === 1 ? "" : "s"}
+            </Button>
           </div>
         </div>
       )}
       {/* Edit Collection Dialog */}
       {showEditDialog && editForm && (
-        <EditCollectionDialog
-          open={showEditDialog}
-          onClose={closeEditDialog}
-          initialData={editForm}
-        />
+        <EditCollectionDialog open={showEditDialog} onClose={closeEditDialog} initialData={editForm} />
       )}
     </>
   )

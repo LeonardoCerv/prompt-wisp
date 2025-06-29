@@ -8,7 +8,7 @@ import type { PromptInsert } from "../lib/models/prompt"
 
 export function usePromptOperations() {
   const router = useRouter()
-  const { state, actions } = useApp()
+  const { state, actions, utils } = useApp()
   const { user } = state
 
   const copyToClipboard = useCallback((content: string, title: string) => {
@@ -92,23 +92,23 @@ export function usePromptOperations() {
 
   const isFavorite = useCallback(
     (promptId: string) => {
-      return user?.favorites?.includes(promptId) || false
+      return utils.isFavoritePrompt(promptId)
     },
-    [user?.favorites],
+    [utils],
   )
 
   const toggleFavorite = useCallback(
     async (promptId: string) => {
       try {
-        await actions.toggleFavorite(promptId)
-        const wasFavorite = isFavorite(promptId)
-        toast.success(wasFavorite ? "Removed from favorites" : "Added to favorites")
+        await actions.toggleFavoritePrompt(promptId)
+        const wasFavorite = utils.isFavoritePrompt(promptId)
+        toast.success(wasFavorite ? "Added to favorites" : "Removed from favorites")
       } catch (error) {
         toast.error("Failed to update favorite status")
         throw error
       }
     },
-    [actions, isFavorite],
+    [actions, utils],
   )
 
   return {
@@ -119,6 +119,6 @@ export function usePromptOperations() {
     restorePrompt,
     updatePrompt,
     createPrompt,
-    isFavorite
+    isFavorite,
   }
 }

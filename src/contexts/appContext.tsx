@@ -2,7 +2,17 @@
 
 import type React from "react"
 import { createContext, useContext, useReducer, useCallback, useEffect, useMemo } from "react"
-import { type PromptData, type PromptInsert, type CollectionData, type CollectionInsert, type UserData, type CollectionUpdate, UsersPrompts, CollectionPrompts } from "@/lib/models"
+import type {
+  PromptData,
+  PromptInsert,
+  CollectionData,
+  CollectionInsert,
+  UserData,
+  CollectionUpdate,
+} from "@/lib/models"
+import UsersPrompts from "@/lib/models/usersPrompts"
+import UsersCollections from "@/lib/models/usersCollections"
+import CollectionPrompts from "@/lib/models/collectionPrompts"
 
 // Types
 interface AppState {
@@ -10,11 +20,18 @@ interface AppState {
   collections: CollectionData[]
   user: UserData | null
   tags: string[]
+  userPrompts: string[] // Prompt IDs the user has access to
+  userCollections: string[] // Collection IDs the user has access to
+  favoritePrompts: string[] // Favorite prompt IDs
+  favoriteCollections: string[] // Favorite collection IDs
+  promptCollectionMap: Record<string, string[]> // promptId -> collectionIds
+  collectionPromptMap: Record<string, string[]> // collectionId -> promptIds
   loading: {
     prompts: boolean
     collections: boolean
     user: boolean
     tags: boolean
+    relationships: boolean
   }
   filters: {
     selectedFilter: string
@@ -33,11 +50,18 @@ type AppAction =
   | { type: "ADD_PROMPT"; payload: PromptData }
   | { type: "UPDATE_PROMPT"; payload: PromptData }
   | { type: "DELETE_PROMPT"; payload: string }
-  | { type: "UPDATE_PROMPTS_COLLECTIONS"; payload: { promptIds: string[]; collectionId: string } }
   | { type: "SET_COLLECTIONS"; payload: CollectionData[] }
   | { type: "ADD_COLLECTION"; payload: CollectionData }
+  | { type: "UPDATE_COLLECTION"; payload: CollectionData }
+  | { type: "DELETE_COLLECTION"; payload: string }
   | { type: "SET_USER"; payload: UserData | null }
   | { type: "SET_TAGS"; payload: string[] }
+  | { type: "SET_USER_PROMPTS"; payload: string[] }
+  | { type: "SET_USER_COLLECTIONS"; payload: string[] }
+  | { type: "SET_FAVORITE_PROMPTS"; payload: string[] }
+  | { type: "SET_FAVORITE_COLLECTIONS"; payload: string[] }
+  | { type: "SET_PROMPT_COLLECTION_MAP"; payload: Record<string, string[]> }
+  | { type: "SET_COLLECTION_PROMPT_MAP"; payload: Record<string, string[]> }
   | { type: "SET_LOADING"; payload: { key: keyof AppState["loading"]; value: boolean } }
   | { type: "SET_FILTER"; payload: { selectedFilter: string; selectedCollection?: string; selectedTags?: string[] } }
   | { type: "SET_UI"; payload: Partial<AppState["ui"]> }
@@ -47,11 +71,18 @@ const initialState: AppState = {
   collections: [],
   user: null,
   tags: [],
+  userPrompts: [],
+  userCollections: [],
+  favoritePrompts: [],
+  favoriteCollections: [],
+  promptCollectionMap: {},
+  collectionPromptMap: {},
   loading: {
     prompts: false,
     collections: false,
     user: false,
     tags: false,
+    relationships: false,
   },
   filters: {
     selectedFilter: "home",
@@ -85,36 +116,47 @@ function appReducer(state: AppState, action: AppAction): AppState {
         prompts: state.prompts.map((p) => (p.id === action.payload ? { ...p, deleted: true } : p)),
       }
 
-    case "UPDATE_PROMPTS_COLLECTIONS":
-      return {
-        ...state,
-        prompts: state.prompts.map((prompt) => {
-          if (action.payload.promptIds.includes(prompt.id)) {
-            const currentCollections = await CollectionPrompts.getCollections(prompt.id)
-            const updatedCollections = currentCollections.includes(action.payload.collectionId)
-              ? currentCollections // Already in collection
-              : [...currentCollections, action.payload.collectionId] // Add to collection
-
-            return {
-              ...prompt,
-              collections: updatedCollections,
-            }
-          }
-          return prompt
-        }),
-      }
-
     case "SET_COLLECTIONS":
       return { ...state, collections: action.payload }
 
     case "ADD_COLLECTION":
       return { ...state, collections: [action.payload, ...state.collections] }
 
+    case "UPDATE_COLLECTION":
+      return {
+        ...state,
+        collections: state.collections.map((c) => (c.id === action.payload.id ? action.payload : c)),
+      }
+
+    case "DELETE_COLLECTION":
+      return {
+        ...state,
+        collections: state.collections.map((c) => (c.id === action.payload ? { ...c, deleted: true } : c)),
+      }
+
     case "SET_USER":
       return { ...state, user: action.payload }
 
     case "SET_TAGS":
       return { ...state, tags: action.payload }
+
+    case "SET_USER_PROMPTS":
+      return { ...state, userPrompts: action.payload }
+
+    case "SET_USER_COLLECTIONS":
+      return { ...state, userCollections: action.payload }
+
+    case "SET_FAVORITE_PROMPTS":
+      return { ...state, favoritePrompts: action.payload }
+
+    case "SET_FAVORITE_COLLECTIONS":
+      return { ...state, favoriteCollections: action.payload }
+
+    case "SET_PROMPT_COLLECTION_MAP":
+      return { ...state, promptCollectionMap: action.payload }
+
+    case "SET_COLLECTION_PROMPT_MAP":
+      return { ...state, collectionPromptMap: action.payload }
 
     case "SET_LOADING":
       return {
@@ -147,22 +189,24 @@ interface AppContextType {
     loadCollections: () => Promise<void>
     loadUser: () => Promise<void>
     loadTags: () => Promise<void>
+    loadUserRelationships: () => Promise<void>
 
     // Prompt operations
     createPrompt: (prompt: PromptInsert) => Promise<PromptData>
     updatePrompt: (id: string, updates: Partial<PromptData>) => Promise<void>
     deletePrompt: (id: string) => Promise<void>
     restorePrompt: (id: string) => Promise<void>
-    toggleFavorite: (id: string) => Promise<void>
+    toggleFavoritePrompt: (id: string) => Promise<void>
     savePrompt: (id: string) => Promise<void>
     savePromptChanges: (id: string, updates: Partial<PromptData>) => Promise<void>
 
     // Collection operations
     createCollection: (collection: CollectionInsert) => Promise<CollectionData>
+    updateCollection: (id: string, updates: Partial<CollectionUpdate>) => Promise<void>
+    deleteCollection: (id: string) => Promise<void>
+    toggleFavoriteCollection: (id: string) => Promise<void>
     addPromptToCollection: (collectionId: string, promptIds: string[]) => Promise<void>
-    editCollection: (collectionId: string, updates: Partial<CollectionData>) => Promise<void>
-    renameCollection: (collectionId: string, newTitle: string) => Promise<void>
-    deleteCollection: (collectionId: string) => Promise<void>
+    removePromptFromCollection: (collectionId: string, promptId: string) => Promise<void>
 
     // UI actions
     setFilter: (filter: string, options?: { collection?: string; tags?: string[] }) => void
@@ -173,10 +217,11 @@ interface AppContextType {
   utils: {
     // Prompt status utilities
     isOwner: (prompt: PromptData, userId?: string) => boolean
-    isFavorite: (promptId: string) => boolean
-    isSaved: (promptId: string) => boolean
-    isDeleted: (prompt: PromptData) => boolean
-    isCollaborator: (prompt: PromptData, userId?: string) => boolean
+    isFavoritePrompt: (promptId: string) => boolean
+    isFavoriteCollection: (collectionId: string) => boolean
+    hasAccessToPrompt: (promptId: string) => boolean
+    hasAccessToCollection: (collectionId: string) => boolean
+    isDeleted: (item: PromptData | CollectionData) => boolean
     canEdit: (prompt: PromptData, userId?: string) => boolean
     canView: (prompt: PromptData, userId?: string) => boolean
 
@@ -187,8 +232,10 @@ interface AppContextType {
     // General utilities
     formatDate: (dateString: string) => string
     truncateText: (text: string, maxLength: number) => string
-  },
-  search: { searchPrompts: (query: string) => PromptData[] },
+  }
+  search: {
+    searchPrompts: (query: string) => PromptData[]
+  }
 }
 
 const AppContext = createContext<AppContextType | null>(null)
@@ -258,23 +305,86 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
-  // Prompt operations
-  const createPrompt = useCallback(async (promptData: PromptInsert): Promise<PromptData> => {
-    const response = await fetch("/api/prompts", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(promptData),
-    })
+  const loadUserRelationships = useCallback(async () => {
+    if (!state.user?.id) return
 
-    if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.error || "Failed to create prompt")
+    dispatch({ type: "SET_LOADING", payload: { key: "relationships", value: true } })
+    try {
+      // Load user prompts
+      const userPrompts = await UsersPrompts.getPrompts(state.user.id)
+      dispatch({ type: "SET_USER_PROMPTS", payload: userPrompts })
+
+      // Load user collections
+      const userCollections = await UsersCollections.getCollections(state.user.id)
+      dispatch({ type: "SET_USER_COLLECTIONS", payload: userCollections })
+
+      // Load favorite prompts
+      const favoritePrompts = await UsersPrompts.getFavorites(state.user.id)
+      dispatch({ type: "SET_FAVORITE_PROMPTS", payload: favoritePrompts })
+
+      // Load favorite collections
+      const favoriteCollections = await UsersCollections.getFavorites(state.user.id)
+      dispatch({ type: "SET_FAVORITE_COLLECTIONS", payload: favoriteCollections })
+
+      // Load prompt-collection relationships
+      const promptCollectionMap: Record<string, string[]> = {}
+      const collectionPromptMap: Record<string, string[]> = {}
+
+      // For each user prompt, get its collections
+      for (const promptId of userPrompts) {
+        try {
+          const collections = await CollectionPrompts.getCollections(promptId)
+          promptCollectionMap[promptId] = collections
+        } catch (error) {
+          console.error(`Error loading collections for prompt ${promptId}:`, error)
+          promptCollectionMap[promptId] = []
+        }
+      }
+
+      // For each user collection, get its prompts
+      for (const collectionId of userCollections) {
+        try {
+          const prompts = await CollectionPrompts.getPrompts(collectionId)
+          collectionPromptMap[collectionId] = prompts
+        } catch (error) {
+          console.error(`Error loading prompts for collection ${collectionId}:`, error)
+          collectionPromptMap[collectionId] = []
+        }
+      }
+
+      dispatch({ type: "SET_PROMPT_COLLECTION_MAP", payload: promptCollectionMap })
+      dispatch({ type: "SET_COLLECTION_PROMPT_MAP", payload: collectionPromptMap })
+    } catch (error) {
+      console.error("Error loading user relationships:", error)
+    } finally {
+      dispatch({ type: "SET_LOADING", payload: { key: "relationships", value: false } })
     }
+  }, [state.user?.id])
 
-    const newPrompt = await response.json()
-    dispatch({ type: "ADD_PROMPT", payload: newPrompt })
-    return newPrompt
-  }, [])
+  // Prompt operations
+  const createPrompt = useCallback(
+    async (promptData: PromptInsert): Promise<PromptData> => {
+      const response = await fetch("/api/prompts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(promptData),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || "Failed to create prompt")
+      }
+
+      const newPrompt = await response.json()
+      dispatch({ type: "ADD_PROMPT", payload: newPrompt })
+
+      // Reload user relationships to include the new prompt
+      await loadUserRelationships()
+
+      return newPrompt
+    },
+    [loadUserRelationships],
+  )
 
   const updatePrompt = useCallback(async (id: string, updates: Partial<PromptData>) => {
     const response = await fetch(`/api/prompts/${id}`, {
@@ -315,44 +425,33 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         throw new Error("Failed to restore prompt")
       }
 
-      // Reload prompts to get updated state
       await loadPrompts()
     },
     [loadPrompts],
   )
 
-  const toggleFavorite = useCallback(
+  const toggleFavoritePrompt = useCallback(
     async (id: string) => {
       try {
         if (!state.user) {
           throw new Error("User not authenticated")
         }
-        const fav = await UsersPrompts.isFavorite(state.user.id, id)
-        const response = await UsersPrompts.updateFavorite(state.user.id, id, !fav)
 
-        // Update user favorites immediately for instant UI feedback
-        if (state.user) {
-          const currentFavorites = state.user.favorites || []
-          const isFavorited = result.isFavorited ?? !currentFavorites.includes(id)
+        const isFav = state.favoritePrompts.includes(id)
+        await UsersPrompts.updateFavorite(id, state.user.id, !isFav)
 
-          const updatedFavorites = isFavorited
-            ? [...currentFavorites.filter((fId) => fId !== id), id] // Remove duplicates and add
-            : currentFavorites.filter((fId) => fId !== id) // Remove from favorites
+        // Update local state
+        const updatedFavorites = isFav
+          ? state.favoritePrompts.filter((fId) => fId !== id)
+          : [...state.favoritePrompts, id]
 
-          dispatch({
-            type: "SET_USER",
-            payload: {
-              ...state.user,
-              favorites: updatedFavorites,
-            },
-          })
-        }
+        dispatch({ type: "SET_FAVORITE_PROMPTS", payload: updatedFavorites })
       } catch (error) {
         console.error("Error toggling favorite:", error)
         throw error
       }
     },
-    [state.user],
+    [state.user, state.favoritePrompts],
   )
 
   const savePrompt = useCallback(
@@ -367,10 +466,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         throw new Error("Failed to save prompt")
       }
 
-      // Reload user data to get updated saved prompts
-      await loadUser()
+      await loadUserRelationships()
     },
-    [loadUser],
+    [loadUserRelationships],
   )
 
   const savePromptChanges = useCallback(async (id: string, updates: Partial<PromptData>) => {
@@ -388,68 +486,113 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: "UPDATE_PROMPT", payload: updatedPrompt })
   }, [])
 
-  const createCollection = useCallback(async (collectionData: CollectionInsert): Promise<CollectionData> => {
-    const response = await fetch("/api/collections", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(collectionData),
-    })
-
-    if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.error || "Failed to create collection")
-    }
-
-    const newCollection = await response.json()
-
-    // Add the collection to state
-    dispatch({ type: "ADD_COLLECTION", payload: newCollection })
-
-    // Update prompts that were added to this collection
-    if (collectionData.prompts && collectionData.prompts.length > 0) {
-      dispatch({
-        type: "UPDATE_PROMPTS_COLLECTIONS",
-        payload: {
-          promptIds: collectionData.prompts,
-          collectionId: newCollection.id,
-        },
+  // Collection operations
+  const createCollection = useCallback(
+    async (collectionData: CollectionInsert): Promise<CollectionData> => {
+      const response = await fetch("/api/collections", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(collectionData),
       })
-    }
 
-    return newCollection
-  }, [])
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || "Failed to create collection")
+      }
 
-  // Edit collection (generic update)
-  const editCollection = useCallback(async (collectionId: string, updates: Partial<CollectionUpdate>) => {
+      const newCollection = await response.json()
+      dispatch({ type: "ADD_COLLECTION", payload: newCollection })
+
+      // Reload user relationships to include the new collection
+      await loadUserRelationships()
+
+      return newCollection
+    },
+    [loadUserRelationships],
+  )
+
+  const updateCollection = useCallback(async (id: string, updates: Partial<CollectionUpdate>) => {
     const response = await fetch(`/api/collections`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: collectionId, updates }),
+      body: JSON.stringify({ id, updates }),
     })
+
     if (!response.ok) throw new Error("Failed to update collection")
-    await loadCollections()
-  }, [loadCollections])
 
-  // Add prompt to collection
-  const addPromptToCollection = useCallback(async (collectionId: string, promptIds: string[]) => {
-   await editCollection(collectionId, { prompts: promptIds })
-  }, [editCollection])
+    const updatedCollection = await response.json()
+    dispatch({ type: "UPDATE_COLLECTION", payload: updatedCollection })
+  }, [])
 
-  // Rename collection (just update title)
-  const renameCollection = useCallback(async (collectionId: string, newTitle: string) => {
-    await editCollection(collectionId, { title: newTitle })
-  }, [editCollection])
-
-  // Soft delete collection
-  const deleteCollection = useCallback(async (collectionId: string) => {
+  const deleteCollection = useCallback(async (id: string) => {
     const response = await fetch(`/api/collections`, {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: collectionId}),
+      body: JSON.stringify({ id }),
     })
+
     if (!response.ok) throw new Error("Failed to delete collection")
-    await loadCollections()
-  }, [loadCollections])
+
+    dispatch({ type: "DELETE_COLLECTION", payload: id })
+  }, [])
+
+  const toggleFavoriteCollection = useCallback(
+    async (id: string) => {
+      try {
+        if (!state.user) {
+          throw new Error("User not authenticated")
+        }
+
+        const isFav = state.favoriteCollections.includes(id)
+        await UsersCollections.updateFavorite(id, state.user.id, !isFav)
+
+        // Update local state
+        const updatedFavorites = isFav
+          ? state.favoriteCollections.filter((fId) => fId !== id)
+          : [...state.favoriteCollections, id]
+
+        dispatch({ type: "SET_FAVORITE_COLLECTIONS", payload: updatedFavorites })
+      } catch (error) {
+        console.error("Error toggling collection favorite:", error)
+        throw error
+      }
+    },
+    [state.user, state.favoriteCollections],
+  )
+
+  const addPromptToCollection = useCallback(
+    async (collectionId: string, promptIds: string[]) => {
+      try {
+        // Add each prompt to the collection using the intermediary table
+        for (const promptId of promptIds) {
+          await CollectionPrompts.create({
+            collection_id: collectionId,
+            prompt_id: promptId,
+          })
+        }
+
+        // Reload relationships to update the maps
+        await loadUserRelationships()
+      } catch (error) {
+        console.error("Error adding prompts to collection:", error)
+        throw error
+      }
+    },
+    [loadUserRelationships],
+  )
+
+  const removePromptFromCollection = useCallback(
+    async (collectionId: string, promptId: string) => {
+      try {
+        await CollectionPrompts.delete(promptId, collectionId)
+        await loadUserRelationships()
+      } catch (error) {
+        console.error("Error removing prompt from collection:", error)
+        throw error
+      }
+    },
+    [loadUserRelationships],
+  )
 
   // UI actions
   const setFilter = useCallback((filter: string, options?: { collection?: string; tags?: string[] }) => {
@@ -475,7 +618,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: "SET_UI", payload: { tagsExpanded: !state.ui.tagsExpanded } })
   }, [state.ui.tagsExpanded])
 
-  // Load initial data
+  // Load initial data and user relationships when user changes
   useEffect(() => {
     loadPrompts()
     loadCollections()
@@ -483,45 +626,50 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     loadTags()
   }, [loadPrompts, loadCollections, loadUser, loadTags])
 
+  useEffect(() => {
+    if (state.user?.id) {
+      loadUserRelationships()
+    }
+  }, [state.user?.id, loadUserRelationships])
+
   // Utility functions
   const utils = useMemo(
     () => ({
       // Prompt status utilities
       isOwner: (prompt: PromptData, userId?: string) => {
         const currentUserId = userId || state.user?.id
-        return prompt.user_id === currentUserId
-      },
-
-      isFavorite: async (promptId: string) => {
-        // Example: fetch from API or check from async storage
-        if (!state.user) return false
-        const fav = await UsersPrompts.isFavorite(state.user.id, promptId)
-        return fav
-      },
-
-      isSaved: (promptId: string) => {
-        return state.user?.bought?.includes(promptId) || false
-      },
-
-      isDeleted: (prompt: PromptData) => {
-        return prompt.deleted || false
-      },
-
-      isCollaborator: (prompt: PromptData, userId?: string) => {
-        const currentUserId = userId || state.user?.id
         if (!currentUserId) return false
-        return prompt.collaborators?.includes(currentUserId) || false
+
+        // Check if user has access to this prompt (simplified - could check role)
+        return state.userPrompts.includes(prompt.id)
+      },
+
+      isFavoritePrompt: (promptId: string) => {
+        return state.favoritePrompts.includes(promptId)
+      },
+
+      isFavoriteCollection: (collectionId: string) => {
+        return state.favoriteCollections.includes(collectionId)
+      },
+
+      hasAccessToPrompt: (promptId: string) => {
+        return state.userPrompts.includes(promptId)
+      },
+
+      hasAccessToCollection: (collectionId: string) => {
+        return state.userCollections.includes(collectionId)
+      },
+
+      isDeleted: (item: PromptData | CollectionData) => {
+        return item.deleted || false
       },
 
       canEdit: (prompt: PromptData, userId?: string) => {
         const currentUserId = userId || state.user?.id
         if (!currentUserId) return false
 
-        const isOwner = prompt.user_id === currentUserId
-        const isCollaborator = prompt.collaborators?.includes(currentUserId) || false
-        const isNotDeleted = !prompt.deleted
-
-        return (isOwner || isCollaborator) && isNotDeleted
+        // For now, assume user can edit if they have access and it's not deleted
+        return state.userPrompts.includes(prompt.id) && !prompt.deleted
       },
 
       canView: (prompt: PromptData, userId?: string) => {
@@ -533,28 +681,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         // If no user, can only view public prompts
         if (!currentUserId) return false
 
-        // Owner can always view
-        if (prompt.user_id === currentUserId) return true
-
-        // Collaborators can view
-        if (prompt.collaborators?.includes(currentUserId)) return true
-
-        // Users who have saved/bought the prompt can view
-        if (state.user?.bought?.includes(prompt.id)) return true
-
-        return false
+        // Check if user has access to this prompt
+        return state.userPrompts.includes(prompt.id)
       },
 
       // Collection utilities
       getCollectionPrompts: (collectionId: string) => {
-        return state.prompts.filter((prompt) => prompt.collections?.includes(collectionId) && !prompt.deleted)
+        const promptIds = state.collectionPromptMap[collectionId] || []
+        return state.prompts.filter((prompt) => promptIds.includes(prompt.id) && !prompt.deleted)
       },
 
       getPromptCollections: (promptId: string) => {
-        const prompt = state.prompts.find((p) => p.id === promptId)
-        if (!prompt?.collections) return []
-
-        return state.collections.filter((collection) => prompt.collections?.includes(collection.id))
+        const collectionIds = state.promptCollectionMap[promptId] || []
+        return state.collections.filter((collection) => collectionIds.includes(collection.id) && !collection.deleted)
       },
 
       // General utilities
@@ -576,52 +715,45 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return text.substring(0, maxLength) + "..."
       },
     }),
-    [state.user, state.prompts, state.collections],
+    [
+      state.user,
+      state.prompts,
+      state.collections,
+      state.userPrompts,
+      state.userCollections,
+      state.favoritePrompts,
+      state.favoriteCollections,
+      state.promptCollectionMap,
+      state.collectionPromptMap,
+    ],
   )
 
-  // Add a search utility for prompts
-  const searchPrompts = useCallback((query: string) => {
-    const userId = state.user?.id;
-    const boughtPromptIds = state.user?.bought || [];
-    // Prompts: owned or bought (not deleted)
-    const prompts = state.prompts.filter(
-      (p) =>
-        (!p.deleted &&
-          (p.user_id === userId || boughtPromptIds.includes(p.id)))
-    );
-    // Recently deleted prompts: owned or bought
-    const deletedPrompts = state.prompts.filter(
-      (p) =>
-        p.deleted &&
-        (p.user_id === userId || boughtPromptIds.includes(p.id))
-    );
-    const q = query.trim().toLowerCase();
-    let active: typeof prompts = [];
-    let deleted: typeof deletedPrompts = [];
-    if (q.startsWith('#')) {
-      const tagQuery = q.slice(1);
-      active = prompts.filter(
-        (p) => p.tags && p.tags.some(tag => tag.toLowerCase().includes(tagQuery))
-      );
-      deleted = deletedPrompts.filter(
-        (p) => p.tags && p.tags.some(tag => tag.toLowerCase().includes(tagQuery))
-      );
-    } else {
-      active = prompts.filter(
-        (p) =>
-          p.title.toLowerCase().includes(q) ||
-          (p.description?.toLowerCase().includes(q) ?? false) ||
-          (p.tags && p.tags.some(tag => tag.toLowerCase().includes(q)))
-      );
-      deleted = deletedPrompts.filter(
-        (p) =>
-          p.title.toLowerCase().includes(q) ||
-          (p.description?.toLowerCase().includes(q) ?? false) ||
-          (p.tags && p.tags.some(tag => tag.toLowerCase().includes(q)))
-      );
-    }
-    return [...active, ...deleted];
-  }, [state.prompts, state.user]);
+  // Search utility for prompts
+  const searchPrompts = useCallback(
+    (query: string) => {
+      const userId = state.user?.id
+      if (!userId) return []
+
+      // Filter prompts user has access to
+      const accessiblePrompts = state.prompts.filter((p) => state.userPrompts.includes(p.id) && !p.deleted)
+
+      const q = query.trim().toLowerCase()
+      if (!q) return accessiblePrompts
+
+      if (q.startsWith("#")) {
+        const tagQuery = q.slice(1)
+        return accessiblePrompts.filter((p) => p.tags && p.tags.some((tag) => tag.toLowerCase().includes(tagQuery)))
+      } else {
+        return accessiblePrompts.filter(
+          (p) =>
+            p.title.toLowerCase().includes(q) ||
+            (p.description?.toLowerCase().includes(q) ?? false) ||
+            (p.tags && p.tags.some((tag) => tag.toLowerCase().includes(q))),
+        )
+      }
+    },
+    [state.prompts, state.user, state.userPrompts],
+  )
 
   // Memoize the actions object to prevent infinite re-renders
   const contextActions = useMemo(
@@ -630,18 +762,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       loadCollections,
       loadUser,
       loadTags,
+      loadUserRelationships,
       createPrompt,
       updatePrompt,
       deletePrompt,
       restorePrompt,
-      toggleFavorite,
+      toggleFavoritePrompt,
       savePrompt,
       savePromptChanges,
       createCollection,
-      addPromptToCollection,
-      editCollection,
-      renameCollection,
+      updateCollection,
       deleteCollection,
+      toggleFavoriteCollection,
+      addPromptToCollection,
+      removePromptFromCollection,
       setFilter,
       setSelectedPrompt,
       toggleCollectionsExpanded,
@@ -652,18 +786,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       loadCollections,
       loadUser,
       loadTags,
+      loadUserRelationships,
       createPrompt,
       updatePrompt,
       deletePrompt,
       restorePrompt,
-      toggleFavorite,
+      toggleFavoritePrompt,
       savePrompt,
       savePromptChanges,
       createCollection,
-      addPromptToCollection,
-      editCollection,
-      renameCollection,
+      updateCollection,
       deleteCollection,
+      toggleFavoriteCollection,
+      addPromptToCollection,
+      removePromptFromCollection,
       setFilter,
       setSelectedPrompt,
       toggleCollectionsExpanded,

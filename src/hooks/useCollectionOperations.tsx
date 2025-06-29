@@ -6,7 +6,7 @@ import { useApp } from "@/contexts/appContext"
 import type { CollectionInsert } from "@/lib/models/collection"
 
 export function useCollectionOperations() {
-  const { state, actions } = useApp()
+  const { state, actions, utils } = useApp()
 
   const createCollectionWithPrompts = useCallback(
     async (collectionData: CollectionInsert) => {
@@ -32,14 +32,30 @@ export function useCollectionOperations() {
 
   const getCollectionPrompts = useCallback(
     (collectionId: string) => {
-      return state.prompts.filter((prompt) => prompt.collections?.includes(collectionId) && !prompt.deleted)
+      return utils.getCollectionPrompts(collectionId)
     },
-    [state.prompts],
+    [utils],
+  )
+
+  const toggleFavoriteCollection = useCallback(
+    async (collectionId: string) => {
+      try {
+        await actions.toggleFavoriteCollection(collectionId)
+        const wasFavorite = utils.isFavoriteCollection(collectionId)
+        toast.success(wasFavorite ? "Added to favorites" : "Removed from favorites")
+      } catch (error) {
+        console.error("Error toggling collection favorite:", error)
+        toast.error("Failed to update favorite status")
+        throw error
+      }
+    },
+    [actions, utils],
   )
 
   return {
     createCollectionWithPrompts,
     getCollectionPrompts,
+    toggleFavoriteCollection,
     collections: state.collections,
     loading: state.loading.collections,
   }
