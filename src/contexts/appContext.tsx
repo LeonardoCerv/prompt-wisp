@@ -492,8 +492,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return prompt.user_id === currentUserId
       },
 
-      isFavorite: (promptId: string) => {
-        return state.user?.favorites?.includes(promptId) || false
+      isFavorite: async (promptId: string) => {
+        // Example: fetch from API or check from async storage
+        if (!state.user) return false
+        const fav = await UsersPrompts.isFavorite(state.user.id, promptId)
+        return fav
       },
 
       isSaved: (promptId: string) => {

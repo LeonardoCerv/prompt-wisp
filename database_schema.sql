@@ -328,18 +328,59 @@ FOR SELECT USING (auth.uid()::text = ANY(collaborators));
 CREATE POLICY "Users can manage their own collections" ON collections
 FOR ALL USING (auth.uid() = user_id);
 
--- Prompts policies
-CREATE POLICY "Users can view public prompts" ON prompts
+-- Prompts policies (CRUD)
+-- Allow public viewing of public prompts
+CREATE POLICY "Public prompts are viewable by everyone" ON prompts
 FOR SELECT USING (visibility = 'public' AND deleted = false);
 
+-- Allow authenticated users to view their own prompts (via users_prompts)
 CREATE POLICY "Users can view their own prompts" ON prompts
-FOR SELECT USING (auth.uid() = user_id);
+FOR SELECT TO authenticated USING (
+  auth.uid() IN (
+    SELECT user_id FROM users_prompts WHERE prompt_id = id
+  )
+);
 
-CREATE POLICY "Users can view prompts they collaborate on" ON prompts
-FOR SELECT USING (auth.uid()::text = ANY(collaborators));
+-- Allow authenticated users to create prompts
+CREATE POLICY "Allow authenticated users to create prompts" ON prompts
+FOR INSERT TO authenticated
+WITH CHECK (true);
 
-CREATE POLICY "Users can manage their own prompts" ON prompts
-FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Allow authenticated users to create prompts" ON users_prompts
+FOR INSERT TO authenticated
+WITH CHECK (true);
+
+-- Allow owners to update their prompts
+CREATE POLICY "Users can update their own prompts" ON prompts
+FOR UPDATE TO authenticated USING (
+  auth.uid() IN (
+    SELECT user_id FROM users_prompts WHERE prompt_id = id AND user_role = 'owner'
+  )
+);
+
+-- Allow owners to delete their prompts
+CREATE POLICY "Users can delete their own prompts" ON prompts
+FOR DELETE TO authenticated USING (
+  auth.uid() IN (
+    SELECT user_id FROM users_prompts WHERE prompt_id = id AND user_role = 'owner'
+  )
+);
+
+-- Optionally, allow collaborators to update prompts
+CREATE POLICY "Collaborators can update prompts" ON prompts
+FOR UPDATE TO authenticated USING (
+  auth.uid() IN (
+    SELECT user_id FROM users_prompts WHERE prompt_id = id AND user_role = 'collaborator'
+  )
+);
+
+-- Optionally, allow collaborators to view prompts
+CREATE POLICY "Collaborators can view prompts" ON prompts
+FOR SELECT TO authenticated USING (
+  auth.uid() IN (
+    SELECT user_id FROM users_prompts WHERE prompt_id = id AND user_role = 'collaborator'
+  )
+);
 
 -- Marketplace policies
 CREATE POLICY "Users can view active marketplace items" ON marketplace

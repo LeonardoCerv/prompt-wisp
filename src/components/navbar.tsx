@@ -91,9 +91,6 @@ export default function Navbar({ children }: NavbarProps) {
         content: promptData.content,
         visibility,
         images: promptData.images,
-        collaborators: promptData.collaborators ?? [],
-        collections: promptData.collections ?? [],
-        user_id: user.id,
       }
 
       const newPrompt = await actions.createPrompt(transformedPrompt)

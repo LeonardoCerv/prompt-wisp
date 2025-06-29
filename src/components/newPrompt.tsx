@@ -41,11 +41,8 @@ export default function NewPromptPage({ onSubmit, onCancel }: NewPromptPageProps
     content: '',
     description: '',
     tags: [],
-    user_id: '',
     images: [],
-    collaborators: [],
     visibility: 'private',
-    collections: [],
     deleted: false,
   })
   
@@ -482,42 +479,6 @@ export default function NewPromptPage({ onSubmit, onCancel }: NewPromptPageProps
                     )}
                   </div>
                 </div>
-
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Users className="w-4 h-4 text-[var(--warning-amber)]" />
-                    <Label htmlFor="collaborators" className="text-sm font-medium text-white">
-                      Collaborators
-                    </Label>
-                  </div>
-                  <UserSearchDropdown
-                    selectedUsers={formData.collaborators || []}
-                    onUsersChange={(users) => handleChange('collaborators', users)}
-                    placeholder="Search for collaborators..."
-                    className="bg-white/10 border-[var(--flare-cyan)]/40 text-white placeholder:text-white/70 focus:border-[var(--wisp-blue)] focus:ring-1 focus:ring-[var(--wisp-blue)]/40 transition-all duration-300"
-                  />
-                  <p className="text-xs text-[var(--flare-cyan)]/70">
-                    Share editing access with other users
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <FolderOpen className="w-4 h-4 text-[var(--warning-amber)]" />
-                    <Label htmlFor="collections" className="text-sm font-medium text-white">
-                      Collections
-                    </Label>
-                  </div>
-                  <CollectionSearchDropdown
-                    selectedCollections={formData.collections || []}
-                    onCollectionsChange={(collections) => handleChange('collections', collections.map((c: { id: string }) => c.id))}
-                    placeholder="Search for collections..."
-                    className="bg-white/10 border-[var(--flare-cyan)]/40 text-white placeholder:text-white/70 focus:border-[var(--wisp-blue)] focus:ring-1 focus:ring-[var(--wisp-blue)]/40 transition-all duration-300"
-                  />
-                  <p className="text-xs text-[var(--flare-cyan)]/70">
-                    Organize this prompt into existing collections
-                  </p>
-                </div>
               </div>
             </div>
           )}
@@ -595,30 +556,6 @@ export default function NewPromptPage({ onSubmit, onCancel }: NewPromptPageProps
                       </div>
                       <span className="text-sm text-[var(--flare-cyan)] font-medium">
                         {formData.images.length} image{formData.images.length !== 1 ? 's' : ''}
-                      </span>
-                    </div>
-                  )}
-                  
-                  {Array.isArray(formData.collaborators) && formData.collaborators.length > 0 && (
-                    <div className="flex items-center justify-between py-2 px-3 bg-white/5 rounded-lg border border-white/10">
-                      <div className="flex items-center gap-2">
-                        <Users className="w-4 h-4 text-[var(--warning-amber)]" />
-                        <span className="text-sm text-white/80">Collaborators:</span>
-                      </div>
-                      <span className="text-sm text-[var(--flare-cyan)] font-medium">
-                        {formData.collaborators.length} collaborator{formData.collaborators.length !== 1 ? 's' : ''}
-                      </span>
-                    </div>
-                  )}
-                  
-                  {Array.isArray(formData.collections) && formData.collections.length > 0 && (
-                    <div className="flex items-center justify-between py-2 px-3 bg-white/5 rounded-lg border border-white/10">
-                      <div className="flex items-center gap-2">
-                        <FolderOpen className="w-4 h-4 text-[var(--warning-amber)]" />
-                        <span className="text-sm text-white/80">Collections:</span>
-                      </div>
-                      <span className="text-sm text-[var(--flare-cyan)] font-medium">
-                        {formData.collections.length} collection{formData.collections.length !== 1 ? 's' : ''}
                       </span>
                     </div>
                   )}

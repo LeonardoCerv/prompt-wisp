@@ -25,7 +25,6 @@ export interface PromptInsert {
     tags?: string[];
     images?: string[];
     visibility?: VisibilityType;
-    deleted?: boolean;
     created_at?: string;
     updated_at?: string;
 }

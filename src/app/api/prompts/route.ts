@@ -16,7 +16,27 @@ export async function POST(req: NextRequest) {
     }
 
     const data = await req.json();
-    const prompt = await Prompt.create(data);
+    const { title, description, tags, visibility, images, content } = data;
+
+    // Validate required fields
+    if (!title || title.trim() === '' || !content || content.trim() === '') {
+      return NextResponse.json({ error: 'Title or content missing' }, { status: 400 })
+    }
+
+    // Create prompt data
+    const promptData = {
+      title: title.trim(),
+      description: description || null,
+      tags: tags || [],
+      visibility: visibility || 'private',
+      images: images || null,
+      content: content.trim(),
+      deleted: false
+    }
+
+    console.log("Creating prompt with data:", promptData);
+    const prompt = await Prompt.create(promptData);
+    console.log("Prompt created:", prompt);
 
     const usersPromptsData: UsersPromptsData = {
         prompt_id: prompt.id,
@@ -25,6 +45,7 @@ export async function POST(req: NextRequest) {
     };
 
     await UsersPrompts.create(usersPromptsData);
+    console.log("UsersPrompts entry created:", usersPromptsData);
 
    return NextResponse.json(prompt);
   } catch (error) {
@@ -48,9 +69,9 @@ export async function DELETE(req: NextRequest) {
     }
 
     const data = await req.json();
-    const prompt = await Prompt.softDelete(data.prompt_id);
+    await Prompt.softDelete(data.prompt_id);
 
-   return NextResponse.json(prompt);
+   return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Error creating prompt:", error);
     return NextResponse.json(
