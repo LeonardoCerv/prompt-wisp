@@ -15,12 +15,13 @@ import Prompt from "@/lib/models/prompt"
 import UsersPrompts from "@/lib/models/usersPrompts"
 import UsersCollections from "@/lib/models/usersCollections"
 import CollectionPrompts from "@/lib/models/collectionPrompts"
+import { User } from "@supabase/supabase-js"
 
 // Types
 interface AppState {
   prompts: PromptData[]
   collections: CollectionData[]
-  user: UserData | null
+  user: User | null
   tags: string[]
   userPrompts: string[] // Prompt IDs the user has access to
   userCollections: string[] // Collection IDs the user has access to
@@ -56,7 +57,7 @@ type AppAction =
   | { type: "ADD_COLLECTION"; payload: CollectionData }
   | { type: "UPDATE_COLLECTION"; payload: CollectionData }
   | { type: "DELETE_COLLECTION"; payload: string }
-  | { type: "SET_USER"; payload: UserData | null }
+  | { type: "SET_USER"; payload: User | null }
   | { type: "SET_TAGS"; payload: string[] }
   | { type: "SET_USER_PROMPTS"; payload: string[] }
   | { type: "SET_USER_COLLECTIONS"; payload: string[] }

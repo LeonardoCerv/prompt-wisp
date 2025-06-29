@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { ChevronDown, ChevronRight, Ellipsis, Plus } from "lucide-react"
 import { useApp } from "@/contexts/appContext"
 import { useState, useEffect } from "react"
-import { CollectionActions } from "@/components/collectionActions"
+import { CollectionActions } from "@/components/collection-actions"
 
 interface CollectionsSectionProps {
   onCreateCollection: () => void

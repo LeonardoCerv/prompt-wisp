@@ -4,7 +4,7 @@ import { useRef, useEffect, useState, useCallback } from "react"
 import { Plus, Edit, Trash2, Type } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useApp } from "@/contexts/appContext"
-import EditCollectionDialog from "@/components/editCollection"
+import EditCollectionDialog from "@/components/edit-collection"
 import type { CollectionData } from "@/lib/models/collection"
 import { toast } from "sonner"
 

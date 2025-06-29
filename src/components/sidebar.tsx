@@ -2,9 +2,9 @@
 
 import { Button } from "@/components/ui/button"
 import { Trash2 } from "lucide-react"
-import { NavigationSection } from "./navigationSection"
-import { CollectionsSection } from "./collectionsSection"
-import { TagsSection } from "./tagsSection"
+import { NavigationSection } from "./navigation-section"
+import { CollectionsSection } from "./collections-section"
+import { TagsSection } from "./tags-section"
 import { useApp } from "@/contexts/appContext"
 
 interface SidebarProps {

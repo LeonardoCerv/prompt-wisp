@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '@/contexts/appContext';
 import type { PromptData } from '@/lib/models';
-import PromptCard from './promptCard';
+import PromptCard from './prompt-card';
 import { useRouter } from 'next/navigation';
 import Dialog from './ui/dialog';
 import { Search } from "lucide-react";

@@ -5,16 +5,12 @@ import { Label } from './ui/label'
 import { Input } from './ui/input'
 import { Textarea } from './ui/textarea'
 import { Button } from './ui/button'
-import UserSearchDropdown from './userSearchDropdown'
-import CollectionSearchDropdown from './collectionSearchDropdown'
 import { 
   Sparkles, 
   Star,
   FileText, 
   Wand2, 
   Camera, 
-  Users, 
-  FolderOpen,
   Lock,
   Link,
   Globe,

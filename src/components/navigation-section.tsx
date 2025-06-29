@@ -5,7 +5,7 @@ import { Home, Star, BookOpen, Edit, Archive, Search } from "lucide-react"
 import Link from "next/link"
 import { useApp } from "@/contexts/appContext"
 import { useState } from "react"
-import NavSearchModal from "./navSearch"
+import NavSearchModal from "./nav-search"
 
 export function NavigationSection() {
   const { state, actions } = useApp()

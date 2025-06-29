@@ -256,7 +256,7 @@ export default function PromptEdit({
               </div>
               <h3 className="text-xl font-semibold text-[var(--moonlight-silver-bright)] mb-2">Access Denied</h3>
               <p className="text-[var(--moonlight-silver)]/80 mb-6">
-                You don't have permission to view or edit this prompt.
+                You don&apos;t have permission to view or edit this prompt.
               </p>
             </CardContent>
           </Card>

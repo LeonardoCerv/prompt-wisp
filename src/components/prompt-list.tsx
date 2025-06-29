@@ -5,9 +5,9 @@ import { Button } from "@/components/ui/button"
 import { BookOpen, Plus, PlusCircle, Loader2 } from "lucide-react"
 import { useApp } from "@/contexts/appContext"
 import { useFilteredPrompts } from "@/hooks/useFilteredPrompts"
-import { PromptActions } from "./promptActions"
+import { PromptActions } from "./prompt-actions"
 
-import PromptCard from "@/components/promptCard"
+import PromptCard from "@/components/prompt-card"
 import { useRouter } from "next/navigation"
 import type { PromptData } from "@/lib/models"
 
