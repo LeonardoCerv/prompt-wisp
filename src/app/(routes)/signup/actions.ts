@@ -22,7 +22,7 @@ export async function signup(formData: FormData) {
   }
 
   revalidatePath('/', 'layout')
-  redirect('/prompt')
+  redirect('/check-email')
 }
 
 export async function handleSignInWithGoogle() {
