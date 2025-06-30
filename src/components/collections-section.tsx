@@ -102,9 +102,9 @@ export function CollectionsSection({ onCreateCollection }: CollectionsSectionPro
                     onClick={() => {
                       actions.setFilter("collection", { collection: collection.id })
                     }}
-                    title={collection.title}
+                    title={collection.title || "New Collection"}
                   >
-                    {collection.title}
+                    {collection.title || "New Collection"}
                   </Button>
 
                   <div className={`${hoveredCollection === collection.id && (!showPopup || popupCollectionId !== collection.id) ? "flex" : "hidden"}`}>

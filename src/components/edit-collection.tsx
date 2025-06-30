@@ -1,8 +1,7 @@
 "use client"
 
-import type React from "react"
+import React, { useRef, useState, useEffect } from "react"
 
-import { useRef, useState } from "react"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
@@ -12,30 +11,47 @@ import UserSearchDropdown from "@/components/user-search-dropdown"
 import { Camera, Plus, Save, X } from "lucide-react"
 import { useApp } from "@/contexts/appContext"
 import Image from "next/image"
+import { CollectionData } from "@/lib/models"
 
 interface EditCollectionDialogProps {
   open: boolean
   onClose: () => void
-  initialData: {
-    id: string
-    title: string
-    description: string
-    tags: string
-    visibility: string
-    images: string[]
-    collaborators?: string[]
-  }
+  collectionId: string
 }
 
-export default function EditCollectionDialog({ open, onClose, initialData }: EditCollectionDialogProps) {
+export default function EditCollectionDialog({ open, onClose, collectionId }: EditCollectionDialogProps) {
   const { actions } = useApp()
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const [form, setForm] = useState({
-    ...initialData,
-    collaborators: initialData.collaborators || [],
-  })
+
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
+
+  const { state } = useApp()
+  // Find the current collection data from state
+  const collectionData = state.collections?.find((c: CollectionData) => c.id === collectionId)
+
+  // Form state with useState
+  const [form, setForm] = useState({
+    title: collectionData?.title || "",
+    description: collectionData?.description || "",
+    tags: Array.isArray(collectionData?.tags) ? collectionData.tags.join(", ") : collectionData?.tags || "",
+    visibility: collectionData?.visibility || "private",
+    images: collectionData?.images || [],
+    id: collectionId,
+  })
+
+  // Update form state when collectionData changes (e.g., dialog opened for a different collection)
+  useEffect(() => {
+    setForm({
+      title: collectionData?.title || "",
+      description: collectionData?.description || "",
+      tags: Array.isArray(collectionData?.tags) ? collectionData.tags.join(", ") : collectionData?.tags || "",
+      visibility: collectionData?.visibility || "private",
+      images: collectionData?.images || [],
+      id: collectionId,
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [collectionData, collectionId, open])
 
   const handleImageUpload = async (files: FileList | null) => {
     if (!files || files.length === 0) return
@@ -86,7 +102,7 @@ export default function EditCollectionDialog({ open, onClose, initialData }: Edi
     if (!form.title.trim()) return
     setIsSubmitting(true)
     try {
-      await actions.updateCollection(initialData.id || form.id, {
+      await actions.updateCollection(form.id, {
         ...form,
         tags: form.tags
           .split(",")
@@ -111,26 +127,7 @@ export default function EditCollectionDialog({ open, onClose, initialData }: Edi
       <form onSubmit={handleSubmit} className="max-h-[85vh] flex flex-col">
         <div className="flex-1 overflow-y-auto px-6 py-6">
           <div className="space-y-6">
-            <div className="text-center mb-6">
-              <h4 className="text-lg font-medium text-white mb-2">Edit Collection</h4>
-              <p className="text-sm text-[var(--flare-cyan)]/80">Update your collection details below</p>
-            </div>
             <div className="space-y-4">
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <Label htmlFor="edit-title" className="text-sm font-medium text-white">
-                    Collection Name *
-                  </Label>
-                </div>
-                <Input
-                  id="edit-title"
-                  value={form.title}
-                  onChange={(e) => handleChange("title", e.target.value)}
-                  placeholder="Enter a name for your collection..."
-                  className="bg-white/10 border-[var(--flare-cyan)]/40 text-white placeholder:text-white/70 focus:border-[var(--wisp-blue)] focus:ring-1 focus:ring-[var(--wisp-blue)]/50 transition-all duration-300"
-                  required
-                />
-              </div>
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <Label htmlFor="edit-description" className="text-sm font-medium text-white">
@@ -280,20 +277,6 @@ export default function EditCollectionDialog({ open, onClose, initialData }: Edi
                   <option value="public">Public (visible to everyone)</option>
                 </select>
               </div>
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <Label htmlFor="edit-collaborators" className="text-sm font-medium text-white">
-                    Collaborators
-                  </Label>
-                </div>
-                <UserSearchDropdown
-                  selectedUsers={form.collaborators}
-                  onUsersChange={(users) => handleChange("collaborators", users)}
-                  placeholder="Search for collaborators..."
-                  className="bg-white/10 border-[var(--flare-cyan)]/40 text-white placeholder:text-white/70 focus:border-[var(--wisp-blue)] focus:ring-1 focus:ring-[var(--wisp-blue)]/40 transition-all duration-300"
-                />
-              </div>
-            </div>
           </div>
         </div>
         <div className="flex-shrink-0 pt-6 mt-4 border-t border-[var(--flare-cyan)]/20 px-6 pb-2 flex items-center justify-between">
@@ -322,6 +305,7 @@ export default function EditCollectionDialog({ open, onClose, initialData }: Edi
               </>
             )}
           </Button>
+          </div>
         </div>
       </form>
     </Dialog>

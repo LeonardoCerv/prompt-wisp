@@ -20,34 +20,18 @@ export default function Navbar({ children }: NavbarProps) {
 
   const [isNewCollectionOpen, setIsNewCollectionOpen] = useState(false)
 
-  const allowedVisibilities = ["public", "private", "unlisted"] as const
-  type Visibility = (typeof allowedVisibilities)[number]
-
-  const handleCreateCollection = async (collectionData: CollectionInsert) => {
+  const handleCreateCollection = async () => {
     try {
       if (!user?.id) {
         toast.error("User not authenticated")
         return
       }
-
-      const title = collectionData.title?.trim() || ""
-      const description = collectionData.description ? collectionData.description.trim() : undefined
-      const tags = Array.isArray(collectionData.tags)
-        ? collectionData.tags.map((tag: string) => tag.trim()).filter(Boolean)
-        : (collectionData.tags ?? "")
-            .split(",")
-            .map((tag: string) => tag.trim())
-            .filter(Boolean)
-      const visibility: Visibility = allowedVisibilities.includes(collectionData.visibility as Visibility)
-        ? (collectionData.visibility as Visibility)
-        : "private"
-
       const requestBody: CollectionInsert = {
-        title,
-        description,
-        tags,
-        visibility,
-        images: collectionData.images && collectionData.images.length > 0 ? collectionData.images : [],
+        title: undefined,
+        description: undefined,
+        tags: [],
+        visibility: "private",
+        images: [],
       }
 
       console.log("Creating collection with data:", requestBody)
@@ -72,7 +56,7 @@ export default function Navbar({ children }: NavbarProps) {
         <div className="flex gap-0 h-full">
           {/* Left Column - Filters */}
           <div className="w-[240px] max-w-[240px] flex-shrink-0">
-            <Sidebar onCreateCollection={() => setIsNewCollectionOpen(true)} />
+            <Sidebar onCreateCollection={() => handleCreateCollection()} />
           </div>
 
           {/* Center Column - Prompt List */}
@@ -83,12 +67,13 @@ export default function Navbar({ children }: NavbarProps) {
         </div>
       </div>
 
-      {/* New Collection Dialog */}
+      {/* New Collection Dialog 
       <NewCollection
         open={isNewCollectionOpen}
         onOpenChange={setIsNewCollectionOpen}
         onSubmit={handleCreateCollection}
       />
+      */}
 
     </div>
   )

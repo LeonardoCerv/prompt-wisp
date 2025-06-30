@@ -18,15 +18,10 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { title, description, tags, visibility, images, prompts } = body
 
-    // Validate required fields
-    if (!title || title.trim() === '') {
-      return NextResponse.json({ error: 'Title is required' }, { status: 400 })
-    }
-
     // Create collection data
     const collectionData = {
-      title: title.trim(),
-      description: description || null,
+      title: title || '',
+      description: description || '',
       tags: tags || [],
       visibility: visibility || 'private',
       images: images || null,
@@ -84,43 +79,63 @@ export async function DELETE(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const supabase = await createClient()
-
-    // Get current user
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
-    if (userError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const supabase = await createClient();
+    // Get authenticated user
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get collection data from request body
-    const body = await request.json()
-    console.log('Update collection data:', body)
-    const { id, updates } = body;
-
+    const data = await request.json();
+    const { id, updates } = data;
     if (!id) {
-      return NextResponse.json({ error: 'Collection ID is required' }, { status: 400 })
+      return NextResponse.json({ error: 'Missing collection_id' }, { status: 400 });
     }
 
+    // Check ownership
     const role = await UsersCollections.getUserRole(id, user.id);
     if (role !== 'owner' && role !== 'collaborator') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    // Prepare update data
+    // Prepare update data (only update provided fields)
     const updateData: CollectionUpdate = {};
-
-    if (updates.title) updateData.title = updates.title;
+    if (updates.title !== undefined) updateData.title = updates.title;
     if (updates.description !== undefined) updateData.description = updates.description;
-    if (updates.images) updateData.images = updates.images;
-    if (updates.tags) updateData.tags = updates.tags;
+    if (updates.tags !== undefined) updateData.tags = updates.tags;
     if (updates.visibility !== undefined) updateData.visibility = updates.visibility;
+    if (updates.images !== undefined) updateData.images = updates.images;
 
+    // Update collection
     const updatedCollection = await Collection.update(id, updateData);
-    console.log('Collection updated successfully:', updatedCollection);
 
-    return NextResponse.json(updatedCollection)
+    // Handle prompts update
+    if (Array.isArray(updates.prompts)) {
+      // Get current prompt associations
+      const current = await CollectionPrompts.getPrompts(id);
+      const currentPromptIds = current.map((cp: string) => cp);
+
+      // Prompts to add
+      const toAdd = updates.prompts.filter((pid: string) => !currentPromptIds.includes(pid));
+      // Prompts to remove
+      const toRemove = currentPromptIds.filter((pid: string) => !updates.prompts.includes(pid));
+
+      // Add new associations
+      for (const prompt_id of toAdd) {
+        await CollectionPrompts.create({ collection_id: id, prompt_id });
+      }
+      // Remove old associations
+      for (const prompt_id of toRemove) {
+        await CollectionPrompts.delete(prompt_id, id);
+      }
+    }
+
+    return NextResponse.json(updatedCollection);
   } catch (error) {
-    console.error('Update collection error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    console.error('Error updating collection:', error);
+    return NextResponse.json(
+      { error: 'Error updating collection' },
+      { status: 500 }
+    );
   }
 }

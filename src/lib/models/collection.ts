@@ -6,7 +6,7 @@ type VisibilityType = "public" | "private" | "unlisted"
 export interface CollectionData {
   id: string
   title: string
-  description: string | null
+  description: string
   images: string[]
   tags: string[]
   created_at: string
@@ -18,7 +18,7 @@ export interface CollectionData {
 // Interface for creating new collections
 export interface CollectionInsert {
   id?: string
-  title: string
+  title?: string
   description?: string
   images?: string[]
   tags?: string[]

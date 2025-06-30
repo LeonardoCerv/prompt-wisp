@@ -7,6 +7,7 @@ import { useApp } from "@/contexts/appContext"
 import EditCollectionDialog from "@/components/edit-collection"
 import type { CollectionData } from "@/lib/models/collection"
 import { toast } from "sonner"
+import { Textarea } from "./ui/textarea"
 
 interface CollectionActionsProps {
   collectionId: string
@@ -25,7 +26,7 @@ export function CollectionActions({
   const [showRenameDialog, setShowRenameDialog] = useState(false)
   const [renameValue, setRenameValue] = useState(collectionTitle)
   const [renamePosition, setRenamePosition] = useState<{ x: number; y: number } | null>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
   const { actions, state, utils } = useApp()
 
   // Add Prompt dialog state
@@ -36,15 +37,6 @@ export function CollectionActions({
 
   // Edit Collection dialog state
   const [showEditDialog, setShowEditDialog] = useState(false)
-  const [editForm, setEditForm] = useState<{
-    id: string
-    title: string
-    description: string
-    tags: string
-    visibility: string
-    images: string[]
-    collaborators: string[]
-  } | null>(null)
 
   // Get all prompts that user has access to but not already in this collection
   const collectionPromptIds = utils.getCollectionPrompts(collectionId).map((p) => p.id)
@@ -81,8 +73,6 @@ export function CollectionActions({
     setAddPromptPosition(null)
     setPromptSearch("")
     setSelectedPromptIds([])
-    setShowEditDialog(false)
-    setEditForm(null)
     if (onRequestClose) onRequestClose()
   }, [collectionTitle, onRequestClose])
 
@@ -92,8 +82,9 @@ export function CollectionActions({
       const addPromptDialog = document.getElementById("add-prompt-dialog")
       const isInRename = showRenameDialog && inputRef.current && inputRef.current.contains(e.target as Node)
       const isInAddPrompt = showAddPromptDialog && addPromptDialog && addPromptDialog.contains(e.target as Node)
+      const isInEditDialog = showEditDialog
       const isInMainPopup = popupRef.current && popupRef.current.contains(e.target as Node)
-      if (!isInRename && !isInAddPrompt && !isInMainPopup) {
+      if (!isInRename && !isInAddPrompt && !isInMainPopup && !isInEditDialog) {
         closeAllDialogs()
       }
     }
@@ -159,24 +150,6 @@ export function CollectionActions({
     }
   }
 
-  function openEditDialog() {
-    setShowEditDialog(true)
-    setEditForm({
-      title: collectionData?.title || collectionTitle || "",
-      description: collectionData?.description || "",
-      tags: Array.isArray(collectionData?.tags) ? collectionData.tags.join(", ") : collectionData?.tags || "",
-      visibility: collectionData?.visibility || "private",
-      images: collectionData?.images || [],
-      id: collectionId,
-      collaborators: [], // Add empty collaborators array for now
-    })
-  }
-
-  function closeEditDialog() {
-    setShowEditDialog(false)
-    setEditForm(null)
-  }
-
   function openRenameDialog(mouseX: number, mouseY: number) {
     setShowRenameDialog(true)
     setRenameValue(collectionTitle)
@@ -233,13 +206,15 @@ export function CollectionActions({
           <Plus size={16} />
           Add Prompt
         </button>
+        {/* 
         <button
           className="flex items-center gap-2 text-left text-sm text-white hover:bg-[var(--wisp-blue)]/10 rounded-md px-4 py-2 transition-colors cursor-pointer font-medium"
-          onClick={openEditDialog}
+          onClick={() => setShowEditDialog(true)}
         >
           <Edit size={16} />
           Edit Collection
         </button>
+              */}
         <button
           className="flex items-center gap-2 text-left text-sm text-white hover:bg-[var(--wisp-blue)]/10 rounded-md px-4 py-2 transition-colors cursor-pointer font-medium"
           onClick={(e) => {
@@ -255,6 +230,7 @@ export function CollectionActions({
           <Type size={16} />
           Rename
         </button>
+  
         <button
           className="flex items-center gap-2 text-left text-sm text-red-400 hover:bg-red-400/10 rounded-md px-4 py-2 transition-colors cursor-pointer font-medium"
           onClick={handleDelete}
@@ -264,26 +240,22 @@ export function CollectionActions({
         </button>
       </div>
       {showRenameDialog && renamePosition && (
-        <div
-          style={{
-            position: "fixed",
-            left: renamePosition.x,
-            top: renamePosition.y,
-            zIndex: 200,
-            background: "var(--deep-charcoal)",
-            border: "1px solid var(--wisp-blue)",
-            borderRadius: 10,
-            boxShadow: "0 8px 32px rgba(0,0,0,0.25)",
-            padding: "12px 18px",
-            minWidth: 220,
-            display: "flex",
-            alignItems: "center",
-          }}
-        >
-          <input
+        <div className="border-2 border-[var(--wisp-blue)]">
+          <Textarea
+            variant="editor"
             ref={inputRef}
-            className="w-full bg-transparent text-white text-base font-semibold px-2 py-1 outline-none border-b border-[var(--wisp-blue)] focus:border-[var(--wisp-blue)]"
-            value={renameValue}
+            id="rename-input"
+            placeholder="New title"
+            className="text-base font-bold p-4 resize-none overflow-hidden bg-neutral-900focus-visible:ring-0 focus-visible:ring-offset-0 min-h-[48px] w-fit"
+            rows={1}
+            style={{
+            position: "fixed",
+            left: popupPosition.x -177,
+            top: popupPosition.y -24,
+            zIndex: 200,
+            lineHeight: 1,
+            }}
+            value={renameValue || collectionTitle}
             onChange={(e) => setRenameValue(e.target.value)}
             onBlur={handleRenameSubmit}
             onKeyDown={(e) => {
@@ -291,8 +263,7 @@ export function CollectionActions({
               if (e.key === "Escape") closeRenameDialog()
             }}
             autoFocus
-          />
-        </div>
+          /> </div>
       )}
       {showAddPromptDialog && addPromptPosition && (
         <div
@@ -366,14 +337,15 @@ export function CollectionActions({
           </div>
         </div>
       )}
-      {/* Edit Collection Dialog */}
-      {showEditDialog && editForm && (
+      {/* Edit Collection Dialog 
+      {showEditDialog && (
         <EditCollectionDialog
+          collectionId={collectionId} 
           open={showEditDialog}
-          onClose={closeEditDialog}
-          initialData={editForm}
+          onClose={() => setShowEditDialog(true)}
         />
       )}
+      */}
     </>
   )
 }
