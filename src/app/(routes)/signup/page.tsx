@@ -45,6 +45,7 @@ export default function SignupPage() {
                   type="email"
                   placeholder="name@example.com"
                   name="email"
+                  required
                   className="h-10 bg-background border-border focus:border-ring focus:ring-1 focus:ring-ring"
                 />
               </div>
@@ -56,6 +57,7 @@ export default function SignupPage() {
                 </Label>
                 <Input
                   id="password"
+                  required
                   type="password"
                   placeholder="Create a password"
                   name="password"
