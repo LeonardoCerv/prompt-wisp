@@ -76,7 +76,7 @@ export default async function App() {
                   <ArrowRight className="ml-2 w-5 h-5" />
                 </Button>
               </Link>
-              <Link href="/marketplace">
+              <Link href="/prompt">
                 <Button
                   variant="outline"
                   size="lg"
