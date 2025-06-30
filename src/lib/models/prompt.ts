@@ -19,8 +19,8 @@ export interface PromptData {
 // Interface for creating new prompts
 export interface PromptInsert {
     id?: string;
-    title: string;
-    content: string;
+    title?: string;
+    content?: string;
     description?: string;
     tags?: string[];
     images?: string[];
@@ -73,7 +73,6 @@ class Prompt {
                 .from('prompts')
                 .select('*')
                 .eq('id', id)
-                .eq('deleted', false)
                 .single();
 
             if (error) {

@@ -9,25 +9,48 @@ import { PromptActions } from "./prompt-actions"
 import PromptCard from "@/components/prompt-card"
 import { useRouter } from "next/navigation"
 import type { PromptData } from "@/lib/models"
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
+import { toast } from "sonner"
+import Image from "next/image"
+import VisibilityType from "@/lib/models/prompt"
 
-interface PromptListProps {
-  onCreatePrompt: () => void
-}
-
-export function PromptList({ onCreatePrompt }: PromptListProps) {
+export function PromptList() {
   const router = useRouter()
   const { state, actions, utils } = useApp()
   const { user } = state
   const { selectedFilter, selectedCollection, selectedTags } = state.filters
   const { selectedPrompt } = state.ui
 
+  const handleCreatePrompt = async () => {
+    try {
+      if (!user?.id) {
+        toast.error("User not authenticated")
+        return
+      }
+
+      const createPromptData = {
+        title: undefined,
+        description: undefined,
+        tags: [],
+        visibility: undefined,
+        images: [],
+        content: undefined,
+      }
+
+      const newPrompt = await actions.createPrompt(createPromptData)
+      toast.success("Prompt created successfully")
+      router.push(`/prompt/${newPrompt.id}`)
+    } catch (error) {
+      console.error("Error creating prompt:", error)
+      toast.error("Failed to create prompt")
+    }
+  }
+
   // Get filtered prompts using the context utility
-  const { filteredPrompts, totalCount, isLoading } = useMemo(() => {
+  const { filteredPrompts, isLoading } = useMemo(() => {
     const filtered = utils.getFilteredPrompts(selectedFilter, selectedCollection, selectedTags)
     return {
       filteredPrompts: filtered,
-      totalCount: filtered.length,
       isLoading: state.loading.prompts || state.loading.relationships,
     }
   }, [utils, selectedFilter, selectedCollection, selectedTags, state.loading.prompts, state.loading.relationships])
@@ -50,7 +73,7 @@ export function PromptList({ onCreatePrompt }: PromptListProps) {
         <div className="flex-1 overflow-y-auto px-3">
           <Button
             variant="ghost"
-            onClick={onCreatePrompt}
+            onClick={() => handleCreatePrompt()}
             className="w-full gap-3 mb-3 py-6 text-sm text-[var(--wisp-blue)] rounded-lg hover:bg-[var(--wisp-blue)]/20 hover:text-[var(--wisp-blue)] border border-dashed border-[var(--wisp-blue)]/40"
             title="Create new prompt"
           >
@@ -73,62 +96,24 @@ export function PromptList({ onCreatePrompt }: PromptListProps) {
                 <p className="text-xs text-slate-400">You need to be logged in to view prompts.</p>
               </CardContent>
             </Card>
-          ) : !Array.isArray(filteredPrompts) || filteredPrompts.length === 0 ? (
+          ) : filteredPrompts.length === 0 ? (
             /* No prompts found */
-            <Card className="bg-[var(--deep-charcoal)] border-[var(--moonlight-silver-dim)] text-center py-8">
-              <CardContent>
-                <BookOpen className="h-8 w-8 text-slate-400 mx-auto mb-3" />
-                <h3 className="text-sm font-semibold text-slate-300 mb-2">
-                  {selectedFilter === "collection" && selectedCollection
-                    ? "No prompts in this collection"
-                    : selectedFilter === "favorites"
-                      ? "No favorite prompts"
-                      : selectedFilter === "owned"
-                        ? "No owned prompts"
-                        : selectedFilter === "saved"
-                          ? "No saved prompts"
-                          : selectedFilter === "deleted"
-                            ? "No deleted prompts"
-                            : selectedTags.length > 0
-                              ? "No prompts with selected tags"
-                              : "No prompts found"}
-                </h3>
-                <p className="text-xs text-slate-400 mb-4">
-                  {selectedFilter === "collection" && selectedCollection
-                    ? "This collection doesn't have any prompts yet."
-                    : selectedFilter === "favorites"
-                      ? "You haven't favorited any prompts yet."
-                      : selectedFilter === "owned"
-                        ? "You haven't created any prompts yet."
-                        : selectedFilter === "saved"
-                          ? "You haven't saved any prompts yet."
-                          : selectedFilter === "deleted"
-                            ? "You don't have any deleted prompts."
-                            : selectedTags.length > 0
-                              ? "Try removing some tag filters or create a new prompt."
-                              : "Get started by creating your first prompt."}
+            <Card className="bg-transparent border-transparent text-center py-8">
+              <CardContent className="flex flex-col items-center justify-center">
+                <Image                         
+                  src="/wisp.svg" 
+                  alt="Wisp Mascot" 
+                  width={80} 
+                  height={80} 
+                />
+                <p className="mt-4"> 
+                  <span className="text-sm font-semibold text-slate-300">No prompts found</span>
                 </p>
-                <Button
-                  onClick={onCreatePrompt}
-                  size="sm"
-                  className="bg-[var(--glow-ember)] hover:bg-[var(--glow-ember)]/90"
-                >
-                  <PlusCircle size={14} className="mr-2" />
-                  Create New Prompt
-                </Button>
               </CardContent>
             </Card>
           ) : (
             /* Render prompts */
             <>
-              {/* Show count */}
-              <div className="text-xs text-[var(--moonlight-silver)] mb-3 px-2">
-                {totalCount} {totalCount === 1 ? "prompt" : "prompts"}
-                {selectedTags.length > 0 && (
-                  <span className="ml-1">with {selectedTags.map((tag) => `#${tag}`).join(", ")}</span>
-                )}
-              </div>
-
               {/* Render prompt cards */}
               {filteredPrompts.map((prompt, index) => {
                 const isSelected = selectedPrompt?.id === prompt.id

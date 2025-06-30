@@ -67,8 +67,8 @@ export default function PromptCard({ prompt, isSelected, isLast, isBeforeSelecte
       <CardHeader className="pb-0 pt-0">
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-sm font-bold text-[var(--soft-white)] truncate" title={prompt.title}>
-              {prompt.title}
+            <CardTitle className="text-sm font-bold text-[var(--soft-white)] truncate" title={prompt.title || "New prompt"}>
+              {prompt.title || "New prompt"}
             </CardTitle>
             <button
               onClick={async (e) => {

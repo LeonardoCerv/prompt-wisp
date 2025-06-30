@@ -2,33 +2,30 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
-  Heart,
   Copy,
   Save,
   Trash2,
   RotateCcw,
-  Plus,
   X,
   Lock,
   Globe,
   Users,
-  Calendar,
-  Tag,
   FileText,
   ImageIcon,
+  Star,
 } from "lucide-react"
 import { toast } from "sonner"
 import { useApp } from "@/contexts/appContext"
 import type { PromptData } from "@/lib/models/prompt"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 
 interface PromptEditProps {
   selectedPrompt: PromptData
@@ -99,9 +96,9 @@ export default function PromptEdit({
   // Track changes
   useEffect(() => {
     const hasChanges =
-      title !== selectedPrompt.title ||
+      title !== (selectedPrompt.title || "") ||
       description !== (selectedPrompt.description || "") ||
-      content !== selectedPrompt.content ||
+      content !== (selectedPrompt.content || "") ||
       JSON.stringify(tags) !== JSON.stringify(selectedPrompt.tags || []) ||
       visibility !== (selectedPrompt.visibility || "private")
 
@@ -110,9 +107,9 @@ export default function PromptEdit({
 
   // Reset form when prompt changes
   useEffect(() => {
-    setTitle(selectedPrompt.title)
+    setTitle(selectedPrompt.title || "")
     setDescription(selectedPrompt.description || "")
-    setContent(selectedPrompt.content)
+    setContent(selectedPrompt.content || "")
     setTags(selectedPrompt.tags || [])
     setVisibility(selectedPrompt.visibility || "private")
     setHasUnsavedChanges(false)
@@ -229,6 +226,46 @@ export default function PromptEdit({
     }
   }
 
+  // Auto-resize refs and effects
+  const titleRef = useRef<HTMLTextAreaElement>(null)
+  const descriptionRef = useRef<HTMLTextAreaElement>(null)
+  const contentRef = useRef<HTMLTextAreaElement>(null)
+
+  useEffect(() => {
+    if (titleRef.current) {
+      titleRef.current.style.height = "auto"
+      titleRef.current.style.height = titleRef.current.scrollHeight + "px"
+    }
+  }, [title])
+  useEffect(() => {
+    if (descriptionRef.current) {
+      descriptionRef.current.style.height = "auto"
+      descriptionRef.current.style.height = descriptionRef.current.scrollHeight + "px"
+    }
+  }, [description])
+  useEffect(() => {
+    if (contentRef.current) {
+      contentRef.current.style.height = "auto"
+      contentRef.current.style.height = contentRef.current.scrollHeight + "px"
+    }
+  }, [content])
+
+  // Helper to format last edited time as 'X days Y hours Z minutes ago'
+  function formatLastEdited(dateString: string) {
+    const now = new Date()
+    const updated = new Date(dateString)
+    const diffMs = now.getTime() - updated.getTime()
+    const diffMins = Math.floor(diffMs / 60000)
+    const days = Math.floor(diffMins / 1440)
+    const hours = Math.floor((diffMins % 1440) / 60)
+    const minutes = diffMins % 60
+    let result = ''
+    if (days > 0) result += `${days} day${days > 1 ? 's' : ''} `
+    if (hours > 0) result += `${hours} hour${hours > 1 ? 's' : ''} `
+    if (minutes > 0 || (!days && !hours)) result += `${minutes} minute${minutes !== 1 ? 's' : ''} `
+    return result.trim() + ' ago'
+  }
+
   // Show loading state while checking permissions
   if (permissionsLoading) {
     return (
@@ -289,14 +326,18 @@ export default function PromptEdit({
         </div>
 
         <div className="flex items-center gap-2">
+        {/* Last edited at field at the top right */}
+        <div className="hidden md:flex items-end text-xs text-[var(--moonlight-silver)]">
+          <span>Last edited: {formatLastEdited(selectedPrompt.updated_at)}</span>
+        </div>
           {/* Favorite Button */}
           <Button
             variant="ghost"
             size="sm"
             onClick={handleToggleFavorite}
-            className="text-[var(--moonlight-silver)] hover:text-[var(--wisp-blue)] hover:bg-[var(--wisp-blue)]/10"
+            className="text-[var(--moonlight-silver)] hover:text-yellow-400 hover:bg-yellow-400/10"
           >
-            <Heart size={16} className={isFavorite ? "fill-current text-red-500" : ""} />
+            <Star size={16} className={isFavorite ? "fill-current text-yellow-400" : ""} />
           </Button>
 
           {/* Copy Button */}
@@ -319,6 +360,62 @@ export default function PromptEdit({
             >
               <Save size={16} />
             </Button>
+          )}
+
+          {/* Visibility Button (for owner, not deleted) */}
+          {isOwner && !selectedPrompt.deleted && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="flex items-center gap-1 text-[var(--moonlight-silver)] hover:text-[var(--wisp-blue)] hover:bg-[var(--wisp-blue)]/10"
+                >
+                  {getVisibilityIcon()}
+                  <span className="hidden sm:inline">{getVisibilityLabel()}</span>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-64 bg-[var(--black)] border-[var(--moonlight-silver-dim)]/30">
+                <div className="space-y-2">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="private"
+                      checked={visibility === "private"}
+                      onCheckedChange={() => setVisibility("private")}
+                      className="border-[var(--moonlight-silver-dim)]/30"
+                    />
+                    <Label htmlFor="private" className="text-[var(--moonlight-silver)] flex items-center gap-2">
+                      <Lock size={14} />
+                      Private - Only you can see this prompt
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="unlisted"
+                      checked={visibility === "unlisted"}
+                      onCheckedChange={() => setVisibility("unlisted")}
+                      className="border-[var(--moonlight-silver-dim)]/30"
+                    />
+                    <Label htmlFor="unlisted" className="text-[var(--moonlight-silver)] flex items-center gap-2">
+                      <Users size={14} />
+                      Unlisted - Anyone with the link can see this prompt
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="public"
+                      checked={visibility === "public"}
+                      onCheckedChange={() => setVisibility("public")}
+                      className="border-[var(--moonlight-silver-dim)]/30"
+                    />
+                    <Label htmlFor="public" className="text-[var(--moonlight-silver)] flex items-center gap-2">
+                      <Globe size={14} />
+                      Public - Anyone can discover and see this prompt
+                    </Label>
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
           )}
 
           {/* Owner Actions */}
@@ -367,156 +464,79 @@ export default function PromptEdit({
       <div className="flex-1 overflow-auto p-6">
         <div className="max-w-4xl mx-auto space-y-6">
           {/* Title */}
-          <div className="space-y-2">
-            <Label htmlFor="title" className="text-[var(--moonlight-silver)] font-medium">
-              Title
-            </Label>
-            <Input
-              id="title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              disabled={!canEdit || selectedPrompt.deleted}
-              className="bg-[var(--black)] border-[var(--moonlight-silver-dim)]/30 text-[var(--moonlight-silver-bright)] focus:border-[var(--wisp-blue)] disabled:opacity-50"
-              placeholder="Enter prompt title..."
-            />
-          </div>
+          <Textarea
+            ref={titleRef}
+            variant="editor"
+            id="title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            disabled={!canEdit || selectedPrompt.deleted}
+            placeholder="New Prompt"
+            className="text-4xl font-bold border-none p-0 resize-none overflow-hidden bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 min-h-[44px]"
+            rows={1}
+            style={{ lineHeight: 1.2 }}
+          />
 
           {/* Description */}
-          <div className="space-y-2">
-            <Label htmlFor="description" className="text-[var(--moonlight-silver)] font-medium">
-              Description
-            </Label>
-            <Textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              disabled={!canEdit || selectedPrompt.deleted}
-              className="bg-[var(--black)] border-[var(--moonlight-silver-dim)]/30 text-[var(--moonlight-silver-bright)] focus:border-[var(--wisp-blue)] disabled:opacity-50 min-h-[100px]"
-              placeholder="Enter prompt description..."
-            />
-          </div>
+          <Textarea
+            ref={descriptionRef}
+            variant="editor"
+            id="description"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            disabled={!canEdit || selectedPrompt.deleted}
+            placeholder="Enter prompt description..."
+            className="text-sm text-[var(--moonlight-silver)] border-none pb-8 resize-none overflow-hidden bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 min-h-[32px]"
+            rows={1}
+            style={{ lineHeight: 1.3 }}
+          />
 
-          {/* Content */}
-          <div className="space-y-2">
-            <Label htmlFor="content" className="text-[var(--moonlight-silver)] font-medium">
-              Content
-            </Label>
-            <Textarea
-              id="content"
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              disabled={!canEdit || selectedPrompt.deleted}
-              className="bg-[var(--black)] border-[var(--moonlight-silver-dim)]/30 text-[var(--moonlight-silver-bright)] focus:border-[var(--wisp-blue)] disabled:opacity-50 min-h-[300px] font-mono text-sm"
-              placeholder="Enter your prompt content..."
-            />
-          </div>
+          {/* Prompt */}
+          <Textarea
+            ref={contentRef}
+            variant="editor"
+            id="content"
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            disabled={!canEdit || selectedPrompt.deleted}
+            placeholder="Enter prompt..."
+            className="text-md font-bold text-gray-300 border-none pb-4 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 resize-none min-h-[180px] overflow-hidden h-full"
+          />
 
           {/* Tags */}
-          <div className="space-y-2">
-            <Label className="text-[var(--moonlight-silver)] font-medium flex items-center gap-2">
-              <Tag size={16} />
-              Tags
-            </Label>
-            <div className="flex flex-wrap gap-2 mb-2">
+            <div className="flex flex-wrap items-center gap-2 mb-2 min-h-[36px]">
               {tags.map((tag) => (
-                <Badge
+                <span
                   key={tag}
-                  variant="secondary"
-                  className="bg-[var(--wisp-blue)]/20 text-[var(--wisp-blue)] border-[var(--wisp-blue)]/30 flex items-center gap-1"
+                  className="flex items-center bg-[var(--wisp-blue)]/20 text-[var(--wisp-blue)] border-[var(--wisp-blue)]/30 rounded-full px-3 text-sm font-medium gap-1"
                 >
-                  {tag}
+                  <span className="text-[var(--wisp-blue)] font-bold">#</span>
+                  <span>{tag}</span>
                   {canEdit && !selectedPrompt.deleted && (
                     <button onClick={() => handleRemoveTag(tag)} className="ml-1 hover:text-red-400 transition-colors">
                       <X size={12} />
                     </button>
                   )}
-                </Badge>
+                </span>
               ))}
+              {canEdit && !selectedPrompt.deleted && (
+                <div className="flex items-center bg-transparent border-none p-0">
+                  <span className="text-[var(--wisp-blue)] font-bold text-lg">#</span>
+                  <input
+                    value={newTag}
+                    onChange={(e) => setNewTag(e.target.value)}
+                    onKeyDown={handleKeyPress}
+                    className="bg-transparent border-none outline-none text-[var(--moonlight-silver-bright)] px-1 py-1 min-w-[40px] w-auto focus:ring-0 focus:border-0"
+                    placeholder="Add tag"
+                    style={{ width: newTag.length === 0 ? '90px' : `${Math.max(newTag.length + 2, 6)}ch` }}
+                  />
+                </div>
+              )}
             </div>
-            {canEdit && !selectedPrompt.deleted && (
-              <div className="flex gap-2">
-                <Input
-                  value={newTag}
-                  onChange={(e) => setNewTag(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  className="bg-[var(--black)] border-[var(--moonlight-silver-dim)]/30 text-[var(--moonlight-silver-bright)] focus:border-[var(--wisp-blue)]"
-                  placeholder="Add a tag..."
-                />
-                <Button
-                  onClick={handleAddTag}
-                  disabled={!newTag.trim()}
-                  className="bg-[var(--wisp-blue)] hover:bg-[var(--wisp-blue)]/90 text-white disabled:opacity-50"
-                >
-                  <Plus size={16} />
-                </Button>
-              </div>
-            )}
-          </div>
-
-          {/* Visibility */}
-          {isOwner && !selectedPrompt.deleted && (
-            <div className="space-y-2">
-              <Label className="text-[var(--moonlight-silver)] font-medium flex items-center gap-2">
-                {getVisibilityIcon()}
-                Visibility
-              </Label>
-              <div className="space-y-2">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="private"
-                    checked={visibility === "private"}
-                    onCheckedChange={() => setVisibility("private")}
-                    className="border-[var(--moonlight-silver-dim)]/30"
-                  />
-                  <Label htmlFor="private" className="text-[var(--moonlight-silver)] flex items-center gap-2">
-                    <Lock size={14} />
-                    Private - Only you can see this prompt
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="unlisted"
-                    checked={visibility === "unlisted"}
-                    onCheckedChange={() => setVisibility("unlisted")}
-                    className="border-[var(--moonlight-silver-dim)]/30"
-                  />
-                  <Label htmlFor="unlisted" className="text-[var(--moonlight-silver)] flex items-center gap-2">
-                    <Users size={14} />
-                    Unlisted - Anyone with the link can see this prompt
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="public"
-                    checked={visibility === "public"}
-                    onCheckedChange={() => setVisibility("public")}
-                    className="border-[var(--moonlight-silver-dim)]/30"
-                  />
-                  <Label htmlFor="public" className="text-[var(--moonlight-silver)] flex items-center gap-2">
-                    <Globe size={14} />
-                    Public - Anyone can discover and see this prompt
-                  </Label>
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* Metadata */}
-          <Card className="bg-[var(--black)] border-[var(--moonlight-silver-dim)]/30">
-            <CardContent className="p-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                <div className="flex items-center gap-2 text-[var(--moonlight-silver)]">
-                  <Calendar size={14} />
-                  <span>Created: {new Date(selectedPrompt.created_at).toLocaleDateString()}</span>
-                </div>
-                <div className="flex items-center gap-2 text-[var(--moonlight-silver)]">
-                  <Calendar size={14} />
-                  <span>Updated: {new Date(selectedPrompt.updated_at).toLocaleDateString()}</span>
-                </div>
-                <div className="flex items-center gap-2 text-[var(--moonlight-silver)]">
-                  {getVisibilityIcon()}
-                  <span>Visibility: {getVisibilityLabel()}</span>
-                </div>
+                {/* Images */}
                 {selectedPrompt.images && selectedPrompt.images.length > 0 && (
                   <div className="flex items-center gap-2 text-[var(--moonlight-silver)]">
                     <ImageIcon size={14} />
@@ -524,8 +544,6 @@ export default function PromptEdit({
                   </div>
                 )}
               </div>
-            </CardContent>
-          </Card>
         </div>
       </div>
     </div>

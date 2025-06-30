@@ -298,8 +298,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             prompts.push(prompt)
           }
         }
+        // Sort: non-deleted first, then deleted
+        const sortedPrompts = [
+          ...prompts.filter((p) => !p.deleted),
+          ...prompts.filter((p) => p.deleted),
+        ]
+        console.log("Processed prompts:", sortedPrompts)
 
-        dispatch({ type: "SET_PROMPTS", payload: prompts })
+        dispatch({ type: "SET_PROMPTS", payload: sortedPrompts })
       }
     } catch (error) {
       console.error("Error loading prompts:", error)
@@ -932,7 +938,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (!userId) return []
 
       // Filter prompts user has access to
-      const accessiblePrompts = state.prompts.filter((p) => state.userPrompts.includes(p.id) && !p.deleted)
+      const accessiblePrompts = state.prompts
+      console.log("Accessible prompts:", accessiblePrompts)
 
       const q = query.trim().toLowerCase()
       if (!q) return accessiblePrompts

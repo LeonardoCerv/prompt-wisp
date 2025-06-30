@@ -18,19 +18,14 @@ export async function POST(req: NextRequest) {
     const data = await req.json();
     const { title, description, tags, visibility, images, content } = data;
 
-    // Validate required fields
-    if (!title || title.trim() === '' || !content || content.trim() === '') {
-      return NextResponse.json({ error: 'Title or content missing' }, { status: 400 })
-    }
-
     // Create prompt data
     const promptData = {
-      title: title.trim(),
+      title: title || '',
       description: description || null,
       tags: tags || [],
       visibility: visibility || 'private',
       images: images || null,
-      content: content.trim(),
+      content: content || '',
       deleted: false
     }
 

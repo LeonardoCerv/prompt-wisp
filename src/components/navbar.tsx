@@ -5,24 +5,20 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import NewCollection from "@/components/new-collection"
-import Dialog from "@/components/ui/dialog"
-import NewPromptPage from "@/components/new-prompt"
 import { Sidebar } from "./sidebar"
 import { PromptList } from "./prompt-list"
 import { useApp } from "@/contexts/appContext"
-import type { CollectionInsert, PromptInsert } from "@/lib/models"
+import type { CollectionInsert } from "@/lib/models"
 
 interface NavbarProps {
   children?: React.ReactNode
 }
 
 export default function Navbar({ children }: NavbarProps) {
-  const router = useRouter()
   const { state, actions } = useApp()
   const { user } = state
 
   const [isNewCollectionOpen, setIsNewCollectionOpen] = useState(false)
-  const [showCreateDialog, setShowCreateDialog] = useState(false)
 
   const allowedVisibilities = ["public", "private", "unlisted"] as const
   type Visibility = (typeof allowedVisibilities)[number]
@@ -70,42 +66,6 @@ export default function Navbar({ children }: NavbarProps) {
     }
   }
 
-  const handleCreatePrompt = async (promptData: PromptInsert) => {
-    try {
-      if (!user?.id) {
-        toast.error("User not authenticated")
-        return
-      }
-
-      const tags = Array.isArray(promptData.tags)
-        ? promptData.tags.map((tag: string) => tag.trim()).filter(Boolean)
-        : (promptData.tags ?? "")
-            .split(",")
-            .map((tag: string) => tag.trim())
-            .filter(Boolean)
-      const visibility: Visibility = allowedVisibilities.includes(promptData.visibility as Visibility)
-        ? (promptData.visibility as Visibility)
-        : "private"
-
-      const transformedPrompt: PromptInsert = {
-        title: promptData.title,
-        description: promptData.description,
-        tags,
-        content: promptData.content,
-        visibility,
-        images: promptData.images,
-      }
-
-      const newPrompt = await actions.createPrompt(transformedPrompt)
-      toast.success("Prompt created successfully")
-      setShowCreateDialog(false)
-      router.push(`/prompt/${newPrompt.id}`)
-    } catch (error) {
-      console.error("Error creating prompt:", error)
-      toast.error("Failed to create prompt")
-    }
-  }
-
   return (
     <div className="min-h-screen bg-[var(--black)] w-full">
       <div className="h-screen">
@@ -116,7 +76,7 @@ export default function Navbar({ children }: NavbarProps) {
           </div>
 
           {/* Center Column - Prompt List */}
-          <PromptList onCreatePrompt={() => setShowCreateDialog(true)} />
+          <PromptList />
 
           {/* Right Column - Main Content */}
           <div className="flex-1 h-full">{children}</div>
@@ -130,10 +90,6 @@ export default function Navbar({ children }: NavbarProps) {
         onSubmit={handleCreateCollection}
       />
 
-      {/* Create Prompt Dialog */}
-      <Dialog isOpen={showCreateDialog} onClose={() => setShowCreateDialog(false)} title="" maxWidth="max-w-3xl">
-        <NewPromptPage onSubmit={handleCreatePrompt} onCancel={() => setShowCreateDialog(false)} />
-      </Dialog>
     </div>
   )
 }

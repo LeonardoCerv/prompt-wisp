@@ -12,6 +12,8 @@ export default function Prompt() {
   const user = state.user
   const [query, setQuery] = useState("");
   const allFilteredPrompts: PromptData[] = search?.searchPrompts(query) || [];
+  console.log("All filtered prompts:", allFilteredPrompts);
+  
   const handlePromptSelect = (prompt: PromptData) => {
     actions.setSelectedPrompt?.(prompt);
     window.location.href = `/prompt/${prompt.id}`;

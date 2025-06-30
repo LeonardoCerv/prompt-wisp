@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cva, type VariantProps } from "class-variance-authority"
-import { cn } from '@/lib/utils/utils'
+import { cn } from '@/lib/utils'
 
 interface DialogProps extends VariantProps<typeof dialogVariants> {
   isOpen: boolean
@@ -32,7 +32,7 @@ const dialogVariants = cva(
   }
 )
 
-export default function Dialog({ isOpen, onClose, title, children, maxWidth = "max-w-md", variant = "default" }: DialogProps) {
+export default function Dialog({ isOpen, onClose, title, children, maxWidth = "max-w-full sm:max-w-lg md:max-w-2xl lg:max-w-3xl xl:max-w-4xl 2xl:max-w-7xl", variant = "default" }: DialogProps) {
   const dialogRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
