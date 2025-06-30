@@ -17,6 +17,9 @@ export function CollectionsSection({ onCreateCollection }: CollectionsSectionPro
    const { state, actions } = useApp()
    const { collections, loading } = state
    const { collectionsExpanded } = state.ui
+
+   console.log("CollectionsSection state:", collections)
+
    const { selectedFilter, selectedCollection } = state.filters
    const [hoveredCollection, setHoveredCollection] = useState<string | null>(null)
 

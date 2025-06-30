@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { createContext, useContext, useReducer, useCallback, useEffect, useMemo } from "react"
-import type { PromptData, PromptInsert, CollectionData, CollectionInsert, CollectionUpdate } from "@/lib/models"
+import { type PromptData, type PromptInsert, type CollectionData, type CollectionInsert, type CollectionUpdate, Collection } from "@/lib/models"
 import Prompt from "@/lib/models/prompt"
 
 import UsersPrompts from "@/lib/models/usersPrompts"
@@ -298,10 +298,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             prompts.push(prompt)
           }
         }
-        // Sort: non-deleted first, then deleted
+        // Sort: non-deleted first (by updated_at desc), then deleted (by updated_at desc)
         const sortedPrompts = [
-          ...prompts.filter((p) => !p.deleted),
-          ...prompts.filter((p) => p.deleted),
+          ...prompts
+            .filter((p) => !p.deleted)
+            .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()),
+          ...prompts
+            .filter((p) => p.deleted)
+            .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()),
         ]
         console.log("Processed prompts:", sortedPrompts)
 
@@ -317,10 +321,31 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const loadCollections = useCallback(async () => {
     dispatch({ type: "SET_LOADING", payload: { key: "collections", value: true } })
     try {
-      const response = await fetch("/api/collections")
+      const response = await fetch("/api/user/collections")
       if (response.ok) {
         const data = await response.json()
-        dispatch({ type: "SET_COLLECTIONS", payload: data.collections || [] })
+
+        // For each prompt in data, call await Prompt.findById(prompt)
+        // and return the array of objects
+        const collectionsRaw = data.collection || data || []
+        const collections: CollectionData[] = []
+        for (const collection of collectionsRaw) {
+          // If prompt is an id, fetch the full object
+          if (typeof collection === "string") {
+            const fullPrompt = await Collection.findById(collection)
+            if (fullPrompt) collections.push(fullPrompt)
+          } else {
+            collections.push(collection)
+          }
+        }
+        // Sort: non-deleted first, then deleted
+        const sortedCollections = [
+          ...collections.filter((p) => !p.deleted)
+          .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()),
+        ]
+        console.log("Processed collections:", sortedCollections)
+
+        dispatch({ type: "SET_COLLECTIONS", payload: sortedCollections})
       }
     } catch (error) {
       console.error("Error loading collections:", error)
@@ -348,10 +373,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const loadTags = useCallback(async () => {
     dispatch({ type: "SET_LOADING", payload: { key: "tags", value: true } })
     try {
-      const response = await fetch("/api/prompts/tags")
+     const response = await fetch("/api/user/prompts")
       if (response.ok) {
         const data = await response.json()
-        dispatch({ type: "SET_TAGS", payload: data })
+        console.log("Loaded prompts:", data)
+
+        // For each prompt in data, call await Prompt.findById(prompt)
+        // and return the array of objects
+        console.log("Raw prompts:", data)
+        const tags = await Prompt.findAllTags(data)
+
+        console.log("Processed prompts:", tags)
+        dispatch({ type: "SET_TAGS", payload: tags })
       }
     } catch (error) {
       console.error("Error loading tags:", error)
@@ -468,10 +501,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   )
 
   const updatePrompt = useCallback(async (id: string, updates: Partial<PromptData>) => {
-    const response = await fetch(`/api/prompts/${id}`, {
-      method: "PATCH",
+    const response = await fetch(`/api/prompts/`, {
+      method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(updates),
+      body: JSON.stringify({id, updates}),
     })
 
     if (!response.ok) {
@@ -497,10 +530,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const restorePrompt = useCallback(
     async (id: string) => {
-      const response = await fetch("/api/prompts/restore", {
-        method: "POST",
+      const response = await fetch("/api/prompts/", {
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ promptId: id }),
+        body: JSON.stringify({ id: id, updates: { deleted: false } }),
       })
 
       if (!response.ok) {

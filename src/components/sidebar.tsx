@@ -1,11 +1,12 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { Trash2 } from "lucide-react"
+import { LogOut, Trash2, User2 } from "lucide-react"
 import { NavigationSection } from "./navigation-section"
 import { CollectionsSection } from "./collections-section"
 import { TagsSection } from "./tags-section"
 import { useApp } from "@/contexts/appContext"
+import {signout} from './actions'
 
 interface SidebarProps {
   onCreateCollection: () => void
@@ -17,6 +18,13 @@ export function Sidebar({ onCreateCollection }: SidebarProps) {
 
   return (
     <div className="w-[240px] max-w-[240px] flex-shrink-0 h-screen bg-[var(--black)] px-2 py-6 border-r border-[var(--moonlight-silver-dim)]/30 flex flex-col fixed top-0 left-0 z-50">
+      <div className="my-6 flex p-3 items-center gap-2 text-moonlight-silver">
+        <User2 size={16} />
+          <span className="text-sm">
+            {state.user?.user_metadata.full_name || state.user?.email}
+          </span>
+      </div>
+
       {/* Header - Fixed at top */}
       <NavigationSection />
 
@@ -41,6 +49,16 @@ export function Sidebar({ onCreateCollection }: SidebarProps) {
           <Trash2 size={16} className="flex-shrink-0" />
           <span className="truncate">Recently Deleted</span>
         </Button>
+    
+              <Button 
+                onClick={signout}
+                variant="outline" 
+                size="default"
+                className="gap-2"
+              >
+                <LogOut size={16} />
+                <span className="hidden sm:inline">Logout</span>
+              </Button>
       </div>
     </div>
   )

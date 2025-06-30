@@ -59,7 +59,7 @@ export default function Header( { user }: { user: User | null }) {
               <div className="hidden sm:flex items-center gap-2 text-moonlight-silver">
                 <User2 size={16} />
                 <span className="text-sm">
-                  {user.user_metadata.username}
+                  {user.user_metadata.full_name || user.email}
                 </span>
               </div>
               <Button 

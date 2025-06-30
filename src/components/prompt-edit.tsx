@@ -362,7 +362,7 @@ export default function PromptEdit({
             </Button>
           )}
 
-          {/* Visibility Button (for owner, not deleted) */}
+          {/* Visibility Button (for owner, not deleted) 
           {isOwner && !selectedPrompt.deleted && (
             <Popover>
               <PopoverTrigger asChild>
@@ -417,6 +417,7 @@ export default function PromptEdit({
               </PopoverContent>
             </Popover>
           )}
+            */}
 
           {/* Owner Actions */}
           {isOwner && (

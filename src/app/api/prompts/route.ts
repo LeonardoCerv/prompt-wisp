@@ -1,6 +1,6 @@
 // API endpoint for GET/POST prompts
 import { NextRequest, NextResponse } from 'next/server';
-import Prompt, { PromptInsert } from '@/lib/models/prompt';
+import Prompt, { PromptInsert, PromptUpdate } from '@/lib/models/prompt';
 import UsersPrompts, { UsersPromptsData } from '@/lib/models/usersPrompts';
 import { createClient } from '@/lib/utils/supabase/server';
 
@@ -107,13 +107,14 @@ export async function PUT(req: NextRequest) {
     }
 
     // Prepare update data (only update provided fields)
-    const updateData: PromptInsert = {};
+    const updateData: PromptUpdate = {};
     if (updates.title !== undefined) updateData.title = updates.title;
     if (updates.description !== undefined) updateData.description = updates.description;
     if (updates.tags !== undefined) updateData.tags = updates.tags;
     if (updates.visibility !== undefined) updateData.visibility = updates.visibility;
     if (updates.images !== undefined) updateData.images = updates.images;
     if (updates.content !== undefined) updateData.content = updates.content;
+    if (updates.deleted !== undefined) updateData.deleted = updates.deleted;
 
     const updatedPrompt = await Prompt.update(id, updateData);
     return NextResponse.json(updatedPrompt);

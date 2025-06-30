@@ -65,6 +65,37 @@ class Prompt {
         }
     }
 
+    static async findAllTags(promptIds: string[]): Promise<string[]> {
+        try {
+            const supabase = await createClient();
+            const { data, error } = await supabase
+                .from('prompts')
+                .select('tags')
+                .in('id', promptIds)
+                .eq('deleted', false)
+                .order('tags', { ascending: true });
+
+            console.log("Fetched tags:", data);
+
+            if (error) {
+                throw new Error(`Error fetching tags: ${error.message}`);
+            }
+
+            // Extract unique tags from all prompts
+            const tagsSet = new Set<string>();
+            data.forEach((prompt: { tags: string[] }) => {
+                prompt.tags.forEach(tag => tagsSet.add(tag));
+            });
+
+            console.log("Unique tags:", Array.from(tagsSet));
+
+            return Array.from(tagsSet);
+        } catch (error) {
+            console.error("Error fetching all tags:", error);
+            throw error;
+        }
+    }
+
     // Get prompt by ID
     static async findById(id: string): Promise<PromptData | null> {
         try {
@@ -127,7 +158,6 @@ class Prompt {
                 .from('prompts')
                 .update(updateData)
                 .eq('id', id)
-                .eq('deleted', false)
                 .select()
                 .single();
 
