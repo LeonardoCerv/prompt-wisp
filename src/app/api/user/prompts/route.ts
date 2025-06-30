@@ -11,12 +11,10 @@ export async function GET() {
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     
     if (authError || !user) {
-      console.log('Auth error:', authError);
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const prompts = await UsersPrompts.getPrompts(user.id);
-    console.log('Prompts retrieved successfully:', prompts);
 
     return NextResponse.json(prompts, { status: 201 });
   } catch (error) {
@@ -33,12 +31,10 @@ export async function POST(req: NextRequest) {
         const { data: { user }, error: authError } = await supabase.auth.getUser();
         
         if (authError || !user) {
-            console.log('Auth error:', authError);
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
         const data = await req.json();
-        console.log('Request data:', data);
 
         if (!data.prompt_id) {
             return NextResponse.json({ error: 'Missing prompt_id' }, { status: 400 });
@@ -54,7 +50,6 @@ export async function POST(req: NextRequest) {
 
 
         const result = await UsersPrompts.create(usersPromptsData);
-        console.log('User prompt created successfully:', result);
 
         return NextResponse.json(result, { status: 201 });
     } catch (error) {
@@ -71,12 +66,10 @@ export async function DELETE(req: NextRequest) {
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     
     if (authError || !user) {
-      console.log('Auth error:', authError);
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const data = await req.json();
-    console.log('Request data:', data);
     const { prompt_id } = data;
 
     if ( !prompt_id) {
@@ -84,7 +77,6 @@ export async function DELETE(req: NextRequest) {
     }
 
     const result = await UsersPrompts.hardDelete(prompt_id);
-    console.log('Connection deleted successfully:', result);
 
     return NextResponse.json(result, { status: 201 });
   } catch (error) {
@@ -101,12 +93,10 @@ export async function PUT(req: NextRequest) {
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     
     if (authError || !user) {
-      console.log('Auth error:', authError);
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const data = await req.json();
-    console.log('Request data:', data);
     const { prompt_id, user_role } = data;
 
     if (!user_role || !prompt_id) {
@@ -114,7 +104,6 @@ export async function PUT(req: NextRequest) {
     }
 
     const result = await UsersPrompts.updateRole(prompt_id, user.id, user_role);
-    console.log('User role updated successfully:', result);
 
     return NextResponse.json(result, { status: 201 });
   } catch (error) {

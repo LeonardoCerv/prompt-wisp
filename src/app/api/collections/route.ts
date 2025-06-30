@@ -29,7 +29,6 @@ export async function POST(request: NextRequest) {
     }
 
     const collection = await Collection.create(collectionData);
-    console.log("Collection created:", collection);
 
     if (prompts && prompts.length > 0) {
       // Ensure prompts are in the correct format
@@ -92,7 +91,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Missing collection_id' }, { status: 400 });
     }
 
-    // Check ownership
+    // Check ownerships
     const role = await UsersCollections.getUserRole(id, user.id);
     if (role !== 'owner' && role !== 'collaborator') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });

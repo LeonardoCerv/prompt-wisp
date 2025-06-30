@@ -11,12 +11,10 @@ export async function GET() {
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     
     if (authError || !user) {
-      console.log('Auth error:', authError);
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const collections = await UsersCollections.getCollections(user.id);
-    console.log('collections retrieved successfully:', collections);
 
     return NextResponse.json(collections, { status: 201 });
   } catch (error) {
@@ -33,12 +31,10 @@ export async function POST(req: NextRequest) {
         const { data: { user }, error: authError } = await supabase.auth.getUser();
         
         if (authError || !user) {
-            console.log('Auth error:', authError);
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
         const data = await req.json();
-        console.log('Request data:', data);
 
         if (!data.collection_id) {
             return NextResponse.json({ error: 'Missing collection_id' }, { status: 400 });
@@ -53,7 +49,6 @@ export async function POST(req: NextRequest) {
         if (data.favorite !== undefined) usersCollectionsData.favorite = data.favorite;
 
         const result = await UsersCollections.create(usersCollectionsData);
-        console.log('User collection created successfully:', result);
 
         return NextResponse.json(result, { status: 201 });
     } catch (error) {
@@ -70,12 +65,10 @@ export async function DELETE(req: NextRequest) {
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     
     if (authError || !user) {
-      console.log('Auth error:', authError);
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const data = await req.json();
-    console.log('Request data:', data);
     const { collection_id } = data;
 
     if ( !collection_id) {
@@ -83,7 +76,6 @@ export async function DELETE(req: NextRequest) {
     }
 
     const result = await UsersCollections.delete(collection_id, user.id);
-    console.log('Connection deleted successfully:', result);
 
     return NextResponse.json(result, { status: 201 });
   } catch (error) {
@@ -100,12 +92,10 @@ export async function PUT(req: NextRequest) {
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     
     if (authError || !user) {
-      console.log('Auth error:', authError);
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const data = await req.json();
-    console.log('Request data:', data);
     const { collection_id, user_role } = data;
 
     if (!user_role || !collection_id) {
@@ -113,7 +103,6 @@ export async function PUT(req: NextRequest) {
     }
 
     const result = await UsersCollections.updateRole(collection_id, user.id, user_role);
-    console.log('User role updated successfully:', result);
 
     return NextResponse.json(result, { status: 201 });
   } catch (error) {

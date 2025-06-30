@@ -283,7 +283,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const response = await fetch("/api/user/prompts")
       if (response.ok) {
         const data = await response.json()
-        console.log("Loaded prompts:", data)
 
         // For each prompt in data, call await Prompt.findById(prompt)
         // and return the array of objects
@@ -307,7 +306,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             .filter((p) => p.deleted)
             .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()),
         ]
-        console.log("Processed prompts:", sortedPrompts)
 
         dispatch({ type: "SET_PROMPTS", payload: sortedPrompts })
       }
@@ -343,7 +341,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           ...collections.filter((p) => !p.deleted)
           .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()),
         ]
-        console.log("Processed collections:", sortedCollections)
 
         dispatch({ type: "SET_COLLECTIONS", payload: sortedCollections})
       }
@@ -376,14 +373,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
      const response = await fetch("/api/user/prompts")
       if (response.ok) {
         const data = await response.json()
-        console.log("Loaded prompts:", data)
 
         // For each prompt in data, call await Prompt.findById(prompt)
         // and return the array of objects
-        console.log("Raw prompts:", data)
         const tags = await Prompt.findAllTags(data)
 
-        console.log("Processed prompts:", tags)
         dispatch({ type: "SET_TAGS", payload: tags })
       }
     } catch (error) {
@@ -973,7 +967,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
       // Filter prompts user has access to
       const accessiblePrompts = state.prompts
-      console.log("Accessible prompts:", accessiblePrompts)
 
       const q = query.trim().toLowerCase()
       if (!q) return accessiblePrompts

@@ -75,8 +75,6 @@ class Prompt {
                 .eq('deleted', false)
                 .order('tags', { ascending: true });
 
-            console.log("Fetched tags:", data);
-
             if (error) {
                 throw new Error(`Error fetching tags: ${error.message}`);
             }
@@ -86,8 +84,6 @@ class Prompt {
             data.forEach((prompt: { tags: string[] }) => {
                 prompt.tags.forEach(tag => tagsSet.add(tag));
             });
-
-            console.log("Unique tags:", Array.from(tagsSet));
 
             return Array.from(tagsSet);
         } catch (error) {

@@ -210,8 +210,6 @@ class UsersCollections {
                 throw new Error(`Error updating collection: ${error.message}`);
             }
 
-            console.log("Collection updated successfully:", data);
-
             return data as UsersCollectionsData;
         } catch (error) {
             console.error("Error updating collection:", error);
@@ -242,8 +240,6 @@ class UsersCollections {
             if (error) {
                 throw new Error(`Error updating collection: ${error.message}`);
             }
-
-            console.log("Collection updated successfully:", data);
 
             return data as UsersCollectionsData;
         } catch (error) {

@@ -29,9 +29,7 @@ export async function POST(req: NextRequest) {
       deleted: false
     }
 
-    console.log("Creating prompt with data:", promptData);
     const prompt = await Prompt.create(promptData);
-    console.log("Prompt created:", prompt);
 
     const usersPromptsData: UsersPromptsData = {
         prompt_id: prompt.id,
@@ -40,7 +38,6 @@ export async function POST(req: NextRequest) {
     };
 
     await UsersPrompts.create(usersPromptsData);
-    console.log("UsersPrompts entry created:", usersPromptsData);
 
    return NextResponse.json(prompt);
   } catch (error) {
@@ -95,7 +92,7 @@ export async function PUT(req: NextRequest) {
 
     const data = await req.json();
     const { id, updates } = data;
-    console.log("Updating prompt with ID:", id, "and updates:", updates);
+
     if (!id) {
       return NextResponse.json({ error: 'Missing prompt_id' }, { status: 400 });
     }

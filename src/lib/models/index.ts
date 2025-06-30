@@ -10,5 +10,3 @@ export type { CollectionPromptsData } from './collectionPrompts';
 
 export { default as UsersPrompts } from './usersPrompts';
 export type { UsersPromptsData } from './usersPrompts';
-
-export type { UserData } from './user';
