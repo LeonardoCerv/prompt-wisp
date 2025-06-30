@@ -1,10 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
-import { useRouter } from "next/navigation"
 import { toast } from "sonner"
-import NewCollection from "@/components/new-collection"
 import { Sidebar } from "./sidebar"
 import { PromptList } from "./prompt-list"
 import { useApp } from "@/contexts/appContext"
@@ -17,8 +14,6 @@ interface NavbarProps {
 export default function Navbar({ children }: NavbarProps) {
   const { state, actions } = useApp()
   const { user } = state
-
-  const [isNewCollectionOpen, setIsNewCollectionOpen] = useState(false)
 
   const handleCreateCollection = async () => {
     try {
@@ -39,7 +34,6 @@ export default function Navbar({ children }: NavbarProps) {
       const newCollection = await actions.createCollection(requestBody)
 
       toast.success("Collection created successfully")
-      setIsNewCollectionOpen(false)
       // Automatically switch to the new collection view
       actions.setFilter("collection", { collection: newCollection.id })
 

@@ -1,11 +1,9 @@
 "use client"
 
 import { useRef, useEffect, useState, useCallback } from "react"
-import { Plus, Edit, Trash2, Type } from "lucide-react"
+import { Plus, Trash2, Type } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useApp } from "@/contexts/appContext"
-import EditCollectionDialog from "@/components/edit-collection"
-import type { CollectionData } from "@/lib/models/collection"
 import { toast } from "sonner"
 import { Textarea } from "./ui/textarea"
 
@@ -35,29 +33,6 @@ export function CollectionActions({
   const [promptSearch, setPromptSearch] = useState("")
   const [selectedPromptIds, setSelectedPromptIds] = useState<string[]>([])
 
-  // Edit Collection dialog state
-  const [showEditDialog, setShowEditDialog] = useState(false)
-
-  // Get all prompts that user has access to but not already in this collection
-  const collectionPromptIds = utils.getCollectionPrompts(collectionId).map((p) => p.id)
-  const availablePrompts = state.prompts.filter(
-    (p) => !p.deleted && utils.hasAccessToPrompt(p.id) && !collectionPromptIds.includes(p.id),
-  )
-
-  const filteredPrompts = availablePrompts.filter(
-    (p) =>
-      p.title.toLowerCase().includes(promptSearch.toLowerCase()) ||
-      (p.description?.toLowerCase().includes(promptSearch.toLowerCase()) ?? false) ||
-      (p.tags && p.tags.some((tag) => tag.toLowerCase().includes(promptSearch.toLowerCase()))),
-  )
-
-  // Sort prompts alphabetically by title if not searching
-  const sortedPrompts =
-    promptSearch.trim() === "" ? [...availablePrompts].sort((a, b) => a.title.localeCompare(b.title)) : filteredPrompts
-
-  // Find the current collection data from state
-  const collectionData = state.collections?.find((c: CollectionData) => c.id === collectionId)
-
   useEffect(() => {
     if (showRenameDialog && inputRef.current) {
       inputRef.current.focus()
@@ -77,20 +52,19 @@ export function CollectionActions({
   }, [collectionTitle, onRequestClose])
 
   useEffect(() => {
-    if (!showRenameDialog && !showAddPromptDialog && !showEditDialog && !popupRef.current) return
+    if (!showRenameDialog && !showAddPromptDialog && !popupRef.current) return
     const handleClick = (e: MouseEvent) => {
       const addPromptDialog = document.getElementById("add-prompt-dialog")
       const isInRename = showRenameDialog && inputRef.current && inputRef.current.contains(e.target as Node)
       const isInAddPrompt = showAddPromptDialog && addPromptDialog && addPromptDialog.contains(e.target as Node)
-      const isInEditDialog = showEditDialog
       const isInMainPopup = popupRef.current && popupRef.current.contains(e.target as Node)
-      if (!isInRename && !isInAddPrompt && !isInMainPopup && !isInEditDialog) {
+      if (!isInRename && !isInAddPrompt && !isInMainPopup) {
         closeAllDialogs()
       }
     }
     window.addEventListener("mousedown", handleClick)
     return () => window.removeEventListener("mousedown", handleClick)
-  }, [showRenameDialog, showAddPromptDialog, showEditDialog, popupRef, closeAllDialogs])
+  }, [showRenameDialog, showAddPromptDialog, popupRef, closeAllDialogs])
 
   function closeRenameDialog(forceAll = false) {
     if (forceAll) return closeAllDialogs()
@@ -156,9 +130,26 @@ export function CollectionActions({
     setRenamePosition({ x: mouseX, y: mouseY })
   }
 
+  // Get all prompts that user has access to but not already in this collection
+  const collectionPromptIds = utils.getCollectionPrompts(collectionId).map((p) => p.id)
+  const availablePrompts = state.prompts.filter(
+    (p) => !p.deleted && utils.hasAccessToPrompt(p.id) && !collectionPromptIds.includes(p.id),
+  )
+
+  const filteredPrompts = availablePrompts.filter(
+    (p) =>
+      p.title.toLowerCase().includes(promptSearch.toLowerCase()) ||
+      (p.description?.toLowerCase().includes(promptSearch.toLowerCase()) ?? false) ||
+      (p.tags && p.tags.some((tag) => tag.toLowerCase().includes(promptSearch.toLowerCase()))),
+  )
+
+  // Sort prompts alphabetically by title if not searching
+  const sortedPrompts =
+    promptSearch.trim() === "" ? [...availablePrompts].sort((a, b) => a.title.localeCompare(b.title)) : filteredPrompts
+
   return (
     <>
-      {(showRenameDialog || showAddPromptDialog || showEditDialog) && (
+      {(showRenameDialog || showAddPromptDialog) && (
         <div
           style={{
             position: "fixed",
@@ -184,7 +175,7 @@ export function CollectionActions({
           borderRadius: 12,
           boxShadow: "0 8px 32px rgba(0,0,0,0.25)",
           padding: "10px 0",
-          display: showRenameDialog || showAddPromptDialog || showEditDialog ? "none" : "flex",
+          display: showRenameDialog || showAddPromptDialog ? "none" : "flex",
           flexDirection: "column",
           gap: 2,
           transition: "all 0.15s cubic-bezier(.4,0,.2,1)",

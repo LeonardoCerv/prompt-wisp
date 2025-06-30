@@ -7,8 +7,6 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
-import { Label } from "@/components/ui/label"
-import { Checkbox } from "@/components/ui/checkbox"
 import {
   Copy,
   Save,
@@ -16,8 +14,6 @@ import {
   RotateCcw,
   X,
   Lock,
-  Globe,
-  Users,
   FileText,
   ImageIcon,
   Star,
@@ -25,7 +21,6 @@ import {
 import { toast } from "sonner"
 import { useApp } from "@/contexts/appContext"
 import type { PromptData } from "@/lib/models/prompt"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 
 interface PromptEditProps {
   selectedPrompt: PromptData
@@ -79,8 +74,7 @@ export default function PromptEdit({
         // Check if favorited
         const favoriteCheck = utils.isFavorite(selectedPrompt.id)
         setIsFavorite(favoriteCheck)
-      } catch (error) {
-        console.error("Error checking permissions:", error)
+      } catch {
         setIsOwner(false)
         setCanEdit(false)
         setHasAccess(false)
@@ -121,9 +115,8 @@ export default function PromptEdit({
       await actions.toggleFavoritePrompt(selectedPrompt.id)
       setIsFavorite(utils.isFavorite(selectedPrompt.id))
       toast.success(isFavorite ? "Removed from favorites" : "Added to favorites")
-    } catch (error) {
+    } catch {
       toast.error("Failed to update favorite status")
-      console.error("Error toggling favorite:", error)
     }
   }
 
@@ -131,7 +124,7 @@ export default function PromptEdit({
     try {
       await navigator.clipboard.writeText(selectedPrompt.content)
       toast.success(`"${selectedPrompt.title}" copied to clipboard`)
-    } catch (error) {
+    } catch {
       toast.error("Failed to copy to clipboard")
     }
   }
@@ -150,8 +143,7 @@ export default function PromptEdit({
       await actions.savePromptChanges(selectedPrompt.id, updates)
       setHasUnsavedChanges(false)
       toast.success("Prompt updated successfully")
-    } catch (error) {
-      console.error("Error saving prompt:", error)
+    } catch {
       toast.error("Failed to save prompt")
     }
   }
@@ -160,7 +152,7 @@ export default function PromptEdit({
     try {
       await actions.savePrompt(selectedPrompt.id)
       toast.success("Prompt saved to your library")
-    } catch (error) {
+    } catch {
       toast.error("Failed to save prompt")
     }
   }
@@ -169,7 +161,7 @@ export default function PromptEdit({
     try {
       await actions.deletePrompt(selectedPrompt.id)
       toast.success("Prompt moved to Recently Deleted")
-    } catch (error) {
+    } catch {
       toast.error("Failed to delete prompt")
     }
   }
@@ -178,7 +170,7 @@ export default function PromptEdit({
     try {
       await actions.restorePrompt(selectedPrompt.id)
       toast.success("Prompt restored")
-    } catch (error) {
+    } catch {
       toast.error("Failed to restore prompt")
     }
   }
@@ -203,7 +195,7 @@ export default function PromptEdit({
     }
   }
 
-  // Visibility helpers
+  /* Visibility helpers
   const getVisibilityIcon = () => {
     switch (visibility) {
       case "public":
@@ -225,6 +217,7 @@ export default function PromptEdit({
         return "Private"
     }
   }
+    */
 
   // Auto-resize refs and effects
   const titleRef = useRef<HTMLTextAreaElement>(null)

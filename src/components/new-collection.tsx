@@ -30,7 +30,7 @@ export default function NewCollection({ open, onOpenChange, onSubmit }: NewColle
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!formData.title.trim()) return
+    if (!(formData.title || "").trim()) return
     setIsSubmitting(true)
     try {
       await onSubmit(formData)
@@ -43,6 +43,7 @@ export default function NewCollection({ open, onOpenChange, onSubmit }: NewColle
       })
       onOpenChange(false)
     } catch (error) {
+      console.error("Error creating collection:", error)
       // Optionally handle error
     } finally {
       setIsSubmitting(false)
@@ -105,7 +106,7 @@ export default function NewCollection({ open, onOpenChange, onSubmit }: NewColle
           </Button>
           <Button
             type="submit"
-            disabled={!formData.title.trim() || isSubmitting}
+            disabled={!(formData.title || "").trim() || isSubmitting}
             className="bg-[var(--wisp-blue)] hover:bg-[var(--wisp-blue)]/90 text-white font-medium shadow-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSubmitting ? "Creating..." : "Create Collection"}

@@ -2,17 +2,16 @@
 
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { BookOpen, Plus, PlusCircle, Loader2 } from "lucide-react"
+import { BookOpen, Plus, Loader2 } from "lucide-react"
 import { useApp } from "@/contexts/appContext"
 import { PromptActions } from "./prompt-actions"
 
 import PromptCard from "@/components/prompt-card"
 import { useRouter } from "next/navigation"
 import type { PromptData } from "@/lib/models"
-import { useMemo, useState } from "react"
+import { useMemo } from "react"
 import { toast } from "sonner"
 import Image from "next/image"
-import VisibilityType from "@/lib/models/prompt"
 
 export function PromptList() {
   const router = useRouter()

@@ -7,7 +7,6 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import Dialog from "@/components/ui/dialog"
-import UserSearchDropdown from "@/components/user-search-dropdown"
 import { Camera, Plus, Save, X } from "lucide-react"
 import { useApp } from "@/contexts/appContext"
 import Image from "next/image"
@@ -50,7 +49,6 @@ export default function EditCollectionDialog({ open, onClose, collectionId }: Ed
       images: collectionData?.images || [],
       id: collectionId,
     })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [collectionData, collectionId, open])
 
   const handleImageUpload = async (files: FileList | null) => {

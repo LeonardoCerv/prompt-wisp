@@ -1,6 +1,6 @@
 // API endpoint for GET/POST prompts
 import { NextRequest, NextResponse } from 'next/server';
-import Prompt, { PromptInsert, PromptUpdate } from '@/lib/models/prompt';
+import Prompt, { PromptUpdate } from '@/lib/models/prompt';
 import UsersPrompts, { UsersPromptsData } from '@/lib/models/usersPrompts';
 import { createClient } from '@/lib/utils/supabase/server';
 

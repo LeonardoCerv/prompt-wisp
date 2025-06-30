@@ -990,7 +990,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         )
       }
     },
-    [state.prompts, state.user, state.userPrompts],
+    [state.prompts, state.user],
   )
 
   // Add the editCollection implementation:

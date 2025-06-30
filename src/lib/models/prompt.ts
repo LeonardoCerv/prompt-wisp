@@ -239,6 +239,30 @@ class Prompt {
             throw error;
         }
     }
+
+    static async cleanupOldDeletedPrompts(days: number = 30): Promise<number> {
+        try {
+            const supabase = await createClient();
+            const cutoffDate = new Date();
+            cutoffDate.setDate(cutoffDate.getDate() - days);
+
+            const { data, error } = await supabase
+                .from('prompts')
+                .delete()
+                .lt('updated_at', cutoffDate.toISOString())
+                .eq('deleted', true)
+                .select();
+
+            if (error) {
+                throw new Error(`Error cleaning up old deleted prompts: ${error.message}`);
+            }
+
+            return data ? data.length : 0;
+        } catch (error) {
+            console.error("Error cleaning up old deleted prompts:", error);
+            throw error;
+        }
+    }
 }
 
 export default Prompt;
