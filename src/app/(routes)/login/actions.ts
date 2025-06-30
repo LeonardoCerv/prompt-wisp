@@ -22,7 +22,7 @@ export async function login(formData: FormData) {
   }
 
   revalidatePath('/', 'layout')
-  redirect('/')
+  redirect('/prompt')
 }
 
 export async function handleSignInWithGoogle() {
@@ -44,5 +44,5 @@ export async function handleSignInWithGoogle() {
   }
 
   revalidatePath('/', 'layout')
-  redirect('/')
+  redirect('/prompt')
 }

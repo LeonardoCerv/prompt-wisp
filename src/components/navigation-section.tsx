@@ -1,7 +1,7 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { Home, Star, BookOpen, Edit, Archive, Search } from "lucide-react"
+import { Home, BookOpen, Search } from "lucide-react"
 import Link from "next/link"
 import { useApp } from "@/contexts/appContext"
 import { useState } from "react"
@@ -41,7 +41,7 @@ export function NavigationSection() {
         selectedFilter === "home"
           ? "bg-[var(--wisp-blue)] text-white shadow-sm"
           : "text-[var(--moonlight-silver-bright)]",
-    },
+    },/*
     {
       key: "favorites",
       icon: Star,
@@ -52,7 +52,7 @@ export function NavigationSection() {
         selectedFilter === "favorites"
           ? "bg-[var(--wisp-blue)] text-white shadow-sm"
           : "text-[var(--moonlight-silver-bright)]",
-    },
+    },*/
     {
       key: "all",
       icon: BookOpen,
@@ -63,7 +63,7 @@ export function NavigationSection() {
         selectedFilter === "all"
           ? "bg-[var(--wisp-blue)] text-white shadow-sm"
           : "text-[var(--moonlight-silver-bright)]",
-    },
+    },/*
     {
       key: "your",
       icon: Edit,
@@ -85,7 +85,7 @@ export function NavigationSection() {
         selectedFilter === "saved"
           ? "bg-[var(--flare-cyan)] text-white shadow-sm"
           : "text-[var(--moonlight-silver-bright)]",
-    },
+    },*/
   ]
 
   return (
