@@ -86,7 +86,7 @@ export default function SignupPage() {
               </div>
             </div>
 
-            {/* Social Login */}
+            {/* Social Login 
             <Button variant="outline" className="w-full h-10 border-border hover:bg-muted bg-transparent" onClick={() => handleSignInWithGoogle()}>
               <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
                 <path
@@ -108,6 +108,7 @@ export default function SignupPage() {
               </svg>
               Continue with Google
             </Button>
+            */}
 
             {/* Login Link */}
             <div className="text-center">
