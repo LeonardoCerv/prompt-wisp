@@ -483,8 +483,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const deletePrompt = useCallback(async (id: string) => {
-    const response = await fetch(`/api/prompts?id=${id}`, {
+    const response = await fetch(`/api/prompts`, {
       method: "DELETE",
+      body: JSON.stringify({prompt_id: id}),
     })
 
     if (!response.ok) {
