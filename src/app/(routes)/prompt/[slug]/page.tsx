@@ -1,5 +1,5 @@
 "use client"
-import { notFound, useParams, useRouter } from "next/navigation"
+import { notFound, useParams } from "next/navigation"
 import { useEffect, useState } from "react"
 import PromptEdit from "@/components/prompt-edit"
 import { Button } from "@/components/ui/button"
@@ -14,7 +14,6 @@ import { Textarea } from "@/components/ui/textarea"
 
 export default function PromptSlug() {
   const params = useParams()
-  const router = useRouter()
   const { slug } = params
   const { state, actions, utils } = useApp()
   const { prompts, user } = state

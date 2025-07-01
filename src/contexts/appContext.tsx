@@ -581,7 +581,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
       await loadUserRelationships()
     },
-    [loadUserRelationships],
+    [loadUserRelationships, state.userPrompts],
   )
 
   const savePromptChanges = useCallback(async (id: string, updates: Partial<PromptData>) => {

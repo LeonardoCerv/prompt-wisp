@@ -468,7 +468,7 @@ export default function PromptEdit({ selectedPrompt }: PromptEditProps) {
                           Unlisted
                         </Label>
                         <p className="text-xs text-[var(--moonlight-silver)]/60">
-                          Only people you've shared with can view
+                          Only people you&apos;ve shared with can view
                         </p>
                       </div>
                     </div>
