@@ -217,7 +217,7 @@ interface AppContextType {
     deletePrompt: (id: string) => Promise<void>
     restorePrompt: (id: string) => Promise<void>
     toggleFavoritePrompt: (id: string) => Promise<void>
-    savePrompt: (id: string) => Promise<void>
+    savePrompt: (id: string, role?: string) => Promise<void>
     savePromptChanges: (id: string, updates: Partial<PromptData>) => Promise<void>
 
     // Collection operations
@@ -564,11 +564,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   )
 
   const savePrompt = useCallback(
-    async (id: string) => {
-      const response = await fetch("/api/prompts/save", {
+    async (id: string, role: string = "buyer") => {
+      if (state.userRoles.prompts[id] === role) {
+        // Already has this role, no need to save again
+        return
+      }
+      const response = await fetch("/api/user/prompts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ promptId: id }),
+        body: JSON.stringify({ prompt_id: id, user_role: role }),
       })
 
       if (!response.ok) {

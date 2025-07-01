@@ -7,6 +7,9 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Label } from "@/components/ui/label"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   Copy,
   Save,
@@ -17,6 +20,10 @@ import {
   FileText,
   ImageIcon,
   Star,
+  Share,
+  Globe,
+  Users,
+  LinkIcon,
 } from "lucide-react"
 import { toast } from "sonner"
 import { useApp } from "@/contexts/appContext"
@@ -26,9 +33,7 @@ interface PromptEditProps {
   selectedPrompt: PromptData
 }
 
-export default function PromptEdit({
-  selectedPrompt
-}: PromptEditProps) {
+export default function PromptEdit({ selectedPrompt }: PromptEditProps) {
   const { state, utils, actions } = useApp()
   const { user } = state
 
@@ -39,7 +44,7 @@ export default function PromptEdit({
   const [tags, setTags] = useState<string[]>(selectedPrompt.tags || [])
   const [newTag, setNewTag] = useState("")
   const [visibility, setVisibility] = useState<"private" | "public" | "unlisted">(
-    (selectedPrompt.visibility as "private" | "public" | "unlisted") || "private"
+    (selectedPrompt.visibility as "private" | "public" | "unlisted") || "private",
   )
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
 
@@ -129,6 +134,16 @@ export default function PromptEdit({
     }
   }
 
+  const handleCopyLink = async () => {
+    try {
+      const url = `${window.location.origin}/prompt/${selectedPrompt.id}`
+      await navigator.clipboard.writeText(url)
+      toast.success("Link copied to clipboard")
+    } catch {
+      toast.error("Failed to copy link")
+    }
+  }
+
   const handleSave = async () => {
     if (!hasUnsavedChanges) return
     try {
@@ -175,6 +190,22 @@ export default function PromptEdit({
     }
   }
 
+  const handleVisibilityChange = async (newVisibility: "private" | "public" | "unlisted") => {
+    try {
+      setVisibility(newVisibility)
+      const updates: Partial<PromptData> = {
+        visibility: newVisibility,
+        updated_at: new Date().toISOString(),
+      }
+      await actions.savePromptChanges(selectedPrompt.id, updates)
+      toast.success(`Prompt visibility updated to ${newVisibility}`)
+    } catch {
+      toast.error("Failed to update visibility")
+      // Revert on error
+      setVisibility(selectedPrompt.visibility || "private")
+    }
+  }
+
   // Tag helpers
   const handleAddTag = () => {
     const trimmedTag = newTag.trim()
@@ -195,7 +226,7 @@ export default function PromptEdit({
     }
   }
 
-  /* Visibility helpers
+  // Visibility helpers
   const getVisibilityIcon = () => {
     switch (visibility) {
       case "public":
@@ -217,7 +248,17 @@ export default function PromptEdit({
         return "Private"
     }
   }
-    */
+
+  const getVisibilityDescription = () => {
+    switch (visibility) {
+      case "public":
+        return "Anyone with the link can view and save this prompt"
+      case "unlisted":
+        return "Only people you've shared with can view this prompt"
+      default:
+        return "Only you can view this prompt"
+    }
+  }
 
   // Auto-resize refs and effects
   const titleRef = useRef<HTMLTextAreaElement>(null)
@@ -252,11 +293,11 @@ export default function PromptEdit({
     const days = Math.floor(diffMins / 1440)
     const hours = Math.floor((diffMins % 1440) / 60)
     const minutes = diffMins % 60
-    let result = ''
-    if (days > 0) result += `${days} day${days > 1 ? 's' : ''} `
-    if (hours > 0) result += `${hours} hour${hours > 1 ? 's' : ''} `
-    if (minutes > 0 || (!days && !hours)) result += `${minutes} minute${minutes !== 1 ? 's' : ''} `
-    return result.trim() + ' ago'
+    let result = ""
+    if (days > 0) result += `${days} day${days > 1 ? "s" : ""} `
+    if (hours > 0) result += `${hours} hour${hours > 1 ? "s" : ""} `
+    if (minutes > 0 || (!days && !hours)) result += `${minutes} minute${minutes !== 1 ? "s" : ""} `
+    return result.trim() + " ago"
   }
 
   // Show loading state while checking permissions
@@ -316,13 +357,27 @@ export default function PromptEdit({
               Unsaved Changes
             </Badge>
           )}
+          {/* Visibility Badge */}
+          <Badge
+            variant="secondary"
+            className={`flex items-center gap-1 ${
+              visibility === "public"
+                ? "bg-green-500/20 text-green-400 border-green-500/30"
+                : visibility === "unlisted"
+                  ? "bg-blue-500/20 text-blue-400 border-blue-500/30"
+                  : "bg-gray-500/20 text-gray-400 border-gray-500/30"
+            }`}
+          >
+            {getVisibilityIcon()}
+            {getVisibilityLabel()}
+          </Badge>
         </div>
 
         <div className="flex items-center gap-2">
-        {/* Last edited at field at the top right */}
-        <div className="hidden md:flex items-end text-xs text-[var(--moonlight-silver)]">
-          <span>Last edited: {formatLastEdited(selectedPrompt.updated_at)}</span>
-        </div>
+          {/* Last edited at field at the top right */}
+          <div className="hidden md:flex items-end text-xs text-[var(--moonlight-silver)]">
+            <span>Last edited: {formatLastEdited(selectedPrompt.updated_at)}</span>
+          </div>
           {/* Favorite Button */}
           <Button
             variant="ghost"
@@ -355,7 +410,7 @@ export default function PromptEdit({
             </Button>
           )}
 
-          {/* Visibility Button (for owner, not deleted) 
+          {/* Share Button (for owner, not deleted) */}
           {isOwner && !selectedPrompt.deleted && (
             <Popover>
               <PopoverTrigger asChild>
@@ -364,53 +419,101 @@ export default function PromptEdit({
                   size="sm"
                   className="flex items-center gap-1 text-[var(--moonlight-silver)] hover:text-[var(--wisp-blue)] hover:bg-[var(--wisp-blue)]/10"
                 >
-                  {getVisibilityIcon()}
-                  <span className="hidden sm:inline">{getVisibilityLabel()}</span>
+                  <Share size={16} />
+                  <span className="hidden sm:inline">Share</span>
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-64 bg-[var(--black)] border-[var(--moonlight-silver-dim)]/30">
-                <div className="space-y-2">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="private"
-                      checked={visibility === "private"}
-                      onCheckedChange={() => setVisibility("private")}
-                      className="border-[var(--moonlight-silver-dim)]/30"
-                    />
-                    <Label htmlFor="private" className="text-[var(--moonlight-silver)] flex items-center gap-2">
-                      <Lock size={14} />
-                      Private - Only you can see this prompt
-                    </Label>
+              <PopoverContent className="w-80 bg-[var(--black)] border-[var(--moonlight-silver-dim)]/30">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <h4 className="font-medium text-[var(--moonlight-silver-bright)]">Share this prompt</h4>
+                    <p className="text-sm text-[var(--moonlight-silver)]/80">{getVisibilityDescription()}</p>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="unlisted"
-                      checked={visibility === "unlisted"}
-                      onCheckedChange={() => setVisibility("unlisted")}
-                      className="border-[var(--moonlight-silver-dim)]/30"
-                    />
-                    <Label htmlFor="unlisted" className="text-[var(--moonlight-silver)] flex items-center gap-2">
-                      <Users size={14} />
-                      Unlisted - Anyone with the link can see this prompt
-                    </Label>
+
+                  <div className="space-y-3">
+                    {/* Private Option */}
+                    <div className="flex items-start space-x-3">
+                      <Checkbox
+                        id="private"
+                        checked={visibility === "private"}
+                        onCheckedChange={() => handleVisibilityChange("private")}
+                        className="border-[var(--moonlight-silver-dim)]/30 mt-0.5"
+                      />
+                      <div className="space-y-1">
+                        <Label
+                          htmlFor="private"
+                          className="text-[var(--moonlight-silver)] flex items-center gap-2 cursor-pointer"
+                        >
+                          <Lock size={14} />
+                          Private
+                        </Label>
+                        <p className="text-xs text-[var(--moonlight-silver)]/60">Only you can see this prompt</p>
+                      </div>
+                    </div>
+
+                    {/* Unlisted Option */}
+                    <div className="flex items-start space-x-3">
+                      <Checkbox
+                        id="unlisted"
+                        checked={visibility === "unlisted"}
+                        onCheckedChange={() => handleVisibilityChange("unlisted")}
+                        className="border-[var(--moonlight-silver-dim)]/30 mt-0.5"
+                      />
+                      <div className="space-y-1">
+                        <Label
+                          htmlFor="unlisted"
+                          className="text-[var(--moonlight-silver)] flex items-center gap-2 cursor-pointer"
+                        >
+                          <Users size={14} />
+                          Unlisted
+                        </Label>
+                        <p className="text-xs text-[var(--moonlight-silver)]/60">
+                          Only people you've shared with can view
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Public Option */}
+                    <div className="flex items-start space-x-3">
+                      <Checkbox
+                        id="public"
+                        checked={visibility === "public"}
+                        onCheckedChange={() => handleVisibilityChange("public")}
+                        className="border-[var(--moonlight-silver-dim)]/30 mt-0.5"
+                      />
+                      <div className="space-y-1">
+                        <Label
+                          htmlFor="public"
+                          className="text-[var(--moonlight-silver)] flex items-center gap-2 cursor-pointer"
+                        >
+                          <Globe size={14} />
+                          Public
+                        </Label>
+                        <p className="text-xs text-[var(--moonlight-silver)]/60">
+                          Anyone with the link can view and save
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="public"
-                      checked={visibility === "public"}
-                      onCheckedChange={() => setVisibility("public")}
-                      className="border-[var(--moonlight-silver-dim)]/30"
-                    />
-                    <Label htmlFor="public" className="text-[var(--moonlight-silver)] flex items-center gap-2">
-                      <Globe size={14} />
-                      Public - Anyone can discover and see this prompt
-                    </Label>
-                  </div>
+
+                  {/* Copy Link Button */}
+                  {(visibility === "public" || visibility === "unlisted") && (
+                    <div className="pt-2 border-t border-[var(--moonlight-silver-dim)]/20">
+                      <Button
+                        onClick={handleCopyLink}
+                        variant="outline"
+                        size="sm"
+                        className="w-full bg-transparent border-[var(--moonlight-silver-dim)]/30 text-[var(--moonlight-silver)] hover:bg-[var(--wisp-blue)]/10 hover:text-[var(--wisp-blue)] hover:border-[var(--wisp-blue)]/30"
+                      >
+                        <LinkIcon size={14} className="mr-2" />
+                        Copy Link
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </PopoverContent>
             </Popover>
           )}
-            */}
 
           {/* Owner Actions */}
           {isOwner && (
@@ -498,46 +601,46 @@ export default function PromptEdit({
           />
 
           {/* Tags */}
-            <div className="flex flex-wrap items-center gap-2 mb-2 min-h-[36px]">
-              {tags.map((tag) => (
-                <span
-                  key={tag}
-                  className="flex items-center bg-[var(--wisp-blue)]/20 text-[var(--wisp-blue)] border-[var(--wisp-blue)]/30 rounded-full px-3 text-sm font-medium gap-1"
-                >
-                  <span className="text-[var(--wisp-blue)] font-bold">#</span>
-                  <span>{tag}</span>
-                  {canEdit && !selectedPrompt.deleted && (
-                    <button onClick={() => handleRemoveTag(tag)} className="ml-1 hover:text-red-400 transition-colors">
-                      <X size={12} />
-                    </button>
-                  )}
-                </span>
-              ))}
-              {canEdit && !selectedPrompt.deleted && (
-                <div className="flex items-center bg-transparent border-none p-0">
-                  <span className="text-[var(--wisp-blue)] font-bold text-lg">#</span>
-                  <input
-                    value={newTag}
-                    onChange={(e) => setNewTag(e.target.value)}
-                    onKeyDown={handleKeyPress}
-                    className="bg-transparent border-none outline-none text-[var(--moonlight-silver-bright)] px-1 py-1 min-w-[40px] w-auto focus:ring-0 focus:border-0"
-                    placeholder="Add tag"
-                    style={{ width: newTag.length === 0 ? '90px' : `${Math.max(newTag.length + 2, 6)}ch` }}
-                  />
-                </div>
-              )}
-            </div>
+          <div className="flex flex-wrap items-center gap-2 mb-2 min-h-[36px]">
+            {tags.map((tag) => (
+              <span
+                key={tag}
+                className="flex items-center bg-[var(--wisp-blue)]/20 text-[var(--wisp-blue)] border-[var(--wisp-blue)]/30 rounded-full px-3 text-sm font-medium gap-1"
+              >
+                <span className="text-[var(--wisp-blue)] font-bold">#</span>
+                <span>{tag}</span>
+                {canEdit && !selectedPrompt.deleted && (
+                  <button onClick={() => handleRemoveTag(tag)} className="ml-1 hover:text-red-400 transition-colors">
+                    <X size={12} />
+                  </button>
+                )}
+              </span>
+            ))}
+            {canEdit && !selectedPrompt.deleted && (
+              <div className="flex items-center bg-transparent border-none p-0">
+                <span className="text-[var(--wisp-blue)] font-bold text-lg">#</span>
+                <input
+                  value={newTag}
+                  onChange={(e) => setNewTag(e.target.value)}
+                  onKeyDown={handleKeyPress}
+                  className="bg-transparent border-none outline-none text-[var(--moonlight-silver-bright)] px-1 py-1 min-w-[40px] w-auto focus:ring-0 focus:border-0"
+                  placeholder="Add tag"
+                  style={{ width: newTag.length === 0 ? "90px" : `${Math.max(newTag.length + 2, 6)}ch` }}
+                />
+              </div>
+            )}
+          </div>
 
           {/* Metadata */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                {/* Images */}
-                {selectedPrompt.images && selectedPrompt.images.length > 0 && (
-                  <div className="flex items-center gap-2 text-[var(--moonlight-silver)]">
-                    <ImageIcon size={14} />
-                    <span>Images: {selectedPrompt.images.length}</span>
-                  </div>
-                )}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+            {/* Images */}
+            {selectedPrompt.images && selectedPrompt.images.length > 0 && (
+              <div className="flex items-center gap-2 text-[var(--moonlight-silver)]">
+                <ImageIcon size={14} />
+                <span>Images: {selectedPrompt.images.length}</span>
               </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

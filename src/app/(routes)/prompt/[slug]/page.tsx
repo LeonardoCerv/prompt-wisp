@@ -4,11 +4,13 @@ import { useEffect, useState } from "react"
 import PromptEdit from "@/components/prompt-edit"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Home, FileX } from "lucide-react"
+import { Home, FileX, Lock, Eye, Save } from "lucide-react"
 import Link from "next/link"
 import { useApp } from "@/contexts/appContext"
 import type { PromptData } from "@/lib/models/prompt"
 import Prompt from "@/lib/models/prompt"
+import { toast } from "sonner"
+import { Textarea } from "@/components/ui/textarea"
 
 export default function PromptSlug() {
   const params = useParams()
@@ -21,16 +23,10 @@ export default function PromptSlug() {
   const [isLoading, setIsLoading] = useState(true)
   const [promptFound, setPromptFound] = useState(false)
   const [canEdit, setCanEdit] = useState(false)
+  const [canView, setCanView] = useState(false)
+  const [isOwner, setIsOwner] = useState(false)
+  const [accessDeniedReason, setAccessDeniedReason] = useState<string>("")
   const [error, setError] = useState<string | null>(null)
-
-  // Check authentication first
-  useEffect(() => {
-    if (!state.loading.user && !user) {
-      // User is not logged in, redirect to signup
-      router.push("/signup")
-      return
-    }
-  }, [user, state.loading.user, router])
 
   // Validate slug format - treating it as prompt ID
   useEffect(() => {
@@ -68,15 +64,58 @@ export default function PromptSlug() {
           }
         }
 
-        // Check if user can edit (optional: implement real permission check)
-        setCanEdit(true)
-
         if (!prompt) {
           setPromptFound(false)
           setIsLoading(false)
           return
         }
 
+        // Check permissions based on visibility and user access
+        const ownerCheck = utils.isOwner(prompt, user.id)
+        const hasAccess = utils.hasAccessToPrompt(prompt.id)
+
+        setIsOwner(ownerCheck)
+
+        // Determine access based on visibility
+        let viewAccess = false
+        let editAccess = false
+        let accessReason = ""
+
+        if (ownerCheck) {
+          // Owner has full access
+          viewAccess = true
+          editAccess = true
+        } else if (prompt.visibility === "public") {
+          // Public prompts can be viewed by anyone authenticated
+          viewAccess = true
+          editAccess = false
+
+          // If user doesn't already have access, add them as a buyer
+          if (!hasAccess) {
+            try {
+              await actions.savePrompt(prompt.id, "buyer")
+              toast.success("Prompt saved to your library")
+            } catch (error) {
+              console.error("Error saving public prompt:", error)
+              // Don't block access if saving fails
+            }
+          }
+        } else if (prompt.visibility === "unlisted") {
+          // Unlisted prompts can only be viewed by people who already have access
+          if (hasAccess) {
+            viewAccess = true
+            editAccess = false
+          } else {
+            accessReason = "This prompt is unlisted and you don't have access to it."
+          }
+        } else {
+          // Private prompts can only be viewed by owner
+          accessReason = "This prompt is private and only the owner can view it."
+        }
+
+        setCanView(viewAccess)
+        setCanEdit(editAccess)
+        setAccessDeniedReason(accessReason)
         setSelectedPrompt(prompt)
         setPromptFound(true)
       } catch (error) {
@@ -89,7 +128,9 @@ export default function PromptSlug() {
     }
 
     initializePrompt()
+
   }, [slug, prompts, state.loading.prompts, user?.id, actions, utils, user])
+
 
   // Show loading while checking authentication
   if (state.loading.user || !user) {
@@ -134,7 +175,7 @@ export default function PromptSlug() {
     )
   }
 
-  // Prompt not found or access denied
+  // Prompt not found
   if (!promptFound || error) {
     return (
       <div className="flex flex-col bg-[var(--prompts)] h-screen">
@@ -146,11 +187,41 @@ export default function PromptSlug() {
                   <FileX className="h-8 w-8 text-[var(--moonlight-silver)]" />
                 </div>
               </div>
-              <h3 className="text-xl font-semibold text-[var(--moonlight-silver-bright)] mb-2">
-                {error ? "Access Denied" : "Prompt Not Found"}
-              </h3>
+              <h3 className="text-xl font-semibold text-[var(--moonlight-silver-bright)] mb-2">Prompt Not Found</h3>
               <p className="text-[var(--moonlight-silver)]/80 mb-6">
                 {error || "The prompt you're looking for doesn't exist or may have been removed."}
+              </p>
+              <Link href="/prompt">
+                <Button
+                  size="lg"
+                  className="bg-[var(--wisp-blue)] hover:bg-[var(--wisp-blue)]/90 text-white font-semibold gap-2"
+                >
+                  <Home size={16} />
+                  Return to Home
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    )
+  }
+
+  // Access denied
+  if (!canView) {
+    return (
+      <div className="flex flex-col bg-[var(--prompts)] h-screen">
+        <div className="flex-1 flex items-center justify-center p-8">
+          <Card className="bg-[var(--black)] border-[var(--moonlight-silver-dim)]/30 max-w-md w-full">
+            <CardContent className="p-8 text-center">
+              <div className="mb-6">
+                <div className="h-16 w-16 rounded-lg mx-auto flex items-center justify-center bg-[var(--slate-grey)]/20">
+                  <Lock className="h-8 w-8 text-[var(--moonlight-silver)]" />
+                </div>
+              </div>
+              <h3 className="text-xl font-semibold text-[var(--moonlight-silver-bright)] mb-2">Access Denied</h3>
+              <p className="text-[var(--moonlight-silver)]/80 mb-6">
+                {accessDeniedReason || "You don't have permission to view this prompt."}
               </p>
               <Link href="/prompt">
                 <Button
@@ -175,6 +246,118 @@ export default function PromptSlug() {
     return <PromptEdit selectedPrompt={selectedPrompt} />
   }
 
-  // Show preview component for read-only access
-  return <div>You do not have permission to edit this prompt.</div>
+  // Show read-only view for users with view-only access
+  return (
+    <div className="flex flex-col bg-[var(--prompts)] h-screen">
+      {/* Header */}
+      <div className="flex items-center justify-between p-6 border-b border-[var(--moonlight-silver-dim)]/20">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Eye className="h-5 w-5 text-[var(--moonlight-silver)]" />
+            <h1 className="text-xl font-semibold text-[var(--moonlight-silver-bright)]">View Prompt</h1>
+          </div>
+          <div className="flex items-center gap-1 text-sm text-[var(--moonlight-silver)]/60">
+            <Lock size={14} />
+            Read-only
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {/* Save Button */}
+          {!isOwner && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={async () => {
+                try {
+                  await actions.savePrompt(selectedPrompt.id)
+                  toast.success("Prompt saved to your library")
+                } catch {
+                  toast.error("Failed to save prompt")
+                }
+              }}
+              className="text-[var(--moonlight-silver)] hover:text-[var(--wisp-blue)] hover:bg-[var(--wisp-blue)]/10"
+            >
+              <Save size={16} />
+              Save
+            </Button>
+          )}
+
+          {/* Back to Home */}
+          <Link href="/prompt">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-[var(--moonlight-silver)] hover:text-[var(--wisp-blue)] hover:bg-[var(--wisp-blue)]/10"
+            >
+              <Home size={16} />
+              Home
+            </Button>
+          </Link>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 overflow-auto p-6">
+        <div className="max-w-4xl mx-auto space-y-6">
+          {/* Title */}
+                    <Textarea
+                      variant="editor"
+                      id="title"
+                      value={selectedPrompt.title || "This prompt doesnt have a title yet"}
+                      disabled
+                      placeholder="New Prompt"
+                      className="text-4xl font-bold border-none p-0 resize-none overflow-hidden bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 min-h-[44px]"
+                      rows={1}
+                      style={{ lineHeight: 1.2 }}
+                    />
+
+          {/* Description */}
+          {selectedPrompt.description && (
+                      <Textarea
+                        variant="editor"
+                        id="description"
+                        value={selectedPrompt.description}
+                        disabled
+                        placeholder="Enter prompt description..."
+                        className="text-sm text-[var(--moonlight-silver)] border-none pb-8 resize-none overflow-hidden bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 min-h-[32px]"
+                        rows={1}
+                        style={{ lineHeight: 1.3 }}
+                      />
+          )}
+
+          {/* Prompt Content */}
+          <Textarea
+            variant="editor"
+            id="content"
+            value={selectedPrompt.content || "This prompt doesnt have any content"}
+            placeholder="Enter prompt..."
+            disabled
+            className="disbled text-md font-bold text-gray-300 border-none pb-4 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 resize-none min-h-[180px] overflow-hidden h-full"
+          />
+
+          {/* Tags */}
+          {selectedPrompt.tags && selectedPrompt.tags.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2">
+              {selectedPrompt.tags.map((tag) => (
+                <span
+                  key={tag}
+                  className="flex items-center bg-[var(--wisp-blue)]/20 text-[var(--wisp-blue)] border-[var(--wisp-blue)]/30 rounded-full px-3 py-1 text-sm font-medium gap-1"
+                >
+                  <span className="text-[var(--wisp-blue)] font-bold">#</span>
+                  <span>{tag}</span>
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* Metadata */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-[var(--moonlight-silver)]/60 pt-4 border-t border-[var(--moonlight-silver-dim)]/20">
+            <div>Created: {new Date(selectedPrompt.created_at).toLocaleDateString()}</div>
+            <div>Updated: {new Date(selectedPrompt.updated_at).toLocaleDateString()}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
 }
