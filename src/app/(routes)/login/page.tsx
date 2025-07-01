@@ -1,15 +1,17 @@
 "use client"
 
 import type React from "react"
+import { useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { createClient } from "@/lib/utils/supabase/client"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { login } from "./actions"
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { useActionState } from "react"
 import { toast } from "sonner"
-import { useRouter } from "next/navigation"
 
 import Link from "next/link"
 import Image from "next/image"
@@ -21,6 +23,19 @@ export default function LoginPage() {
     email: "",
     password: "",
   })
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      
+      if (user) {
+        router.push("/prompt")
+      }
+    }
+    
+    checkAuth()
+  }, [router])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
