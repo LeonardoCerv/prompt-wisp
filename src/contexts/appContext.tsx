@@ -564,8 +564,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   )
 
   const savePrompt = useCallback(
-    async (id: string, role: string = "buyer") => {
-      if (state.userRoles.prompts[id] === role) {
+    async (id: string, role?: string) => {
+      if (state.userPrompts.includes(id)) {
         // Already has this role, no need to save again
         return
       }

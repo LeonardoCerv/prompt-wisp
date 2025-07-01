@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import PromptEdit from "@/components/prompt-edit"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Home, FileX, Lock, Eye, Save } from "lucide-react"
+import { Home, FileX, Lock, Eye, Save, Trash2 } from "lucide-react"
 import Link from "next/link"
 import { useApp } from "@/contexts/appContext"
 import type { PromptData } from "@/lib/models/prompt"
@@ -18,7 +18,8 @@ export default function PromptSlug() {
   const { slug } = params
   const { state, actions, utils } = useApp()
   const { prompts, user } = state
-
+  
+  const [access, setAccess] = useState(false)
   const [selectedPrompt, setSelectedPrompt] = useState<PromptData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [promptFound, setPromptFound] = useState(false)
@@ -72,7 +73,7 @@ export default function PromptSlug() {
 
         // Check permissions based on visibility and user access
         const ownerCheck = utils.isOwner(prompt, user.id)
-        const hasAccess = utils.hasAccessToPrompt(prompt.id)
+        setAccess(utils.hasAccessToPrompt(prompt.id))
 
         setIsOwner(ownerCheck)
 
@@ -90,19 +91,9 @@ export default function PromptSlug() {
           viewAccess = true
           editAccess = false
 
-          // If user doesn't already have access, add them as a buyer
-          if (!hasAccess) {
-            try {
-              await actions.savePrompt(prompt.id, "buyer")
-              toast.success("Prompt saved to your library")
-            } catch (error) {
-              console.error("Error saving public prompt:", error)
-              // Don't block access if saving fails
-            }
-          }
         } else if (prompt.visibility === "unlisted") {
           // Unlisted prompts can only be viewed by people who already have access
-          if (hasAccess) {
+          if (access) {
             viewAccess = true
             editAccess = false
           } else {
@@ -264,7 +255,7 @@ export default function PromptSlug() {
 
         <div className="flex items-center gap-2">
           {/* Save Button */}
-          {!isOwner && (
+          {!isOwner && !access && (
             <Button
               variant="ghost"
               size="sm"
@@ -275,14 +266,31 @@ export default function PromptSlug() {
                 } catch {
                   toast.error("Failed to save prompt")
                 }
+                actions.loadPrompts() // Refresh prompts after saving
               }}
               className="text-[var(--moonlight-silver)] hover:text-[var(--wisp-blue)] hover:bg-[var(--wisp-blue)]/10"
             >
               <Save size={16} />
-              Save
             </Button>
           )}
-
+          {access && (
+            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={async () => {
+                                    try {
+                                      await actions.deletePrompt(selectedPrompt.id)
+                                      toast.success("Prompt moved to Recently Deleted")
+                                    } catch {
+                                      toast.error("Failed to delete prompt")
+                                    }
+                                                    actions.loadPrompts() // Refresh prompts after saving
+                                  }}
+                                className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                              >
+                                <Trash2 size={16} />
+                              </Button>
+          )}
           {/* Back to Home */}
           <Link href="/prompt">
             <Button

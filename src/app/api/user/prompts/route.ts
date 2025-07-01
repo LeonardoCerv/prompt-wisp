@@ -40,6 +40,12 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Missing prompt_id' }, { status: 400 });
         }
 
+        // Check if user already has this prompt
+        const existingPrompt = (await UsersPrompts.getPrompts(user.id)).includes(data.prompt_id);
+        if (existingPrompt) {
+            return NextResponse.json({ error: 'Prompt already exists for this user' }, { status: 400 });
+        }
+
         const usersPromptsData: UsersPromptsData = {
             prompt_id: data.prompt_id,
             user_id: user.id,
