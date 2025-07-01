@@ -1,5 +1,5 @@
 "use client"
-import { notFound, useParams } from "next/navigation"
+import { notFound, useParams, useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import PromptEdit from "@/components/prompt-edit"
 import { Button } from "@/components/ui/button"
@@ -11,8 +11,9 @@ import type { PromptData } from "@/lib/models/prompt"
 import Prompt from "@/lib/models/prompt"
 
 export default function PromptSlug() {
-  const params = useParams();
-  const { slug } = params;
+  const params = useParams()
+  const router = useRouter()
+  const { slug } = params
   const { state, actions, utils } = useApp()
   const { prompts, user } = state
 
@@ -22,10 +23,24 @@ export default function PromptSlug() {
   const [canEdit, setCanEdit] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // Check authentication first
+  useEffect(() => {
+    if (!state.loading.user && !user) {
+      // User is not logged in, redirect to signup
+      router.push("/signup")
+      return
+    }
+  }, [user, state.loading.user, router])
+
   // Validate slug format - treating it as prompt ID
   useEffect(() => {
     if (!slug || typeof slug !== "string") {
       notFound()
+      return
+    }
+
+    // Don't proceed if user is not authenticated
+    if (!user) {
       return
     }
 
@@ -74,7 +89,20 @@ export default function PromptSlug() {
     }
 
     initializePrompt()
-  }, [slug, prompts, state.loading.prompts, user?.id, actions, utils])
+  }, [slug, prompts, state.loading.prompts, user?.id, actions, utils, user])
+
+  // Show loading while checking authentication
+  if (state.loading.user || !user) {
+    return (
+      <div className="flex flex-col bg-[var(--prompts)] h-screen p-6">
+        <div className="animate-pulse">
+          <div className="h-8 bg-[var(--slate-grey)]/30 rounded w-48 mb-4"></div>
+          <div className="h-32 bg-[var(--slate-grey)]/20 rounded w-full mb-4"></div>
+          <div className="h-4 bg-[var(--slate-grey)]/20 rounded w-3/4"></div>
+        </div>
+      </div>
+    )
+  }
 
   // Loading skeleton
   if (isLoading || state.loading.prompts) {
@@ -144,18 +172,9 @@ export default function PromptSlug() {
 
   // Show edit component for users with edit permissions
   if (canEdit) {
-    return (
-      <PromptEdit
-        selectedPrompt={selectedPrompt}
-      />
-    )
+    return <PromptEdit selectedPrompt={selectedPrompt} />
   }
 
   // Show preview component for read-only access
-  return (
-    <div>
-      You do not have permission to edit this prompt.
-    </div>
-  )
+  return <div>You do not have permission to edit this prompt.</div>
 }
-
