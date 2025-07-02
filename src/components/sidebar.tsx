@@ -18,7 +18,7 @@ export function Sidebar({ onCreateCollection }: SidebarProps) {
 
   return (
     <div className="w-[240px] max-w-[240px] flex-shrink-0 h-screen bg-[var(--black)] px-2 py-6 border-r border-[var(--moonlight-silver-dim)]/30 flex flex-col fixed top-0 left-0 z-50">
-      <div className="my-6 flex p-3 items-center gap-2 text-moonlight-silver">
+      <div className="mt-8 mb-4 flex p-3 items-center gap-2 text-moonlight-silver">
         <User2 size={16} />
           <span className="text-sm">
             {state.user?.user_metadata.full_name || state.user?.email}
