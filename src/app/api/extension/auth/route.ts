@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/utils/supabase/server";
 
 // Get user data for web extension
-export async function GET(request: Request) {
+export async function GET() {
   try {
     const supabase = await createClient();
     

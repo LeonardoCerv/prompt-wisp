@@ -103,7 +103,7 @@ export default function LoginPage() {
         }
       }
     }
-  }, [state, router])
+  }, [state, router, isExtensionMode])
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()

@@ -119,7 +119,7 @@ export default function PromptSlug() {
 
     initializePrompt()
 
-  }, [slug, prompts, state.loading.prompts, user?.id, actions, utils, user])
+  }, [slug, prompts, state.loading.prompts, user?.id, actions, utils, user, access])
 
 
   // Show loading while checking authentication

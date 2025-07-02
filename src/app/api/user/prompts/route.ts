@@ -19,7 +19,6 @@ export async function GET() {
     const prompts = await UsersPrompts.getPrompts(user.id);
     console.log("Fetched prompts:", prompts);
 
-    console.log
     return NextResponse.json(prompts, { status: 200 });
   } catch (error) {
     return NextResponse.json({ error: error?.toString() }, { status: 500 });

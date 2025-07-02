@@ -104,7 +104,7 @@ export default function SignupPage() {
         }
       }
     }
-  }, [state, router])
+  }, [state, router, isExtensionMode])
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     // Client-side validation
