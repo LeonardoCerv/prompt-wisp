@@ -123,3 +123,28 @@ export async function PUT(req: NextRequest) {
     );
   }
 }
+
+export async function GET() {
+  try {
+    const supabase = await createClient();
+    
+    // Get authenticated user
+    const { data:{ user}, error: authError } = await supabase.auth.getUser();
+    
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const promptData = await UsersPrompts.getPrompts(user.id);
+
+    const prompts = await Prompt.findAllByIds(promptData);
+
+   return NextResponse.json(prompts);
+  } catch (error) {
+    console.error("Error creating prompt:", error);
+    return NextResponse.json(
+      { error: "Error creating prompt" },
+      { status: 500 }
+    );
+  }
+}

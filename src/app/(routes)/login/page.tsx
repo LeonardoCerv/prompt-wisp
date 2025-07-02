@@ -24,13 +24,26 @@ export default function LoginPage() {
     password: "",
   })
 
+  // Check if this is being opened by a web extension
+  const [isExtensionMode, setIsExtensionMode] = useState(false)
+
   useEffect(() => {
+    // Check if opened by extension (via URL parameter or window.opener)
+    const urlParams = new URLSearchParams(window.location.search)
+    const extensionMode = urlParams.get('extension') === 'true' || !!window.opener
+    setIsExtensionMode(extensionMode)
+
     const checkAuth = async () => {
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
       
       if (user) {
-        router.push("/prompt")
+        // If extension mode, redirect to extension success page
+        if (extensionMode) {
+          router.push("/extension/success")
+        } else {
+          router.push("/prompt")
+        }
       }
     }
     
@@ -60,8 +73,12 @@ export default function LoginPage() {
   useEffect(() => {
     if (state?.success) {
       toast.success(state.message || "Login successful!")
-      // Redirect to prompt page
-      router.push("/prompt")
+      // Redirect based on mode
+      if (isExtensionMode) {
+        router.push("/extension/success")
+      } else {
+        router.push("/prompt")
+      }
     } else if (state?.errors) {
       if (state.errors.email) {
         if (state.errors.email[0].includes("No account found")) {
@@ -192,7 +209,10 @@ export default function LoginPage() {
             <div className="text-center">
               <p className="text-sm text-muted-foreground">
                 {"Don't have an account? "}
-                <Link href="/signup" className="font-medium text-foreground hover:underline">
+                <Link 
+                  href={isExtensionMode ? "/signup?extension=true" : "/signup"} 
+                  className="font-medium text-foreground hover:underline"
+                >
                   Sign up
                 </Link>
               </p>

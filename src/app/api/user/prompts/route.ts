@@ -11,12 +11,16 @@ export async function GET() {
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     
     if (authError || !user) {
+      console.log("Unauthorized access attempt to /api/user/prompts");
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    console.log("Fetching prompts for user:", user.id);
     const prompts = await UsersPrompts.getPrompts(user.id);
+    console.log("Fetched prompts:", prompts);
 
-    return NextResponse.json(prompts, { status: 201 });
+    console.log
+    return NextResponse.json(prompts, { status: 200 });
   } catch (error) {
     return NextResponse.json({ error: error?.toString() }, { status: 500 });
 }

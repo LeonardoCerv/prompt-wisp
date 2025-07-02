@@ -65,6 +65,44 @@ class Prompt {
         }
     }
 
+    static async findAll(): Promise<PromptData[]> {
+        try {
+            const supabase = await createClient();
+            const { data, error } = await supabase
+                .from('prompts')
+                .select('*')
+                .eq('deleted', false)
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                throw new Error(`Error fetching prompts: ${error.message}`);
+            }       
+            return data as PromptData[];
+        } catch (error) {
+            console.error("Error fetching all prompts:", error);
+            throw error;
+        }
+    }
+
+    static async findAllByIds(promptIds: string[]): Promise<PromptData[]> {
+        try {
+            const supabase = await createClient();
+            const { data, error } = await supabase
+                .from('prompts')
+                .select('*')
+                .in('id', promptIds)
+                .eq('deleted', false)
+                .order('created_at', { ascending: false }); 
+            if (error) {
+                throw new Error(`Error fetching prompts by IDs: ${error.message}`);
+            }
+            return data as PromptData[];
+        } catch (error) {
+            console.error("Error fetching prompts by IDs:", error);
+            throw error;
+        }
+    }
+
     static async findAllTags(promptIds: string[]): Promise<string[]> {
         try {
             const supabase = await createClient();

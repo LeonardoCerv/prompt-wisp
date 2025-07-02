@@ -41,7 +41,13 @@ export async function updateSession(request: NextRequest) {
   if (
     !user &&
     !request.nextUrl.pathname.startsWith('/login') &&
-    !request.nextUrl.pathname.startsWith('/auth')
+    !request.nextUrl.pathname.startsWith('/auth') &&
+    !request.nextUrl.pathname.startsWith('/signup') &&
+    !request.nextUrl.pathname.startsWith('/extension') &&
+    !request.nextUrl.pathname.startsWith('/api/extension') &&
+    !request.nextUrl.pathname.startsWith('/check-email') &&
+    !request.nextUrl.pathname.startsWith('/terms-of-service') &&
+    !request.nextUrl.pathname.startsWith('/privacy-policy')
   ) {
     // no user, potentially respond by redirecting the user to the login page
     const url = request.nextUrl.clone()
