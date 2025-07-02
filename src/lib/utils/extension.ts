@@ -5,10 +5,9 @@
 /**
  * Check if the current request is from a web extension
  * @param searchParams - URL search parameters
- * @param hasOpener - Whether the window has an opener (popup context)
  * @returns boolean indicating if this is extension mode
  */
-export function isExtensionMode(searchParams?: URLSearchParams, hasOpener?: boolean): boolean {
+export function isExtensionMode(searchParams?: URLSearchParams): boolean {
   if (typeof window !== 'undefined') {
     const urlParams = searchParams || new URLSearchParams(window.location.search);
     return urlParams.get('extension') === 'true' || !!window.opener;
@@ -30,7 +29,7 @@ export function getRedirectUrl(isExtension: boolean, defaultUrl: string = '/prom
  * Post authentication success message to parent window (for extension integration)
  * @param userData - User data to send
  */
-export function postAuthSuccessMessage(userData: any): void {
+export function postAuthSuccessMessage(userData: Record<string, unknown>): void {
   if (typeof window !== 'undefined' && window.opener) {
     window.opener.postMessage({
       type: 'PROMPT_WISP_AUTH_SUCCESS',
@@ -43,7 +42,7 @@ export function postAuthSuccessMessage(userData: any): void {
  * Store user data in session storage for extension access
  * @param userData - User data to store
  */
-export function storeUserDataForExtension(userData: any): void {
+export function storeUserDataForExtension(userData: Record<string, unknown>): void {
   if (typeof window !== 'undefined') {
     sessionStorage.setItem('prompt_wisp_user_data', JSON.stringify({
       authenticated: true,

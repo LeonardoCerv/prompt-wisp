@@ -8,7 +8,7 @@ import Image from "next/image"
 interface UserData {
   id: string
   email: string
-  user_metadata: any
+  user_metadata: Record<string, unknown>
   created_at: string
 }
 
