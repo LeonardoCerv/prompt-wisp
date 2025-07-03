@@ -59,7 +59,7 @@ export default async function PrivacyPolicyPage() {
             <strong>Introduction</strong>
           </p>
           <p>
-            This privacy policy describes how our extension handles user data. We are committed to protecting our users' privacy and ensuring their data is treated securely and responsibly.
+            This privacy policy describes how our extension handles user data. We are committed to protecting our users&apos; privacy and ensuring their data is treated securely and responsibly.
           </p>
           <p>
             <strong>Data Collection</strong>
@@ -82,7 +82,7 @@ export default async function PrivacyPolicyPage() {
             <strong>Data Usage</strong>
           </p>
           <p>
-            If our extension interacts with user data, it will be exclusively to fulfill the specific functionalities of the extension. Data will not be sold, transferred, or used for purposes unrelated to the extension's objective.
+            If our extension interacts with user data, it will be exclusively to fulfill the specific functionalities of the extension. Data will not be sold, transferred, or used for purposes unrelated to the extension&apos;s objective.
           </p>
           <p>
             <strong>Data Transfer</strong>
@@ -111,7 +111,7 @@ export default async function PrivacyPolicyPage() {
             <strong>Contact</strong>
           </p>
           <p>
-            If you have questions or concerns about this privacy policy, you can contact us through the channels provided in the extension's description.
+            If you have questions or concerns about this privacy policy, you can contact us through the channels provided in the extension&apos;s description.
           </p>
         </div>
       </section>
