@@ -51,10 +51,6 @@ export default function PromptCard({ prompt, isSelected, isLast, isBeforeSelecte
       return <Bookmark size={14} className="text-[var(--ash-grey)]" />
     }
 
-    if (isOwner && prompt.visibility === "public") {
-      return <Globe size={14} className="text-[var(--ash-grey)]" />
-    }
-
     if (isOwner) {
       return <Lock size={14} className="text-[var(--ash-grey)]" />
     }

@@ -336,6 +336,53 @@ class UsersPrompts {
             throw error;
         }
     }
+
+    /**
+     * Get all user-prompt relationships for a user with roles in one batch query.
+     * @param userId - The user's ID
+     * @returns Object containing prompts, favorites, and roles mappings
+     */
+    static async getUserRelationships(userId: string): Promise<{
+        prompts: string[],
+        favorites: string[],
+        roles: Record<string, user_role>
+    }> {
+        try {
+            const supabase = await createClient();
+            const { data, error } = await supabase
+                .from('users_prompts')
+                .select('prompt_id, favorite, user_role')
+                .eq('user_id', userId);
+
+            if (error) {
+                if (error.code === 'PGRST116') { // No rows returned
+                    return { prompts: [], favorites: [], roles: {} };
+                }
+                throw new Error(`Error getting user relationships: ${error.message}`);
+            }
+
+            if (!data) return { prompts: [], favorites: [], roles: {} };
+
+            const prompts: string[] = [];
+            const favorites: string[] = [];
+            const roles: Record<string, user_role> = {};
+
+            for (const row of data) {
+                prompts.push(row.prompt_id);
+                if (row.favorite) {
+                    favorites.push(row.prompt_id);
+                }
+                if (row.user_role) {
+                    roles[row.prompt_id] = row.user_role;
+                }
+            }
+
+            return { prompts, favorites, roles };
+        } catch (error) {
+            console.error("Error getting user relationships:", error);
+            throw error;
+        }
+    }
 }
 
 export default UsersPrompts;

@@ -263,10 +263,10 @@ export default function PromptEdit({ selectedPrompt }: PromptEditProps) {
           <div className="flex items-center gap-2">
             <FileText className="h-5 w-5 text-[var(--moonlight-silver)]" />
             <h1 className="text-xl font-semibold text-[var(--moonlight-silver-bright)]">
-              {selectedPrompt.deleted ? "Deleted Prompt" : "Edit Prompt"}
+              {utils.isDeleted(selectedPrompt) ? "Deleted Prompt" : "Edit Prompt"}
             </h1>
           </div>
-          {selectedPrompt.deleted && (
+          {utils.isDeleted(selectedPrompt) && (
             <Badge variant="destructive" className="bg-red-500/20 text-red-400 border-red-500/30">
               Deleted
             </Badge>
@@ -318,7 +318,7 @@ export default function PromptEdit({ selectedPrompt }: PromptEditProps) {
           </Button>
 
           {/* Share Button (not deleted) */}
-          {!selectedPrompt.deleted && (
+          {!utils.isDeleted(selectedPrompt) && (
             <Popover>
               <PopoverTrigger asChild>
                 <Button
@@ -423,7 +423,7 @@ export default function PromptEdit({ selectedPrompt }: PromptEditProps) {
           )}
 
           {/* Actions */}
-          {selectedPrompt.deleted ? (
+          {utils.isDeleted(selectedPrompt) ? (
             <Button
               variant="ghost"
               size="sm"
@@ -470,7 +470,7 @@ export default function PromptEdit({ selectedPrompt }: PromptEditProps) {
             id="title"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            disabled={selectedPrompt.deleted}
+            disabled={utils.isDeleted(selectedPrompt)}
             placeholder="New Prompt"
             className="text-4xl font-bold border-none p-0 resize-none overflow-hidden bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 min-h-[44px]"
             rows={1}
@@ -484,7 +484,7 @@ export default function PromptEdit({ selectedPrompt }: PromptEditProps) {
             id="description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            disabled={selectedPrompt.deleted}
+            disabled={utils.isDeleted(selectedPrompt)}
             placeholder="Enter prompt description..."
             className="text-sm text-[var(--moonlight-silver)] border-none pb-8 resize-none overflow-hidden bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 min-h-[32px]"
             rows={1}
@@ -498,7 +498,7 @@ export default function PromptEdit({ selectedPrompt }: PromptEditProps) {
             id="content"
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            disabled={selectedPrompt.deleted}
+            disabled={utils.isDeleted(selectedPrompt)}
             placeholder="Enter prompt..."
             className="text-md font-bold text-gray-300 border-none pb-4 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 resize-none min-h-[180px] overflow-hidden h-full"
           />
@@ -512,14 +512,14 @@ export default function PromptEdit({ selectedPrompt }: PromptEditProps) {
               >
                 <span className="text-[var(--wisp-blue)] font-bold">#</span>
                 <span>{tag}</span>
-                {!selectedPrompt.deleted && (
+                {!utils.isDeleted(selectedPrompt) && (
                   <button onClick={() => handleRemoveTag(tag)} className="ml-1 hover:text-red-400 transition-colors">
                     <X size={12} />
                   </button>
                 )}
               </span>
             ))}
-            {!selectedPrompt.deleted && (
+            {!utils.isDeleted(selectedPrompt) && (
               <div className="flex items-center bg-transparent border-none p-0">
                 <span className="text-[var(--wisp-blue)] font-bold text-lg">#</span>
                 <input

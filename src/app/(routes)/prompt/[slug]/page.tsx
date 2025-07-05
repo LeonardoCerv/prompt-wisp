@@ -7,7 +7,6 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Home, FileX, Lock, Eye, Save, Trash2 } from "lucide-react"
 import Link from "next/link"
 import { useApp } from "@/contexts/appContext"
-import type { PromptData } from "@/lib/models/prompt"
 import Prompt from "@/lib/models/prompt"
 import { toast } from "sonner"
 import { Textarea } from "@/components/ui/textarea"
@@ -19,8 +18,8 @@ export default function PromptSlug() {
   const { slug } = params
   const { state, actions } = useApp()
   const { user } = state
-  
-  const [selectedPrompt, setSelectedPrompt] = useState<PromptData | null>(null)
+
+  const { selectedPrompt } = state.ui
   const [isLoading, setIsLoading] = useState(true)
   const [promptFound, setPromptFound] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -52,8 +51,8 @@ export default function PromptSlug() {
         }
 
         // Check permissions based on visibility and user access
-        setRole(await UsersPrompts.getUserRole(slug, user.id))
-        setSelectedPrompt(prompt)
+        setRole(state.userRoles.prompts[slug] || await UsersPrompts.getUserRole(slug, user.id))
+        actions.setSelectedPrompt(prompt)
         setPromptFound(true)
       } catch (error) {
         console.error("Error initializing prompt:", error)
@@ -196,10 +195,13 @@ export default function PromptSlug() {
                 try {
                   await actions.savePrompt(selectedPrompt.id)
                   toast.success("Prompt saved to your library")
+                  setRole(state.userRoles.prompts[selectedPrompt.id]) // Set role to owner after saving
                 } catch {
                   toast.error("Failed to save prompt")
                 }
                 actions.loadPrompts() // Refresh prompts after saving
+                actions.loadUserRelationships()
+                actions.setSelectedPrompt(selectedPrompt)
               }}
               className="text-[var(--moonlight-silver)] hover:text-[var(--wisp-blue)] hover:bg-[var(--wisp-blue)]/10"
             >
@@ -214,10 +216,12 @@ export default function PromptSlug() {
                                     try {
                                       await actions.deletePrompt(selectedPrompt.id)
                                       toast.success("Prompt moved to Recently Deleted")
+                                      setRole(null)
                                     } catch {
                                       toast.error("Failed to delete prompt")
                                     }
-                                                    actions.loadPrompts() // Refresh prompts after saving
+                                      actions.loadPrompts() // Refresh prompts after saving
+                                      actions.loadUserRelationships()
                                   }}
                                 className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
                               >

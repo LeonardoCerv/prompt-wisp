@@ -119,9 +119,15 @@ function appReducer(state: AppState, action: AppAction): AppState {
       }
 
     case "DELETE_PROMPT":
+      const updatedPromptsAfterDelete = state.prompts.map((p) => (p.id === action.payload ? { ...p, deleted: true } : p))
+      const updatedSelectedPromptAfterDelete = state.ui.selectedPrompt?.id === action.payload 
+        ? { ...state.ui.selectedPrompt, deleted: true }
+        : state.ui.selectedPrompt
+      
       return {
         ...state,
-        prompts: state.prompts.map((p) => (p.id === action.payload ? { ...p, deleted: true } : p)),
+        prompts: updatedPromptsAfterDelete,
+        ui: { ...state.ui, selectedPrompt: updatedSelectedPromptAfterDelete },
       }
 
     case "SET_COLLECTIONS":
@@ -223,6 +229,12 @@ interface AppContextType {
     addPromptToCollection: (collectionId: string, promptIds: string[]) => Promise<void>
     removePromptFromCollection: (collectionId: string, promptId: string) => Promise<void>
 
+    // User roles
+    setUserRoles: (roles: { prompts?: Record<string, "owner" | "buyer" | "collaborator">; collections?: Record<string, "owner" | "buyer" | "collaborator"> }) => void
+    setPromptRole: (promptId: string, role: "owner" | "buyer" | "collaborator") => void
+    setCollectionRole: (collectionId: string, role: "owner" | "buyer" | "collaborator") => void
+    setBatchRoles: (roles: { prompts?: Record<string, "owner" | "buyer" | "collaborator">; collections?: Record<string, "owner" | "buyer" | "collaborator"> }) => void
+
     // UI actions
     setFilter: (filter: string, options?: { collection?: string; tags?: string[] }) => void
     setSelectedPrompt: (prompt: PromptData | null) => void
@@ -241,6 +253,12 @@ interface AppContextType {
     isDeleted: (item: PromptData | CollectionData) => boolean
     canEdit: (prompt: PromptData, userId?: string) => boolean
     canView: (prompt: PromptData, userId?: string) => boolean
+
+    // Additional role utilities
+    hasPromptRole: (promptId: string, role: "owner" | "buyer" | "collaborator") => boolean
+    hasCollectionRole: (collectionId: string, role: "owner" | "buyer" | "collaborator") => boolean
+    getPromptRole: (promptId: string) => "owner" | "buyer" | "collaborator" | undefined
+    getCollectionRole: (collectionId: string) => "owner" | "buyer" | "collaborator" | undefined
 
     // User relationship utilities
     getUserPrompts: (userId?: string) => PromptData[]
@@ -362,17 +380,26 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     dispatch({ type: "SET_LOADING", payload: { key: "relationships", value: true } })
     try {
-      // Load user prompts
-      const userPrompts = await UsersPrompts.getPrompts(state.user.id)
-      dispatch({ type: "SET_USER_PROMPTS", payload: userPrompts })
+      // Use batch operations to get all user relationships at once
+      const [promptRelationships, collectionRelationships] = await Promise.all([
+        UsersPrompts.getUserRelationships(state.user.id),
+        UsersCollections.getUserRelationships(state.user.id)
+      ])
 
-      // Load user collections
-      const userCollections = await UsersCollections.getCollections(state.user.id)
-      dispatch({ type: "SET_USER_COLLECTIONS", payload: userCollections })
-
-      // Load favorite prompts
-      const favoritePrompts = await UsersPrompts.getFavorites(state.user.id)
-      dispatch({ type: "SET_FAVORITE_PROMPTS", payload: favoritePrompts })
+      // Set all data in batch to minimize re-renders
+      dispatch({ type: "SET_USER_PROMPTS", payload: promptRelationships.prompts })
+      dispatch({ type: "SET_USER_COLLECTIONS", payload: collectionRelationships.collections })
+      dispatch({ type: "SET_FAVORITE_PROMPTS", payload: promptRelationships.favorites })
+      dispatch({ type: "SET_FAVORITE_COLLECTIONS", payload: collectionRelationships.favorites })
+      
+      // Set user roles for both prompts and collections
+      dispatch({ 
+        type: "SET_USER_ROLES", 
+        payload: { 
+          prompts: promptRelationships.roles,
+          collections: collectionRelationships.roles
+        } 
+      })
     } catch (error) {
       console.error("Error loading user relationships:", error)
     } finally {
@@ -400,9 +427,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       // Reload user relationships to include the new prompt
       await loadUserRelationships()
 
+      // If tags were provided, refresh the global tags
+      if (promptData.tags && promptData.tags.length > 0) {
+        await loadTags()
+      }
+
       return newPrompt
     },
-    [loadUserRelationships],
+    [loadUserRelationships, loadTags],
   )
 
   const updatePrompt = useCallback(async (id: string, updates: Partial<PromptData>) => {
@@ -418,7 +450,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     const updatedPrompt = await response.json()
     dispatch({ type: "UPDATE_PROMPT", payload: updatedPrompt })
-  }, [])
+    
+    // If tags were updated, refresh the global tags
+    if (updates.tags) {
+      await loadTags()
+    }
+  }, [loadTags])
 
   const deletePrompt = useCallback(async (id: string) => {
     const response = await fetch(`/api/prompts`, {
@@ -431,7 +468,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
 
     dispatch({ type: "DELETE_PROMPT", payload: id })
-  }, [])
+    
+    // Refresh tags since deleting a prompt may affect available tags
+    await loadTags()
+  }, [loadTags])
 
   const restorePrompt = useCallback(
     async (id: string) => {
@@ -445,9 +485,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         throw new Error("Failed to restore prompt")
       }
 
-      await loadPrompts()
+      // Get the updated prompt data
+      const updatedPrompt = await response.json()
+      
+      // Update the prompts array
+      dispatch({ type: "UPDATE_PROMPT", payload: updatedPrompt })
+      
+      // Update the selected prompt if it's the one being restored
+      if (state.ui.selectedPrompt?.id === id) {
+        dispatch({ type: "SET_UI", payload: { selectedPrompt: updatedPrompt } })
+      }
+      
+      // Refresh tags since we're restoring a prompt that may have tags
+      await loadTags()
     },
-    [loadPrompts],
+    [state.ui.selectedPrompt, loadTags],
   )
 
   const toggleFavoritePrompt = useCallback(
@@ -508,7 +560,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     const updatedPrompt = await response.json()
     dispatch({ type: "UPDATE_PROMPT", payload: updatedPrompt })
-  }, [])
+    
+    // If tags were updated, refresh the global tags
+    if (updates.tags) {
+      await loadTags()
+    }
+  }, [loadTags])
 
   // Collection operations
   const createCollection = useCallback(
@@ -647,6 +704,29 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: "SET_UI", payload: { tagsExpanded: !state.ui.tagsExpanded } })
   }, [state.ui.tagsExpanded])
 
+  // User roles actions
+  const setUserRoles = useCallback((roles: { prompts?: Record<string, "owner" | "buyer" | "collaborator">; collections?: Record<string, "owner" | "buyer" | "collaborator"> }) => {
+    dispatch({ type: "SET_USER_ROLES", payload: roles })
+  }, [])
+
+  // Utility function to set a single prompt role
+  const setPromptRole = useCallback((promptId: string, role: "owner" | "buyer" | "collaborator") => {
+    dispatch({ type: "SET_USER_ROLES", payload: { prompts: { [promptId]: role } } })
+  }, [])
+
+  // Utility function to set a single collection role
+  const setCollectionRole = useCallback((collectionId: string, role: "owner" | "buyer" | "collaborator") => {
+    dispatch({ type: "SET_USER_ROLES", payload: { collections: { [collectionId]: role } } })
+  }, [])
+
+  // Utility function to set multiple roles at once
+  const setBatchRoles = useCallback((roles: { 
+      prompts?: Record<string, "owner" | "buyer" | "collaborator">; 
+      collections?: Record<string, "owner" | "buyer" | "collaborator"> 
+    }) => {
+      dispatch({ type: "SET_USER_ROLES", payload: roles })
+    }, [])
+
   // Load initial data and user relationships when user changes
   useEffect(() => {
     loadPrompts()
@@ -730,6 +810,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
         // Check if user has access to this prompt
         return state.userPrompts.includes(prompt.id)
+      },
+
+      // Additional role utilities
+      hasPromptRole: (promptId: string, role: "owner" | "buyer" | "collaborator"): boolean => {
+        return state.userRoles.prompts[promptId] === role
+      },
+
+      hasCollectionRole: (collectionId: string, role: "owner" | "buyer" | "collaborator"): boolean => {
+        return state.userRoles.collections[collectionId] === role
+      },
+
+      getPromptRole: (promptId: string): "owner" | "buyer" | "collaborator" | undefined => {
+        return state.userRoles.prompts[promptId]
+      },
+
+      getCollectionRole: (collectionId: string): "owner" | "buyer" | "collaborator" | undefined => {
+        return state.userRoles.collections[collectionId]
       },
 
       // User relationship utilities - using state arrays
@@ -953,6 +1050,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setSelectedPrompt,
       toggleCollectionsExpanded,
       toggleTagsExpanded,
+      setUserRoles,
+      setPromptRole,
+      setCollectionRole,
+      setBatchRoles,
     }),
     [
       loadPrompts,
@@ -978,6 +1079,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setSelectedPrompt,
       toggleCollectionsExpanded,
       toggleTagsExpanded,
+      setUserRoles,
+      setPromptRole,
+      setCollectionRole,
+      setBatchRoles,
     ],
   )
 

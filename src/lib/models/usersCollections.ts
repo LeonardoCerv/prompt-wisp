@@ -317,6 +317,53 @@ class UsersCollections {
             throw error;
         }
     }
+
+    /**
+     * Get all user-collection relationships for a user with roles in one batch query.
+     * @param userId - The user's ID
+     * @returns Object containing collections, favorites, and roles mappings
+     */
+    static async getUserRelationships(userId: string): Promise<{
+        collections: string[],
+        favorites: string[],
+        roles: Record<string, user_role>
+    }> {
+        try {
+            const supabase = await createClient();
+            const { data, error } = await supabase
+                .from('users_collections')
+                .select('collection_id, favorite, user_role')
+                .eq('user_id', userId);
+
+            if (error) {
+                if (error.code === 'PGRST116') { // No rows returned
+                    return { collections: [], favorites: [], roles: {} };
+                }
+                throw new Error(`Error getting user collection relationships: ${error.message}`);
+            }
+
+            if (!data) return { collections: [], favorites: [], roles: {} };
+
+            const collections: string[] = [];
+            const favorites: string[] = [];
+            const roles: Record<string, user_role> = {};
+
+            for (const row of data) {
+                collections.push(row.collection_id);
+                if (row.favorite) {
+                    favorites.push(row.collection_id);
+                }
+                if (row.user_role) {
+                    roles[row.collection_id] = row.user_role;
+                }
+            }
+
+            return { collections, favorites, roles };
+        } catch (error) {
+            console.error("Error getting user collection relationships:", error);
+            throw error;
+        }
+    }
 }
 
 export default UsersCollections;

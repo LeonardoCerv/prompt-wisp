@@ -52,7 +52,7 @@ export function PromptActions() {
   return (
     <div className="sticky top-0 z-10">
       <div className="flex justify-between items-center gap-2 bg-[var(--blackblack)] p-2">
-
+{}
         <Button
           size="sm"
           variant="icon"
@@ -64,12 +64,12 @@ export function PromptActions() {
           <Copy size={22} />
         </Button>
 
-        {selectedPrompt?.deleted ? (
+        {selectedPrompt && utils.isDeleted(selectedPrompt) ? (
           <Button
             size="sm"
             variant="icon"
             onClick={handleRestore}
-            disabled={!selectedPrompt || !selectedPrompt.deleted || !utils.isOwner(selectedPrompt)}
+            disabled={!selectedPrompt || !utils.isDeleted(selectedPrompt) || !utils.isOwner(selectedPrompt)}
             className="h-10 w-10 hover:text-green-400 disabled:opacity-30 disabled:cursor-not-allowed text-green-400/70"
             title="Restore prompt"
           >
@@ -80,7 +80,7 @@ export function PromptActions() {
             size="sm"
             variant="icon"
             onClick={handleDelete}
-            disabled={!selectedPrompt || selectedPrompt.deleted || !utils.isOwner(selectedPrompt)}
+            disabled={!selectedPrompt || utils.isDeleted(selectedPrompt) || !utils.isOwner(selectedPrompt)}
             className="h-10 w-10 hover:text-red-400 disabled:opacity-30 disabled:cursor-not-allowed text-red-400/70"
             title={selectedPrompt && !utils.isOwner(selectedPrompt) ? "Unsave prompt" : "Delete prompt"}
           >

@@ -4,7 +4,6 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
 import { useApp } from "@/contexts/appContext"
-import { PromptActions } from "./prompt-actions"
 
 import PromptCard from "@/components/prompt-card"
 import { useRouter } from "next/navigation"
@@ -58,8 +57,8 @@ export function PromptList() {
       )
       
       if (selectedCollection) {
-        await CollectionPrompts.create({prompt_id: newPrompt.id, collection_id: selectedCollection})
-        
+        await CollectionPrompts.create({ prompt_id: newPrompt.id, collection_id: selectedCollection })
+        await actions.loadUserRelationships()
       }
       
       actions.setSelectedPrompt(newPrompt)
@@ -83,7 +82,9 @@ export function PromptList() {
   return (
     <div className="h-full flex-col w-[300px] flex">
       <div className="flex flex-col bg-[var(--blackblack)] p-0 h-screen">
-        <PromptActions />
+        <div className="pt-4">
+
+        </div>
 
         <div className="flex-1 overflow-y-auto px-3">
           <Button
