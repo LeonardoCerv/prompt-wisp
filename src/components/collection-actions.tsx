@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { useApp } from "@/contexts/appContext"
 import { toast } from "sonner"
 import { Textarea } from "./ui/textarea"
+import type { PromptData } from "@/lib/models"
 
 interface CollectionActionsProps {
   collectionId: string
@@ -32,6 +33,23 @@ export function CollectionActions({
   const [addPromptPosition, setAddPromptPosition] = useState<{ x: number; y: number } | null>(null)
   const [promptSearch, setPromptSearch] = useState("")
   const [selectedPromptIds, setSelectedPromptIds] = useState<string[]>([])
+  const [collectionPrompts, setCollectionPrompts] = useState<PromptData[]>([])
+
+  // Load collection prompts when component mounts or collectionId changes
+  useEffect(() => {
+    async function loadCollectionPrompts() {
+      if (!collectionId) return
+      try {
+        const prompts = await utils.getCollectionPrompts(collectionId)
+        setCollectionPrompts(prompts)
+      } catch (error) {
+        console.error("Error loading collection prompts:", error)
+        setCollectionPrompts([])
+      }
+    }
+    
+    loadCollectionPrompts()
+  }, [collectionId, utils])
 
   useEffect(() => {
     if (showRenameDialog && inputRef.current) {
@@ -117,6 +135,11 @@ export function CollectionActions({
     try {
       await actions.addPromptToCollection(collectionId, selectedPromptIds)
       toast.success(`Added ${selectedPromptIds.length} prompt(s) to collection`)
+      
+      // Refresh collection prompts
+      const updatedPrompts = await utils.getCollectionPrompts(collectionId)
+      setCollectionPrompts(updatedPrompts)
+      
       closeAddPromptDialog()
     } catch (error) {
       console.error("Error adding prompts to collection:", error)
@@ -131,7 +154,7 @@ export function CollectionActions({
   }
 
   // Get all prompts that user has access to but not already in this collection
-  const collectionPromptIds = utils.getCollectionPrompts(collectionId).map((p) => p.id)
+  const collectionPromptIds = collectionPrompts.map((p) => p.id)
   const availablePrompts = state.prompts.filter(
     (p) => !p.deleted && utils.hasAccessToPrompt(p.id) && !collectionPromptIds.includes(p.id),
   )

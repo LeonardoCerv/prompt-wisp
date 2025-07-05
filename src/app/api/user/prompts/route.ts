@@ -15,9 +15,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    console.log("Fetching prompts for user:", user.id);
     const prompts = await UsersPrompts.getPrompts(user.id);
-    console.log("Fetched prompts:", prompts);
 
     return NextResponse.json(prompts, { status: 200 });
   } catch (error) {

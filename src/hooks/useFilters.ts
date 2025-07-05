@@ -1,7 +1,12 @@
 "use client"
 
 import { useState, useCallback } from "react"
-import { type FilterState } from "./types"
+
+interface FilterState {
+  selectedFilter: string
+  selectedCollection?: string
+  selectedTags: string[]
+}
 
 export function useFilters() {
   const [filters, setFilters] = useState<FilterState>({

@@ -32,11 +32,8 @@ export default function Navbar({ children }: NavbarProps) {
       console.log("Creating collection with data:", requestBody)
 
       const newCollection = await actions.createCollection(requestBody)
-
       toast.success("Collection created successfully")
-      // Automatically switch to the new collection view
       actions.setFilter("collection", { collection: newCollection.id })
-
       console.log("Collection created and filter set:", newCollection.id)
     } catch (error) {
       console.error("Error creating collection:", error)

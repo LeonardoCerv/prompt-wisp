@@ -21,7 +21,6 @@ interface AppState {
   favoritePrompts: string[] // Favorite prompt IDs
   favoriteCollections: string[] // Favorite collection IDs
   promptCollectionMap: Record<string, string[]> // promptId -> collectionIds
-  collectionPromptMap: Record<string, string[]> // collectionId -> promptIds
   userRoles: {
     prompts: Record<string, "owner" | "buyer" | "collaborator"> // promptId -> role
     collections: Record<string, "owner" | "buyer" | "collaborator"> // collectionId -> role
@@ -61,7 +60,6 @@ type AppAction =
   | { type: "SET_FAVORITE_PROMPTS"; payload: string[] }
   | { type: "SET_FAVORITE_COLLECTIONS"; payload: string[] }
   | { type: "SET_PROMPT_COLLECTION_MAP"; payload: Record<string, string[]> }
-  | { type: "SET_COLLECTION_PROMPT_MAP"; payload: Record<string, string[]> }
   | {
       type: "SET_USER_ROLES"
       payload: {
@@ -83,7 +81,6 @@ const initialState: AppState = {
   favoritePrompts: [],
   favoriteCollections: [],
   promptCollectionMap: {},
-  collectionPromptMap: {},
   userRoles: {
     prompts: {},
     collections: {},
@@ -165,9 +162,6 @@ function appReducer(state: AppState, action: AppAction): AppState {
 
     case "SET_PROMPT_COLLECTION_MAP":
       return { ...state, promptCollectionMap: action.payload }
-
-    case "SET_COLLECTION_PROMPT_MAP":
-      return { ...state, collectionPromptMap: action.payload }
 
     case "SET_USER_ROLES":
       return {
@@ -256,11 +250,11 @@ interface AppContextType {
     getUserSavedPrompts: (userId?: string) => PromptData[]
 
     // Collection utilities
-    getCollectionPrompts: (collectionId: string) => PromptData[]
+    getCollectionPrompts: (collectionId: string) => Promise<PromptData[]>
     getPromptCollections: (promptId: string) => CollectionData[]
 
     // Filtering utilities
-    getFilteredPrompts: (filter: string, collection?: string, tags?: string[]) => PromptData[]
+    getFilteredPrompts: (filter: string, collection?: string, tags?: string[]) => Promise<PromptData[]>
 
     // General utilities
     formatDate: (dateString: string) => string
@@ -287,16 +281,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         // For each prompt in data, call await Prompt.findById(prompt)
         // and return the array of objects
         const promptsRaw = data.prompts || data || []
-        const prompts: PromptData[] = []
-        for (const prompt of promptsRaw) {
-          // If prompt is an id, fetch the full object
-          if (typeof prompt === "string") {
-            const fullPrompt = await Prompt.findById(prompt)
-            if (fullPrompt) prompts.push(fullPrompt)
-          } else {
-            prompts.push(prompt)
-          }
-        }
+        const prompts = await Prompt.findBatchByIds(promptsRaw)
         // Sort: non-deleted first (by updated_at desc), then deleted (by updated_at desc)
         const sortedPrompts = [
           ...prompts
@@ -306,7 +291,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             .filter((p) => p.deleted)
             .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()),
         ]
-
         dispatch({ type: "SET_PROMPTS", payload: sortedPrompts })
       }
     } catch (error) {
@@ -326,23 +310,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         // For each prompt in data, call await Prompt.findById(prompt)
         // and return the array of objects
         const collectionsRaw = data.collection || data || []
-        const collections: CollectionData[] = []
-        for (const collection of collectionsRaw) {
-          // If prompt is an id, fetch the full object
-          if (typeof collection === "string") {
-            const fullPrompt = await Collection.findById(collection)
-            if (fullPrompt) collections.push(fullPrompt)
-          } else {
-            collections.push(collection)
-          }
-        }
-        // Sort: non-deleted first, then deleted
-        const sortedCollections = [
-          ...collections.filter((p) => !p.deleted)
-          .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()),
-        ]
+        const collections = await Collection.findBatchByIds(collectionsRaw)
 
-        dispatch({ type: "SET_COLLECTIONS", payload: sortedCollections})
+        dispatch({ type: "SET_COLLECTIONS", payload: collections})
       }
     } catch (error) {
       console.error("Error loading collections:", error)
@@ -403,65 +373,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       // Load favorite prompts
       const favoritePrompts = await UsersPrompts.getFavorites(state.user.id)
       dispatch({ type: "SET_FAVORITE_PROMPTS", payload: favoritePrompts })
-
-      // Load favorite collections
-      const favoriteCollections = await UsersCollections.getFavorites(state.user.id)
-      dispatch({ type: "SET_FAVORITE_COLLECTIONS", payload: favoriteCollections })
-
-      // Load user roles for prompts and collections
-      const promptRoles: Record<string, "owner" | "buyer" | "collaborator"> = {}
-      const collectionRoles: Record<string, "owner" | "buyer" | "collaborator"> = {}
-
-      // Get roles for each user prompt
-      for (const promptId of userPrompts) {
-        try {
-          const role = await UsersPrompts.getUserRole(promptId, state.user.id)
-          if (role) promptRoles[promptId] = role
-        } catch (error) {
-          console.error(`Error loading role for prompt ${promptId}:`, error)
-        }
-      }
-
-      // Get roles for each user collection
-      for (const collectionId of userCollections) {
-        try {
-          const role = await UsersCollections.getUserRole(collectionId, state.user.id)
-          if (role) collectionRoles[collectionId] = role
-        } catch (error) {
-          console.error(`Error loading role for collection ${collectionId}:`, error)
-        }
-      }
-
-      dispatch({ type: "SET_USER_ROLES", payload: { prompts: promptRoles, collections: collectionRoles } })
-
-      // Load prompt-collection relationships
-      const promptCollectionMap: Record<string, string[]> = {}
-      const collectionPromptMap: Record<string, string[]> = {}
-
-      // For each user prompt, get its collections
-      for (const promptId of userPrompts) {
-        try {
-          const collections = await CollectionPrompts.getCollections(promptId)
-          promptCollectionMap[promptId] = collections
-        } catch (error) {
-          console.error(`Error loading collections for prompt ${promptId}:`, error)
-          promptCollectionMap[promptId] = []
-        }
-      }
-
-      // For each user collection, get its prompts
-      for (const collectionId of userCollections) {
-        try {
-          const prompts = await CollectionPrompts.getPrompts(collectionId)
-          collectionPromptMap[collectionId] = prompts
-        } catch (error) {
-          console.error(`Error loading prompts for collection ${collectionId}:`, error)
-          collectionPromptMap[collectionId] = []
-        }
-      }
-
-      dispatch({ type: "SET_PROMPT_COLLECTION_MAP", payload: promptCollectionMap })
-      dispatch({ type: "SET_COLLECTION_PROMPT_MAP", payload: collectionPromptMap })
     } catch (error) {
       console.error("Error loading user relationships:", error)
     } finally {
@@ -616,12 +527,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const newCollection = await response.json()
       dispatch({ type: "ADD_COLLECTION", payload: newCollection })
 
-      // Reload user relationships to include the new collection
-      await loadUserRelationships()
+      // Add to user's collections list to update UI immediately
+      const updatedUserCollections = [...state.userCollections, newCollection.id]
+      dispatch({ type: "SET_USER_COLLECTIONS", payload: updatedUserCollections })
 
       return newCollection
     },
-    [loadUserRelationships],
+    [state.userCollections],
   )
 
   const updateCollection = useCallback(async (id: string, updates: Partial<CollectionUpdate>) => {
@@ -647,7 +559,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (!response.ok) throw new Error("Failed to delete collection")
 
     dispatch({ type: "DELETE_COLLECTION", payload: id })
-  }, [])
+    
+    // Remove from user's collections list to update UI immediately
+    const updatedUserCollections = state.userCollections.filter(collectionId => collectionId !== id)
+    dispatch({ type: "SET_USER_COLLECTIONS", payload: updatedUserCollections })
+  }, [state.userCollections])
 
   const toggleFavoriteCollection = useCallback(
     async (id: string) => {
@@ -859,9 +775,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       },
 
       // Collection utilities
-      getCollectionPrompts: (collectionId: string): PromptData[] => {
-        const promptIds = state.collectionPromptMap[collectionId] || []
-        return state.prompts.filter((prompt) => promptIds.includes(prompt.id) && !prompt.deleted)
+      getCollectionPrompts: async (collectionId: string): Promise<PromptData[]> => {
+        try {
+          const promptIds = await CollectionPrompts.getPrompts(collectionId)
+          return state.prompts.filter((prompt) => promptIds.includes(prompt.id) && !prompt.deleted)
+        } catch (error) {
+          console.error(`Error fetching prompts for collection ${collectionId}:`, error)
+          return []
+        }
       },
 
       getPromptCollections: (promptId: string): CollectionData[] => {
@@ -870,8 +791,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       },
 
       // Filtering utilities
-      getFilteredPrompts: (filter: string, collection?: string, tags?: string[]): PromptData[] => {
-
+      getFilteredPrompts: async (filter: string, collection?: string, tags?: string[]): Promise<PromptData[]> => {
         //const userId = state.user?.id
         //if (!userId) return []
         let filtered: PromptData[] = []
@@ -879,17 +799,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         switch (filter) {
           case "home":
             // Show all prompts user has access to
-            console.log("Home filter applied")
-            filtered = state.prompts.filter((p) => state.userPrompts.includes(p.id) && !p.deleted)
-            console.log(`Filtered prompts: ${filtered.length} found`)
+            filtered = state.prompts.filter((p) => !p.deleted)
             break
 
           case "owned":
-            console.log("Owned filter applied")
             filtered = state.prompts.filter((p) => {
               const hasAccess = state.userPrompts.includes(p.id)
               const isOwner = state.userRoles.prompts[p.id] === "owner"
-              console.log(`Filtered prompts: ${filtered.length} found`)
               return hasAccess && isOwner && !p.deleted
             })
             break
@@ -909,8 +825,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
           case "collection":
             if (collection) {
-              const promptIds = state.collectionPromptMap[collection] || []
-              filtered = state.prompts.filter((prompt) => promptIds.includes(prompt.id) && !prompt.deleted)
+              try {
+                const promptIds = await CollectionPrompts.getPrompts(collection)
+                filtered = state.prompts.filter((prompt) => promptIds.includes(prompt.id) && !prompt.deleted)
+              } catch (error) {
+                console.error(`Error fetching prompts for collection ${collection}:`, error)
+                filtered = []
+              }
             } else {
               filtered = []
             }
@@ -918,13 +839,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
           case "deleted":
             // Show deleted prompts user has access to
-            filtered = state.prompts.filter((p) => state.userPrompts.includes(p.id) && p.deleted)
+            filtered = state.prompts.filter((p) => p.deleted)
             break
 
           default:
-            console.log("default filter applied")
-            filtered = state.prompts.filter((p) => state.userPrompts.includes(p.id) && !p.deleted)
-            console.log(`Filtered prompts: ${filtered.length} found`)
+            filtered = state.prompts.filter((p) => !p.deleted)
             break
         }
 
@@ -964,7 +883,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       state.favoritePrompts,
       state.favoriteCollections,
       state.promptCollectionMap,
-      state.collectionPromptMap,
       state.userRoles,
     ],
   )

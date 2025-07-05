@@ -2,14 +2,14 @@
 
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { BookOpen, Plus, Loader2 } from "lucide-react"
+import { Plus } from "lucide-react"
 import { useApp } from "@/contexts/appContext"
 import { PromptActions } from "./prompt-actions"
 
 import PromptCard from "@/components/prompt-card"
 import { useRouter } from "next/navigation"
-import type { PromptData } from "@/lib/models"
-import { useMemo } from "react"
+import { CollectionPrompts, type PromptData } from "@/lib/models"
+import { useState, useEffect } from "react"
 import { toast } from "sonner"
 import Image from "next/image"
 
@@ -19,6 +19,22 @@ export function PromptList() {
   const { user } = state
   const { selectedFilter, selectedCollection, selectedTags } = state.filters
   const { selectedPrompt } = state.ui
+  const [filteredPrompts, setFilteredPrompts] = useState<PromptData[]>([])
+
+  // Load filtered prompts when filters change
+  useEffect(() => {
+    async function loadFilteredPrompts() {
+      try {
+        const filtered = await utils.getFilteredPrompts(selectedFilter, selectedCollection, selectedTags)
+        setFilteredPrompts(filtered)
+      } catch (error) {
+        console.error("Error loading filtered prompts:", error)
+        setFilteredPrompts([])
+      }
+    }
+    
+    loadFilteredPrompts()
+  }, [utils, selectedFilter, selectedCollection, selectedTags])
 
   const handleCreatePrompt = async () => {
     try {
@@ -37,7 +53,15 @@ export function PromptList() {
       }
 
       const newPrompt = await actions.createPrompt(createPromptData)
-      toast.success("Prompt created successfully")
+      toast.success(
+        `Prompt created successfully`
+      )
+      
+      if (selectedCollection) {
+        await CollectionPrompts.create({prompt_id: newPrompt.id, collection_id: selectedCollection})
+        
+      }
+      
       actions.setSelectedPrompt(newPrompt)
       router.push(`/prompt/${newPrompt.id}`)
     } catch (error) {
@@ -45,15 +69,6 @@ export function PromptList() {
       toast.error("Failed to create prompt")
     }
   }
-
-  // Get filtered prompts using the context utility
-  const { filteredPrompts, isLoading } = useMemo(() => {
-    const filtered = utils.getFilteredPrompts(selectedFilter, selectedCollection, selectedTags)
-    return {
-      filteredPrompts: filtered,
-      isLoading: state.loading.prompts || state.loading.relationships,
-    }
-  }, [utils, selectedFilter, selectedCollection, selectedTags, state.loading.prompts, state.loading.relationships])
 
   const handlePromptSelect = (prompt: PromptData) => {
     actions.setSelectedPrompt(prompt)
@@ -82,21 +97,7 @@ export function PromptList() {
           </Button>
 
           {/* Loading state */}
-          {isLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin text-[var(--wisp-blue)]" />
-              <span className="ml-2 text-sm text-[var(--moonlight-silver)]">Loading prompts...</span>
-            </div>
-          ) : !user ? (
-            /* Not authenticated */
-            <Card className="bg-[var(--deep-charcoal)] border-[var(--moonlight-silver-dim)] text-center py-8">
-              <CardContent>
-                <BookOpen className="h-8 w-8 text-slate-400 mx-auto mb-3" />
-                <h3 className="text-sm font-semibold text-slate-300 mb-2">Please log in</h3>
-                <p className="text-xs text-slate-400">You need to be logged in to view prompts.</p>
-              </CardContent>
-            </Card>
-          ) : filteredPrompts.length === 0 ? (
+          {filteredPrompts.length === 0 ? (
             /* No prompts found */
             <Card className="bg-transparent border-transparent text-center py-8">
               <CardContent className="flex flex-col items-center justify-center">

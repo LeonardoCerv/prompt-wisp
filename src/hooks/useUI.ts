@@ -1,8 +1,13 @@
 "use client"
 
 import { useState, useCallback } from "react"
-import { type UIState } from "./types"
 import { type PromptData } from "@/lib/models"
+
+interface UIState {
+  collectionsExpanded: boolean
+  tagsExpanded: boolean
+  selectedPrompt: PromptData | null
+}
 
 export function useUI() {
   const [ui, setUI] = useState<UIState>({

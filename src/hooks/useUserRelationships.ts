@@ -1,10 +1,14 @@
 "use client"
 
 import { useState, useCallback } from "react"
-import { type UserRoles } from "./types"
 import UsersPrompts from "@/lib/models/usersPrompts"
 import UsersCollections from "@/lib/models/usersCollections"
 import CollectionPrompts from "@/lib/models/collectionPrompts"
+
+interface UserRoles {
+  prompts: Record<string, "owner" | "buyer" | "collaborator">
+  collections: Record<string, "owner" | "buyer" | "collaborator">
+}
 
 export function useUserRelationships() {
   const [userPrompts, setUserPrompts] = useState<string[]>([])
@@ -12,7 +16,6 @@ export function useUserRelationships() {
   const [favoritePrompts, setFavoritePrompts] = useState<string[]>([])
   const [favoriteCollections, setFavoriteCollections] = useState<string[]>([])
   const [promptCollectionMap, setPromptCollectionMap] = useState<Record<string, string[]>>({})
-  const [collectionPromptMap, setCollectionPromptMap] = useState<Record<string, string[]>>({})
   const [userRoles, setUserRoles] = useState<UserRoles>({ prompts: {}, collections: {} })
   const [loading, setLoading] = useState(false)
 
@@ -65,7 +68,6 @@ export function useUserRelationships() {
 
       // Load prompt-collection relationships
       const promptCollectionMapData: Record<string, string[]> = {}
-      const collectionPromptMapData: Record<string, string[]> = {}
 
       // For each user prompt, get its collections
       for (const promptId of userPromptsData) {
@@ -78,19 +80,7 @@ export function useUserRelationships() {
         }
       }
 
-      // For each user collection, get its prompts
-      for (const collectionId of userCollectionsData) {
-        try {
-          const prompts = await CollectionPrompts.getPrompts(collectionId)
-          collectionPromptMapData[collectionId] = prompts
-        } catch (error) {
-          console.error(`Error loading prompts for collection ${collectionId}:`, error)
-          collectionPromptMapData[collectionId] = []
-        }
-      }
-
       setPromptCollectionMap(promptCollectionMapData)
-      setCollectionPromptMap(collectionPromptMapData)
     } catch (error) {
       console.error("Error loading user relationships:", error)
     } finally {
@@ -157,12 +147,7 @@ export function useUserRelationships() {
           })
         }
 
-        // Update local state
-        const updatedCollectionPromptMap = { ...collectionPromptMap }
-        const existingPrompts = updatedCollectionPromptMap[collectionId] || []
-        updatedCollectionPromptMap[collectionId] = [...existingPrompts, ...promptIds]
-        setCollectionPromptMap(updatedCollectionPromptMap)
-
+        // Update local state for prompt-collection mapping
         const updatedPromptCollectionMap = { ...promptCollectionMap }
         promptIds.forEach(promptId => {
           const existingCollections = updatedPromptCollectionMap[promptId] || []
@@ -176,7 +161,7 @@ export function useUserRelationships() {
         throw error
       }
     },
-    [collectionPromptMap, promptCollectionMap],
+    [promptCollectionMap],
   )
 
   const removePromptFromCollection = useCallback(
@@ -184,20 +169,16 @@ export function useUserRelationships() {
       try {
         await CollectionPrompts.delete(promptId, collectionId)
 
-        // Update local state
-        const updatedCollectionPromptMap = { ...collectionPromptMap }
-        updatedCollectionPromptMap[collectionId] = (updatedCollectionPromptMap[collectionId] || []).filter(id => id !== promptId)
-        setCollectionPromptMap(updatedCollectionPromptMap)
-
+        // Update local state for prompt-collection mapping
         const updatedPromptCollectionMap = { ...promptCollectionMap }
-        updatedPromptCollectionMap[promptId] = (updatedPromptCollectionMap[promptId] || []).filter(id => id !== collectionId)
+        updatedPromptCollectionMap[promptId] = (updatedPromptCollectionMap[promptId] || []).filter((id: string) => id !== collectionId)
         setPromptCollectionMap(updatedPromptCollectionMap)
       } catch (error) {
         console.error("Error removing prompt from collection:", error)
         throw error
       }
     },
-    [collectionPromptMap, promptCollectionMap],
+    [promptCollectionMap],
   )
 
   const savePrompt = useCallback(
@@ -219,7 +200,7 @@ export function useUserRelationships() {
       // Update local state
       setUserPrompts(prev => [...prev, promptId])
       if (role) {
-        setUserRoles(prev => ({
+        setUserRoles((prev: UserRoles) => ({
           ...prev,
           prompts: { ...prev.prompts, [promptId]: role as "owner" | "buyer" | "collaborator" }
         }))
@@ -234,7 +215,6 @@ export function useUserRelationships() {
     favoritePrompts,
     favoriteCollections,
     promptCollectionMap,
-    collectionPromptMap,
     userRoles,
     loading,
     loadUserRelationships,

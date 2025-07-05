@@ -78,6 +78,25 @@ class Collection {
     }
   }
 
+  static async findBatchByIds(ids: string[]): Promise<CollectionData[]> {
+    try {
+      const supabase = await createClient()
+      const { data, error } = await supabase
+        .from("collections")
+        .select("*")
+        .in("id", ids)
+        .eq("deleted", false)
+        .order("updated_at", { ascending: false })
+      if (error) {
+        throw new Error(`Error getting collections by IDs: ${error.message}`)
+      }
+      return data as CollectionData[]
+    } catch (error) {
+      console.error("Error getting collections by IDs:", error)
+      throw error
+    }
+  }
+
   // Update collection
   static async update(id: string, updates: CollectionUpdate): Promise<CollectionData> {
     try {

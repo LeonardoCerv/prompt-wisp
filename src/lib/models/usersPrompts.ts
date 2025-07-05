@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/utils/supabase/client";
-type user_role = 'owner' | 'buyer' | 'collaborator';
+export type user_role = 'owner' | 'buyer' | 'collaborator';
 
 /**
  * Data model for a user-prompt relationship.

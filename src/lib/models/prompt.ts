@@ -103,6 +103,25 @@ class Prompt {
         }
     }
 
+    static async findBatchByIds(promptIds: string[]): Promise<PromptData[]> {
+        try {
+            const supabase = await createClient();
+            const { data, error } = await supabase
+                .from('prompts')
+                .select('*')
+                .in('id', promptIds)
+                .order('deleted', { ascending: true })
+                .order('updated_at', { ascending: false })
+            if (error) {
+                throw new Error(`Error fetching batch prompts by IDs: ${error.message}`);       
+            }
+            return data as PromptData[];
+        } catch (error) {
+            console.error("Error fetching batch prompts by IDs:", error);
+            throw error;
+        }
+    }
+
     static async findAllTags(promptIds: string[]): Promise<string[]> {
         try {
             const supabase = await createClient();

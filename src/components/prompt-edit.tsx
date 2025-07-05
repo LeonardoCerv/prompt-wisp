@@ -47,49 +47,14 @@ export default function PromptEdit({ selectedPrompt }: PromptEditProps) {
     (selectedPrompt.visibility as "private" | "public" | "unlisted") || "private",
   )
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
-
-  // Permission states
-  const [isOwner, setIsOwner] = useState(false)
-  const [canEdit, setCanEdit] = useState(false)
   const [isFavorite, setIsFavorite] = useState(false)
-  const [hasAccess, setHasAccess] = useState(false)
-  const [permissionsLoading, setPermissionsLoading] = useState(true)
 
-  // Check permissions on mount and when prompt changes
+  // Check if favorited on mount and when prompt changes
   useEffect(() => {
-    const checkPermissions = async () => {
-      if (!user?.id || !selectedPrompt) {
-        setPermissionsLoading(false)
-        return
-      }
-
-      try {
-        setPermissionsLoading(true)
-
-        const [ownerCheck, editCheck, accessCheck] = await Promise.all([
-          utils.isOwner(selectedPrompt, user.id),
-          utils.canEdit(selectedPrompt, user.id),
-          utils.isOwner(selectedPrompt, user.id),
-        ])
-
-        setIsOwner(ownerCheck)
-        setCanEdit(editCheck)
-        setHasAccess(accessCheck)
-
-        // Check if favorited
-        const favoriteCheck = utils.isFavorite(selectedPrompt.id)
-        setIsFavorite(favoriteCheck)
-      } catch {
-        setIsOwner(false)
-        setCanEdit(false)
-        setHasAccess(false)
-        setIsFavorite(false)
-      } finally {
-        setPermissionsLoading(false)
-      }
+    if (user?.id && selectedPrompt) {
+      const favoriteCheck = utils.isFavorite(selectedPrompt.id)
+      setIsFavorite(favoriteCheck)
     }
-
-    checkPermissions()
   }, [selectedPrompt, user?.id, utils])
 
   // Track changes
@@ -158,15 +123,6 @@ export default function PromptEdit({ selectedPrompt }: PromptEditProps) {
       await actions.savePromptChanges(selectedPrompt.id, updates)
       setHasUnsavedChanges(false)
       toast.success("Prompt updated successfully")
-    } catch {
-      toast.error("Failed to save prompt")
-    }
-  }
-
-  const handleSavePrompt = async () => {
-    try {
-      await actions.savePrompt(selectedPrompt.id)
-      toast.success("Prompt saved to your library")
     } catch {
       toast.error("Failed to save prompt")
     }
@@ -300,42 +256,6 @@ export default function PromptEdit({ selectedPrompt }: PromptEditProps) {
     return result.trim() + " ago"
   }
 
-  // Show loading state while checking permissions
-  if (permissionsLoading) {
-    return (
-      <div className="flex flex-col bg-[var(--prompts)] h-screen p-6">
-        <div className="animate-pulse">
-          <div className="h-8 bg-[var(--slate-grey)]/30 rounded w-48 mb-4"></div>
-          <div className="h-32 bg-[var(--slate-grey)]/20 rounded w-full mb-4"></div>
-          <div className="h-4 bg-[var(--slate-grey)]/20 rounded w-3/4"></div>
-        </div>
-      </div>
-    )
-  }
-
-  // Show access denied if user doesn't have access
-  if (!hasAccess) {
-    return (
-      <div className="flex flex-col bg-[var(--prompts)] h-screen">
-        <div className="flex-1 flex items-center justify-center p-8">
-          <Card className="bg-[var(--black)] border-[var(--moonlight-silver-dim)]/30 max-w-md w-full">
-            <CardContent className="p-8 text-center">
-              <div className="mb-6">
-                <div className="h-16 w-16 rounded-lg mx-auto flex items-center justify-center bg-[var(--slate-grey)]/20">
-                  <Lock className="h-8 w-8 text-[var(--moonlight-silver)]" />
-                </div>
-              </div>
-              <h3 className="text-xl font-semibold text-[var(--moonlight-silver-bright)] mb-2">Access Denied</h3>
-              <p className="text-[var(--moonlight-silver)]/80 mb-6">
-                You don&apos;t have permission to view or edit this prompt.
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="flex flex-col bg-[var(--prompts)] h-screen">
       {/* Header */}
@@ -398,20 +318,8 @@ export default function PromptEdit({ selectedPrompt }: PromptEditProps) {
             <Copy size={16} />
           </Button>
 
-          {/* Save Button (only for non-owners) */}
-          {!isOwner && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleSavePrompt}
-              className="text-[var(--moonlight-silver)] hover:text-[var(--wisp-blue)] hover:bg-[var(--wisp-blue)]/10"
-            >
-              <Save size={16} />
-            </Button>
-          )}
-
-          {/* Share Button (for owner, not deleted) */}
-          {isOwner && !selectedPrompt.deleted && (
+          {/* Share Button (not deleted) */}
+          {!selectedPrompt.deleted && (
             <Popover>
               <PopoverTrigger asChild>
                 <Button
@@ -515,43 +423,39 @@ export default function PromptEdit({ selectedPrompt }: PromptEditProps) {
             </Popover>
           )}
 
-          {/* Owner Actions */}
-          {isOwner && (
+          {/* Actions */}
+          {selectedPrompt.deleted ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleRestore}
+              className="text-green-400 hover:text-green-300 hover:bg-green-500/10"
+            >
+              <RotateCcw size={16} />
+            </Button>
+          ) : (
             <>
-              {selectedPrompt.deleted ? (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleRestore}
-                  className="text-green-400 hover:text-green-300 hover:bg-green-500/10"
-                >
-                  <RotateCcw size={16} />
-                </Button>
-              ) : (
-                <>
-                  {/* Save Changes Button */}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleSave}
-                    disabled={!hasUnsavedChanges}
-                    className="text-[var(--wisp-blue)] hover:text-[var(--wisp-blue)]/80 hover:bg-[var(--wisp-blue)]/10 disabled:opacity-50"
-                  >
-                    <Save size={16} />
-                    Save
-                  </Button>
+              {/* Save Changes Button */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleSave}
+                disabled={!hasUnsavedChanges}
+                className="text-[var(--wisp-blue)] hover:text-[var(--wisp-blue)]/80 hover:bg-[var(--wisp-blue)]/10 disabled:opacity-50"
+              >
+                <Save size={16} />
+                Save
+              </Button>
 
-                  {/* Delete Button */}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleDelete}
-                    className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
-                  >
-                    <Trash2 size={16} />
-                  </Button>
-                </>
-              )}
+              {/* Delete Button */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleDelete}
+                className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+              >
+                <Trash2 size={16} />
+              </Button>
             </>
           )}
         </div>
@@ -567,7 +471,7 @@ export default function PromptEdit({ selectedPrompt }: PromptEditProps) {
             id="title"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            disabled={!canEdit || selectedPrompt.deleted}
+            disabled={selectedPrompt.deleted}
             placeholder="New Prompt"
             className="text-4xl font-bold border-none p-0 resize-none overflow-hidden bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 min-h-[44px]"
             rows={1}
@@ -581,7 +485,7 @@ export default function PromptEdit({ selectedPrompt }: PromptEditProps) {
             id="description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            disabled={!canEdit || selectedPrompt.deleted}
+            disabled={selectedPrompt.deleted}
             placeholder="Enter prompt description..."
             className="text-sm text-[var(--moonlight-silver)] border-none pb-8 resize-none overflow-hidden bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 min-h-[32px]"
             rows={1}
@@ -595,7 +499,7 @@ export default function PromptEdit({ selectedPrompt }: PromptEditProps) {
             id="content"
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            disabled={!canEdit || selectedPrompt.deleted}
+            disabled={selectedPrompt.deleted}
             placeholder="Enter prompt..."
             className="text-md font-bold text-gray-300 border-none pb-4 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 resize-none min-h-[180px] overflow-hidden h-full"
           />
@@ -609,14 +513,14 @@ export default function PromptEdit({ selectedPrompt }: PromptEditProps) {
               >
                 <span className="text-[var(--wisp-blue)] font-bold">#</span>
                 <span>{tag}</span>
-                {canEdit && !selectedPrompt.deleted && (
+                {!selectedPrompt.deleted && (
                   <button onClick={() => handleRemoveTag(tag)} className="ml-1 hover:text-red-400 transition-colors">
                     <X size={12} />
                   </button>
                 )}
               </span>
             ))}
-            {canEdit && !selectedPrompt.deleted && (
+            {!selectedPrompt.deleted && (
               <div className="flex items-center bg-transparent border-none p-0">
                 <span className="text-[var(--wisp-blue)] font-bold text-lg">#</span>
                 <input

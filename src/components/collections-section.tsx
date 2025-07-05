@@ -14,11 +14,14 @@ export function CollectionsSection({ onCreateCollection }: CollectionsSectionPro
    const [showPopup, setShowPopup] = useState(false)
    const [popupPosition, setPopupPosition] = useState<{ x: number; y: number } | null>(null)
    const [popupCollectionId, setPopupCollectionId] = useState<string | null>(null)
-   const { state, actions } = useApp()
-   const { collections, loading } = state
+   const { state, actions, utils } = useApp()
+   const { loading } = state
    const { collectionsExpanded } = state.ui
 
-   console.log("CollectionsSection state:", collections)
+   // Get user collections (filtered to exclude deleted ones)
+   const userCollections = utils.getUserCollections()
+
+   console.log("CollectionsSection state:", userCollections)
 
    const { selectedFilter, selectedCollection } = state.filters
    const [hoveredCollection, setHoveredCollection] = useState<string | null>(null)
@@ -78,8 +81,8 @@ export function CollectionsSection({ onCreateCollection }: CollectionsSectionPro
 
           {loading.collections ? (
             <div className="text-xs text-[var(--moonlight-silver)]/60 px-3 py-2">Loading collections...</div>
-          ) : collections.length > 0 ? (
-            collections.map(collection => (
+          ) : userCollections.length > 0 ? (
+            userCollections.map(collection => (
               <div
                 key={collection.id}
                 className={`relative w-full justify-start text-sm rounded-lg py-1.5 px-3 ${
@@ -103,7 +106,7 @@ export function CollectionsSection({ onCreateCollection }: CollectionsSectionPro
                     variant="ghost"
                     className="flex-1 justify-start text-sm text-left truncate"
                     onClick={() => {
-                      actions.setFilter("collection", { collection: collection.id })
+                      actions.setFilter("collection", { collection: collection.id})
                     }}
                     title={collection.title || "New Collection"}
                   >

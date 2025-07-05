@@ -32,6 +32,26 @@ class CollectionPrompts {
     }
   }
 
+  static async getBatchByIds(collectionIds: string[]): Promise<string[]> {
+    try {
+      const supabase = createClient()
+      const { data, error } = await supabase
+        .from("collection_prompts")
+        .select("prompt_id")
+        .in("collection_id", collectionIds)
+
+      if (error) {
+        throw new Error(`Error getting collection prompts by IDs: ${error.message}`)
+      }
+
+      if (!data) return []
+      return data.map((row) => row.prompt_id)
+    } catch (error) {
+      console.error("Error getting collection prompts by IDs:", error)
+      throw error
+    }
+  }
+
   /**
    * Get all prompt IDs in a collection.
    * @param collectionId - The collection's ID

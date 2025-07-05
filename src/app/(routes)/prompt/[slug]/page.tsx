@@ -11,22 +11,20 @@ import type { PromptData } from "@/lib/models/prompt"
 import Prompt from "@/lib/models/prompt"
 import { toast } from "sonner"
 import { Textarea } from "@/components/ui/textarea"
+import { UsersPrompts } from "@/lib/models"
+import { user_role } from "@/lib/models/usersPrompts"
 
 export default function PromptSlug() {
   const params = useParams()
   const { slug } = params
-  const { state, actions, utils } = useApp()
-  const { prompts, user } = state
+  const { state, actions } = useApp()
+  const { user } = state
   
-  const [access, setAccess] = useState(false)
   const [selectedPrompt, setSelectedPrompt] = useState<PromptData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [promptFound, setPromptFound] = useState(false)
-  const [canEdit, setCanEdit] = useState(false)
-  const [canView, setCanView] = useState(false)
-  const [isOwner, setIsOwner] = useState(false)
-  const [accessDeniedReason, setAccessDeniedReason] = useState<string>("")
   const [error, setError] = useState<string | null>(null)
+  const [role, setRole] = useState<user_role | null>(null)
 
   // Validate slug format - treating it as prompt ID
   useEffect(() => {
@@ -35,8 +33,7 @@ export default function PromptSlug() {
       return
     }
 
-    // Don't proceed if user is not authenticated
-    if (!user) {
+    if (!user){
       return
     }
 
@@ -46,23 +43,7 @@ export default function PromptSlug() {
         setIsLoading(true)
         setError(null)
 
-        // Wait for prompts to load if they haven't already
-        if (state.loading.prompts) {
-          return
-        }
-
-        // Try to find prompt in loaded prompts first
-        let prompt = prompts.find((p) => p.id === slug) || null
-
-        // If not found in loaded prompts, try to fetch it directly
-        if (!prompt) {
-          try {
-            prompt = await Prompt.findById(slug)
-          } catch (fetchError) {
-            console.error("Error fetching prompt:", fetchError)
-            setError("Failed to load prompt")
-          }
-        }
+        const prompt = await Prompt.findById(slug)
 
         if (!prompt) {
           setPromptFound(false)
@@ -71,41 +52,7 @@ export default function PromptSlug() {
         }
 
         // Check permissions based on visibility and user access
-        const ownerCheck = utils.isOwner(prompt, user.id)
-        setAccess(utils.hasAccessToPrompt(prompt.id))
-
-        setIsOwner(ownerCheck)
-
-        // Determine access based on visibility
-        let viewAccess = false
-        let editAccess = false
-        let accessReason = ""
-
-        if (ownerCheck) {
-          // Owner has full access
-          viewAccess = true
-          editAccess = true
-        } else if (prompt.visibility === "public") {
-          // Public prompts can be viewed by anyone authenticated
-          viewAccess = true
-          editAccess = false
-
-        } else if (prompt.visibility === "unlisted") {
-          // Unlisted prompts can only be viewed by people who already have access
-          if (access) {
-            viewAccess = true
-            editAccess = false
-          } else {
-            accessReason = "This prompt is unlisted and you don't have access to it."
-          }
-        } else {
-          // Private prompts can only be viewed by owner
-          accessReason = "This prompt is private and only the owner can view it."
-        }
-
-        setCanView(viewAccess)
-        setCanEdit(editAccess)
-        setAccessDeniedReason(accessReason)
+        setRole(await UsersPrompts.getUserRole(slug, user.id))
         setSelectedPrompt(prompt)
         setPromptFound(true)
       } catch (error) {
@@ -118,25 +65,10 @@ export default function PromptSlug() {
     }
 
     initializePrompt()
-
-  }, [slug, prompts, state.loading.prompts, user?.id, actions, utils, user, access])
-
-
-  // Show loading while checking authentication
-  if (state.loading.user || !user) {
-    return (
-      <div className="flex flex-col bg-[var(--prompts)] h-screen p-6">
-        <div className="animate-pulse">
-          <div className="h-8 bg-[var(--slate-grey)]/30 rounded w-48 mb-4"></div>
-          <div className="h-32 bg-[var(--slate-grey)]/20 rounded w-full mb-4"></div>
-          <div className="h-4 bg-[var(--slate-grey)]/20 rounded w-3/4"></div>
-        </div>
-      </div>
-    )
-  }
+  }, [slug, user?.id, user])
 
   // Loading skeleton
-  if (isLoading || state.loading.prompts) {
+  if (isLoading) {
     return (
       <div className="flex flex-col bg-[var(--prompts)] h-screen p-6">
         <div className="animate-pulse">
@@ -196,9 +128,11 @@ export default function PromptSlug() {
       </div>
     )
   }
-
   // Access denied
-  if (!canView) {
+  if (
+    (selectedPrompt?.visibility !== "public" && !role) ||
+    (selectedPrompt?.visibility === "private" && role !== "owner")
+  ) {
     return (
       <div className="flex flex-col bg-[var(--prompts)] h-screen">
         <div className="flex-1 flex items-center justify-center p-8">
@@ -211,7 +145,7 @@ export default function PromptSlug() {
               </div>
               <h3 className="text-xl font-semibold text-[var(--moonlight-silver-bright)] mb-2">Access Denied</h3>
               <p className="text-[var(--moonlight-silver)]/80 mb-6">
-                {accessDeniedReason || "You don't have permission to view this prompt."}
+                {"You don't have permission to view this prompt."}
               </p>
               <Link href="/prompt">
                 <Button
@@ -232,7 +166,7 @@ export default function PromptSlug() {
   if (!selectedPrompt) return null
 
   // Show edit component for users with edit permissions
-  if (canEdit) {
+  if (role === "owner") {
     return <PromptEdit selectedPrompt={selectedPrompt} />
   }
 
@@ -254,7 +188,7 @@ export default function PromptSlug() {
 
         <div className="flex items-center gap-2">
           {/* Save Button */}
-          {!isOwner && !access && (
+          {!role && (
             <Button
               variant="ghost"
               size="sm"
@@ -272,7 +206,7 @@ export default function PromptSlug() {
               <Save size={16} />
             </Button>
           )}
-          {access && (
+          {role && (
             <Button
                                 variant="ghost"
                                 size="sm"
