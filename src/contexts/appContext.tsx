@@ -871,21 +871,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
       // Filtering utilities
       getFilteredPrompts: (filter: string, collection?: string, tags?: string[]): PromptData[] => {
-        const userId = state.user?.id
-        if (!userId) return []
 
+        //const userId = state.user?.id
+        //if (!userId) return []
         let filtered: PromptData[] = []
 
         switch (filter) {
           case "home":
             // Show all prompts user has access to
+            console.log("Home filter applied")
             filtered = state.prompts.filter((p) => state.userPrompts.includes(p.id) && !p.deleted)
+            console.log(`Filtered prompts: ${filtered.length} found`)
             break
 
           case "owned":
+            console.log("Owned filter applied")
             filtered = state.prompts.filter((p) => {
               const hasAccess = state.userPrompts.includes(p.id)
               const isOwner = state.userRoles.prompts[p.id] === "owner"
+              console.log(`Filtered prompts: ${filtered.length} found`)
               return hasAccess && isOwner && !p.deleted
             })
             break
@@ -918,7 +922,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             break
 
           default:
+            console.log("default filter applied")
             filtered = state.prompts.filter((p) => state.userPrompts.includes(p.id) && !p.deleted)
+            console.log(`Filtered prompts: ${filtered.length} found`)
             break
         }
 

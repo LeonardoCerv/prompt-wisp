@@ -38,6 +38,7 @@ export function PromptList() {
 
       const newPrompt = await actions.createPrompt(createPromptData)
       toast.success("Prompt created successfully")
+      actions.setSelectedPrompt(newPrompt)
       router.push(`/prompt/${newPrompt.id}`)
     } catch (error) {
       console.error("Error creating prompt:", error)

@@ -67,7 +67,7 @@ export async function DELETE(request: NextRequest) {
 
     // Get collection id from query params
     const body = await request.json()
-    await Collection.softDelete(body.collection_id);
+    await Collection.softDelete(body.id);
 
     return NextResponse.json({ success: true })
   } catch (error) {
