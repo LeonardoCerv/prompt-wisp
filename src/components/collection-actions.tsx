@@ -118,7 +118,36 @@ export function CollectionActions({
 
   function openAddPromptDialog(mouseX: number, mouseY: number) {
     setShowAddPromptDialog(true)
-    setAddPromptPosition({ x: mouseX, y: mouseY })
+    
+    // Calculate dialog dimensions
+    const dialogWidth = 320
+    const dialogHeight = 400 // max height
+    
+    // Get viewport dimensions
+    const viewportWidth = window.innerWidth
+    const viewportHeight = window.innerHeight
+    
+    // Calculate position ensuring dialog stays within viewport
+    let x = mouseX
+    let y = mouseY
+    
+    // Adjust horizontal position if dialog would overflow
+    if (x + dialogWidth > viewportWidth) {
+      x = viewportWidth - dialogWidth - 20 // 20px margin from edge
+    }
+    if (x < 20) {
+      x = 20 // minimum 20px margin from left edge
+    }
+    
+    // Adjust vertical position if dialog would overflow
+    if (y + dialogHeight > viewportHeight) {
+      y = viewportHeight - dialogHeight - 20 // 20px margin from bottom
+    }
+    if (y < 20) {
+      y = 20 // minimum 20px margin from top
+    }
+    
+    setAddPromptPosition({ x, y })
     setPromptSearch("")
     setSelectedPromptIds([])
   }
