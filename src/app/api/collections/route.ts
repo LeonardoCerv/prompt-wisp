@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/utils/supabase/server'
 import Collection, { CollectionUpdate } from '@/lib/models/collection'
+import type { user_role } from '@/lib/models/usersCollections'
 import { CollectionPrompts } from '@/lib/models'
 import UsersCollections from '@/lib/models/usersCollections'
 
@@ -36,6 +37,7 @@ export async function POST(request: NextRequest) {
         const collectionPromptData = {
           prompt_id: prompt,
           collection_id: collection.id,
+          user_role: 'owner', // Default role for the creator
         }
         await CollectionPrompts.create(collectionPromptData)
       }
@@ -44,6 +46,7 @@ export async function POST(request: NextRequest) {
     const UsersCollectionsData = {
       user_id: user.id,
       collection_id: collection.id,
+      user_role: 'owner' as user_role, // Default role for the creator
     }
 
     await UsersCollections.create(UsersCollectionsData);

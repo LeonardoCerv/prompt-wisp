@@ -226,6 +226,8 @@ interface AppContextType {
     editCollection: (id: string, updates: Partial<CollectionUpdate>) => Promise<void>
     deleteCollection: (id: string) => Promise<void>
     toggleFavoriteCollection: (id: string) => Promise<void>
+    saveCollection: (id: string, role?: string) => Promise<void>
+    removeFromCollection: (collectionId: string) => Promise<void>
     addPromptToCollection: (collectionId: string, promptIds: string[]) => Promise<void>
     removePromptFromCollection: (collectionId: string, promptId: string) => Promise<void>
 
@@ -269,6 +271,7 @@ interface AppContextType {
 
     // Collection utilities
     getCollectionPrompts: (collectionId: string) => Promise<PromptData[]>
+    getSharedCollectionPrompts: (collectionId: string) => Promise<PromptData[]>
     getPromptCollections: (promptId: string) => CollectionData[]
 
     // Filtering utilities
@@ -567,6 +570,75 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [loadTags])
 
+  const saveCollection = useCallback(
+    async (id: string, role?: string) => {
+      if (state.userCollections.includes(id)) {
+        // Already has this collection, no need to save again
+        return
+      }
+      
+      try {
+        // Save the collection
+        const response = await fetch("/api/user/collections", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ collection_id: id, user_role: role }),
+        })
+
+        if (!response.ok) {
+          throw new Error("Failed to save collection")
+        }
+
+        // Get all prompts in the collection and save them too
+        const promptIds = await CollectionPrompts.getPrompts(id)
+        
+        // Save each prompt to the user's library
+        for (const promptId of promptIds) {
+          if (!state.userPrompts.includes(promptId)) {
+            try {
+              await fetch("/api/user/prompts", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ prompt_id: promptId, user_role: "buyer" }),
+              })
+            } catch (error) {
+              console.error(`Error saving prompt ${promptId} to user library:`, error)
+              // Continue with other prompts even if one fails
+            }
+          }
+        }
+
+        await loadUserRelationships()
+      } catch (error) {
+        console.error("Error saving collection:", error)
+        throw error
+      }
+    },
+    [loadUserRelationships, state.userCollections, state.userPrompts],
+  )
+
+  const removeFromCollection = useCallback(
+    async (collectionId: string) => {
+      try {
+        const response = await fetch("/api/user/collections", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ collection_id: collectionId }),
+        })
+
+        if (!response.ok) {
+          throw new Error("Failed to remove collection")
+        }
+
+        await loadUserRelationships()
+      } catch (error) {
+        console.error("Error removing collection:", error)
+        throw error
+      }
+    },
+    [loadUserRelationships],
+  )
+
   // Collection operations
   const createCollection = useCallback(
     async (collectionData: CollectionInsert): Promise<CollectionData> => {
@@ -588,9 +660,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const updatedUserCollections = [...state.userCollections, newCollection.id]
       dispatch({ type: "SET_USER_COLLECTIONS", payload: updatedUserCollections })
 
+      loadUserRelationships()
       return newCollection
     },
-    [state.userCollections],
+    [state.userCollections, loadUserRelationships],
   )
 
   const updateCollection = useCallback(async (id: string, updates: Partial<CollectionUpdate>) => {
@@ -882,6 +955,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }
       },
 
+      getSharedCollectionPrompts: async (collectionId: string): Promise<PromptData[]> => {
+        try {
+          const promptIds = await CollectionPrompts.getPrompts(collectionId)
+          // Use Prompt.findBatchByIds to fetch prompt data directly from database
+          return await Prompt.findBatchByIds(promptIds)
+        } catch (error) {
+          console.error(`Error fetching shared collection prompts for collection ${collectionId}:`, error)
+          return []
+        }
+      },
+
       getPromptCollections: (promptId: string): CollectionData[] => {
         const collectionIds = state.promptCollectionMap[promptId] || []
         return state.collections.filter((collection) => collectionIds.includes(collection.id) && !collection.deleted)
@@ -1044,6 +1128,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       editCollection,
       deleteCollection,
       toggleFavoriteCollection,
+      saveCollection,
+      removeFromCollection,
       addPromptToCollection,
       removePromptFromCollection,
       setFilter,
@@ -1073,6 +1159,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       editCollection,
       deleteCollection,
       toggleFavoriteCollection,
+      saveCollection,
+      removeFromCollection,
       addPromptToCollection,
       removePromptFromCollection,
       setFilter,

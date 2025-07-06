@@ -147,6 +147,7 @@ export function CollectionsSection({ onCreateCollection }: CollectionsSectionPro
                         <CollectionActions
                           collectionId={collection.id}
                           popupPosition={popupPosition}
+                          userRole={utils.getCollectionRole(collection.id)}
                           onRequestClose={() => {
                           setShowPopup(false)
                           setPopupPosition(null)

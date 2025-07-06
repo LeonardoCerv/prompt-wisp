@@ -20,6 +20,25 @@ export function PromptList() {
   const { selectedPrompt } = state.ui
   const [filteredPrompts, setFilteredPrompts] = useState<PromptData[]>([])
 
+  // Check if user can create prompts in the current context
+  const canCreatePrompt = () => {
+    // If no collection is selected, user can always create prompts
+    if (!selectedCollection) return true
+    
+    // If collection is selected, check if user is the owner
+    const userRole = state.userRoles.collections[selectedCollection]
+    return userRole === "owner"
+  }
+
+  // Get appropriate message for the button state
+  const getButtonMessage = () => {
+    if (!selectedCollection) return "Create new prompt"
+    const userRole = state.userRoles.collections[selectedCollection]
+    if (userRole === "owner") return "Create new prompt"
+    if (userRole) return "Only collection owners can add prompts"
+    return "Cannot add to this collection"
+  }
+
   // Load filtered prompts when filters change
   useEffect(() => {
     async function loadFilteredPrompts() {
@@ -39,6 +58,12 @@ export function PromptList() {
     try {
       if (!user?.id) {
         toast.error("User not authenticated")
+        return
+      }
+
+      // Check if user can create prompts in current context
+      if (!canCreatePrompt()) {
+        toast.error("You don't have permission to add prompts to this collection")
         return
       }
 
@@ -89,12 +114,19 @@ export function PromptList() {
         <div className="flex-1 overflow-y-auto px-3">
           <Button
             variant="ghost"
-            onClick={() => handleCreatePrompt()}
-            className="w-full gap-3 mb-3 py-6 text-sm text-[var(--wisp-blue)] rounded-lg hover:bg-[var(--wisp-blue)]/20 hover:text-[var(--wisp-blue)] border border-dashed border-[var(--wisp-blue)]/40"
-            title="Create new prompt"
+            onClick={() => canCreatePrompt() && handleCreatePrompt()}
+            disabled={!canCreatePrompt()}
+            className={`w-full gap-3 mb-3 py-6 text-sm rounded-lg border border-dashed ${
+              canCreatePrompt() 
+                ? "text-[var(--wisp-blue)] hover:bg-[var(--wisp-blue)]/20 hover:text-[var(--wisp-blue)] border-[var(--wisp-blue)]/40"
+                : "text-gray-500 border-gray-500/40 cursor-not-allowed opacity-50"
+            }`}
+            title={canCreatePrompt() ? "Create new prompt" : getButtonMessage()}
           >
             <Plus size={14} className="flex-shrink-0" />
-            <span className="truncate">Create new prompt</span>
+            <span className="truncate">
+              {getButtonMessage()}
+            </span>
           </Button>
 
           {/* Loading state */}
