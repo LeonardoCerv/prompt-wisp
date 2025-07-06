@@ -7,24 +7,27 @@ import { Button } from '@/components/ui/button'
 import {signout} from './actions'
 
 import { type User } from '@supabase/supabase-js'
+import GuestLoginButton from './guest-login-button';
 
 export default function Header( { user }: { user: User | null }) {
 
   return (
     <header className="w-full py-4 px-6 border-b border-moonlight-silver/20">
-      <div className="max-w-7xl mx-auto flex justify-between items-center">
-        <Link href="/" className="flex items-center gap-3">
-          <Image 
-            src="/wisplogo.svg"
-            alt="Wisp logo"
-            width={80}
-            height={80}
-            priority
-            className="object-contain"
-          />
-        </Link>
+      <div className="max-w-7xl mx-auto grid grid-cols-3 items-center">
+        <div className="flex justify-center">
+          <Link href="/" className="flex items-center gap-3">
+            <Image 
+              src="/wisplogo.svg"
+              alt="Wisp logo"
+              width={80}
+              height={80}
+              priority
+              className="object-contain"
+            />
+          </Link>
+        </div>
         
-        <nav className="hidden md:flex items-center gap-6">
+        <nav className="hidden md:flex items-center justify-center gap-6">
           <Link href="/" className="flex items-center gap-2 text-moonlight-silver hover:text-moonlight-silver-bright transition-colors">
             <HomeIcon size={16} />
             <span>Home</span>
@@ -53,7 +56,7 @@ export default function Header( { user }: { user: User | null }) {
             <span>Contact</span>
           </Link>
         </nav>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center justify-center gap-2">
             { user ? (
             <>
               <div className="hidden sm:flex items-center gap-2 text-moonlight-silver">
@@ -74,6 +77,7 @@ export default function Header( { user }: { user: User | null }) {
             </>
           ) : (
             <>
+             <GuestLoginButton />
               <Link href="/login">
                 <Button variant="outline" size="default">
                   Login

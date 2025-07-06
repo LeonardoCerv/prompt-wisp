@@ -123,3 +123,24 @@ export async function handleSignInWithGoogle() {
   revalidatePath("/", "layout")
   redirect("/prompt")
 }
+
+
+export async function loginAsGuest(): Promise<FormState> {
+  const supabase = await createClient()
+
+  // type-casting here for convenience
+  // in practice, you should validate your inputs
+  const data = {
+    email: "Test@test.com",
+    password: "Test1234",
+  }
+
+  const { error } = await supabase.auth.signInWithPassword(data)
+
+  if (error) {
+    redirect('/error')
+  }
+
+  revalidatePath('/', 'layout')
+  redirect('/prompt')
+}

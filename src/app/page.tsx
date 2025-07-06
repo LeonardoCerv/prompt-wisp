@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
 import Image from "next/image"
 import { ArrowRight, Check, Star, Users, Zap, Shield } from "lucide-react"
+import GuestLoginButton from "@/components/guest-login-button"
 
 export default async function App() {
   const supabase = await createClient()
@@ -85,6 +86,7 @@ export default async function App() {
                   View Demo
                 </Button>
               </Link>
+              <GuestLoginButton />
             </div>
 
             {/* Product Preview */}
@@ -307,6 +309,7 @@ export default async function App() {
                 Sign In
               </Button>
             </Link>
+            <GuestLoginButton />
           </div>
 
           <div className="flex items-center justify-center gap-6 text-sm text-moonlight-silver/60">
