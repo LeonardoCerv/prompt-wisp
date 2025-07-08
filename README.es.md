@@ -12,8 +12,8 @@
 
 ### [Sitio web](https://prompt-wisp.vercel.app/) • [Repo de extension de chrome](https://github.com/LeonardoCerv/prompt-wisp-web-extension) • [Demo en vivo](https://prompt-wisp.vercel.app/prompt) • [Linkedin](https://www.linkedin.com/in/leonardocerv/) • [Gmail](mailto:Leocerva29@gmail.com)
 
-
-![Vista previa de Prompt Wisp](/public/preview.png)
+![Vista previa de Prompt Wisp](/public/preview1.png)
+![Vista previa de Prompt Wisp](/public/preview2.png)
 
 ## Descripción General
 
