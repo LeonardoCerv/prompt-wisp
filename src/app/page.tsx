@@ -94,7 +94,7 @@ export default async function App() {
               <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent z-10" />
               <div className="rounded-2xl overflow-hidden border border-zinc-800 shadow-2xl bg-zinc-900/20 backdrop-blur-sm">
                 <Image
-                  src="/preview.png"
+                  src="/preview2.png"
                   alt="Wisp Dashboard Preview"
                   width={1000}
                   height={600}
