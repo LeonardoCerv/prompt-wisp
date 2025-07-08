@@ -39,7 +39,7 @@ export default function ExtensionBanner() {
         
         <div className="flex items-center gap-2">
           <Button
-            onClick={() => window.open('https://github.com/LeonardoCerv/prompt-wisp-web-extension', '_blank')}
+            onClick={() => window.open('https://chromewebstore.google.com/detail/prompt-wisp/jfnnlgpcdjjfkhlngolanneflbgpekeo', '_blank')}
             size="sm"
             variant="secondary"
             className="bg-white text-[var(--wisp-blue)] hover:bg-white/90 border-0 font-medium text-xs sm:text-sm px-3 py-1.5"
