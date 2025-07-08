@@ -20,7 +20,7 @@
 
 ## Overview
 
-Prompt Wisp is a modern, full-stack application built to solve the growing challenge of prompt management in the AI era. It offers a professional platform for discovering, organizing, and sharing AI prompts, designed for both individuals and teams who demand excellence in their AI interactions.
+Prompt Wisp is a modern, full-stack application built to help you organize and share AI prompts. It offers a platform designed for both individuals or teams who are looking into a more specialized way of sharing and using prompts.
 
 ## Features
 
