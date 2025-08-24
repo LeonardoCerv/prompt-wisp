@@ -1,26 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { X, Download, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export default function ExtensionBanner() {
-  const [isVisible, setIsVisible] = useState(false);
+  const [visible, setVisible] = useState(true);
 
-  useEffect(() => {
-    // Check if banner was previously dismissed
-    const isDismissed = localStorage.getItem('extension-banner-dismissed');
-    if (!isDismissed) {
-      setIsVisible(true);
-    }
-  }, []);
-
-  const handleDismiss = () => {
-    setIsVisible(false);
-    localStorage.setItem('extension-banner-dismissed', 'true');
-  };
-
-  if (!isVisible) return null;
+  if (!visible) return null;
 
   return (
     <div className="text-white px-4 py-3 relative z-[9999]" style={{ backgroundColor: 'var(--wisp-blue)' }}>
@@ -36,7 +23,6 @@ export default function ExtensionBanner() {
             </span>
           </div>
         </div>
-        
         <div className="flex items-center gap-2">
           <Button
             onClick={() => window.open('https://chromewebstore.google.com/detail/prompt-wisp/jfnnlgpcdjjfkhlngolanneflbgpekeo', '_blank')}
@@ -48,9 +34,8 @@ export default function ExtensionBanner() {
             <span className="sm:hidden">Install</span>
             <ExternalLink className="w-3 h-3 ml-1" />
           </Button>
-          
           <Button
-            onClick={handleDismiss}
+            onClick={() => setVisible(false)}
             size="sm"
             variant="ghost"
             className="text-white hover:bg-white/10 p-1"

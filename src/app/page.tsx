@@ -22,10 +22,12 @@ export default async function App() {
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-zinc-900/20 via-black to-zinc-900/20" />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-32">
-          <div className="text-center">
+          <div className="text-left flex-row flex justify-between mb-4">
+
+            <div className="">
             <Badge variant="secondary" className="mb-8 bg-zinc-900/50 text-moonlight-silver border-zinc-800">
               <Star className="w-3 h-3 mr-1" />
-              Trusted by 10,000+ creators
+              Trusted by 100+ creators
             </Badge>
 
             <h1 className="text-4xl sm:text-6xl lg:text-7xl font-bold tracking-tight mb-8">
@@ -35,39 +37,11 @@ export default async function App() {
               </span>
             </h1>
 
-            <p className="text-xl sm:text-2xl text-moonlight-silver/80 max-w-3xl mx-auto mb-12 leading-relaxed">
-              The professional platform for discovering, organizing, and sharing AI prompts. Built for teams that demand
-              excellence.
+            <p className="text-xl sm:text-2xl text-moonlight-silver/80 max-w-3xl mb-12 leading-relaxed">
+              The go-to app for creating, organizing, and sharing AI prompts.
             </p>
-
-
-            {/* Main Content 
-            <div className="mb-12 flex flex-col md:flex-row items-center justify-center gap-10">
-              <div className="flex-1 text-center md:text-left">
-              <h1 className="text-4xl sm:text-6xl lg:text-7xl font-bold tracking-tight mb-6">
-                <span className="block">Elevate Your</span>
-                <span className="block bg-gradient-to-r from-moonlight-silver-bright to-moonlight-silver bg-clip-text text-[var(--wisp-blue)]">
-                AI Workflow
-                </span>
-              </h1>
-              <p className="text-xl sm:text-2xl text-moonlight-silver/80 max-w-2xl mx-auto md:mx-0 mb-0 leading-relaxed">
-                The professional platform for discovering, organizing, and sharing AI prompts. Built for teams that demand excellence.
-              </p>
-              </div>
-              <div className="flex-shrink-0 flex justify-center md:justify-end">
-              <Image
-                src="/wisp.svg"
-                alt="Wisp logo"
-                width={140}
-                height={140}
-                priority
-                className="object-contain"
-              />
-              </div>
-            </div>
-            */}
-
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16">
+            <div className="flex flex-col sm:flex-row gap-4 justify-start items-center mb-4">
+            {/** 
               <Link href="/signup">
                 <Button
                   size="lg"
@@ -77,22 +51,29 @@ export default async function App() {
                   <ArrowRight className="ml-2 w-5 h-5" />
                 </Button>
               </Link>
+              */}
               <Link href="/prompt">
                 <Button
                   variant="outline"
                   size="lg"
-                  className="border-zinc-700 text-moonlight-silver hover:bg-zinc-900 text-lg px-8 py-6 bg-transparent"
+                  className="border-zinc-700 text-moonlight-silver hover:bg-zinc-900 text-lg px-8 py-6 bg-transparent mr-4"
                 >
                   View Demo
                 </Button>
               </Link>
               <GuestLoginButton />
             </div>
+            </div>
 
-            {/* Product Preview */}
-            <div className="relative max-w-5xl mx-auto">
-              <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent z-10" />
-              <div className="rounded-2xl overflow-hidden border border-zinc-800 shadow-2xl bg-zinc-900/20 backdrop-blur-sm">
+            <div className="flex flex-col gap-4 justify-center items-center mb-4">
+
+            </div>
+
+            
+          </div>
+          {/* Product Preview */}
+            <div className="relative max-w-5xl mx-auto perspective-1000">
+              <div className="product-preview-tilt rounded-2xl overflow-hidden border border-zinc-800 shadow-2xl bg-zinc-900/20 backdrop-blur-sm">
                 <Image
                   src="/preview2.png"
                   alt="Wisp Dashboard Preview"
@@ -102,7 +83,6 @@ export default async function App() {
                 />
               </div>
             </div>
-          </div>
         </div>
       </section>
 
@@ -110,9 +90,9 @@ export default async function App() {
       <section className="py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-20">
-            <h2 className="text-3xl sm:text-5xl font-bold mb-6">Everything you need to succeed</h2>
+            <h2 className="text-3xl sm:text-5xl font-bold mb-6">Built for creators, by creators</h2>
             <p className="text-xl text-moonlight-silver/70 max-w-2xl mx-auto">
-              Professional-grade tools designed for modern AI workflows
+              We know the struggle of managing prompts across different tools. That&apos;s why we built something better.
             </p>
           </div>
 
@@ -121,9 +101,9 @@ export default async function App() {
               <div className="w-12 h-12 bg-zinc-900 rounded-xl flex items-center justify-center mb-6 group-hover:bg-zinc-800 transition-colors">
                 <Zap className="w-6 h-6 text-moonlight-silver-bright" />
               </div>
-              <h3 className="text-2xl font-semibold mb-4">Lightning Fast</h3>
+              <h3 className="text-2xl font-semibold mb-4">Find anything, instantly</h3>
               <p className="text-moonlight-silver/70 leading-relaxed">
-                Find any prompt instantly with our advanced search and intelligent categorization system.
+                No more scrolling through endless notes. Smart search that actually understands what you&apos;re looking for.
               </p>
             </div>
 
@@ -131,9 +111,9 @@ export default async function App() {
               <div className="w-12 h-12 bg-zinc-900 rounded-xl flex items-center justify-center mb-6 group-hover:bg-zinc-800 transition-colors">
                 <Users className="w-6 h-6 text-moonlight-silver-bright" />
               </div>
-              <h3 className="text-2xl font-semibold mb-4">Team Collaboration</h3>
+              <h3 className="text-2xl font-semibold mb-4">Share with your crew</h3>
               <p className="text-moonlight-silver/70 leading-relaxed">
-                Share prompts securely with your team. Real-time collaboration with enterprise-grade permissions.
+                Keep your best prompts private, or share them with the world. Your workspace, your rules.
               </p>
             </div>
 
@@ -141,22 +121,22 @@ export default async function App() {
               <div className="w-12 h-12 bg-zinc-900 rounded-xl flex items-center justify-center mb-6 group-hover:bg-zinc-800 transition-colors">
                 <Shield className="w-6 h-6 text-moonlight-silver-bright" />
               </div>
-              <h3 className="text-2xl font-semibold mb-4">Enterprise Security</h3>
+              <h3 className="text-2xl font-semibold mb-4">Your data stays yours</h3>
               <p className="text-moonlight-silver/70 leading-relaxed">
-                Bank-level security with SOC 2 compliance. Your intellectual property stays protected.
+                We&apos;re not here to harvest your creativity. Your prompts are encrypted and completely under your control.
               </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Social Proof */}
+      {/* Social Proof 
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-zinc-950/30">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4">Trusted by industry leaders</h2>
+            <h2 className="text-3xl sm:text-4xl font-bold mb-4">Early users are loving it</h2>
             <p className="text-moonlight-silver/70">
-              Join thousands of professionals who&apos;ve transformed their AI workflow
+              Real feedback from real people building cool stuff with AI
             </p>
           </div>
 
@@ -170,13 +150,13 @@ export default async function App() {
                 </div>
               </div>
               <p className="text-moonlight-silver/90 mb-6 leading-relaxed">
-                &quot;Wisp has revolutionized how our team approaches AI. The collaboration features are game-changing.&quot;
+                &quot;Finally, a place to keep all my prompts that doesn't feel like work. Clean, simple, and it just works.&quot;
               </p>
               <div className="flex items-center">
                 <div className="w-10 h-10 bg-zinc-800 rounded-full mr-3" />
                 <div>
-                  <p className="font-semibold">Sarah Chen</p>
-                  <p className="text-sm text-moonlight-silver/60">Head of AI, TechCorp</p>
+                  <p className="font-semibold">Alex M.</p>
+                  <p className="text-sm text-moonlight-silver/60">Content Creator</p>
                 </div>
               </div>
             </div>
@@ -190,13 +170,13 @@ export default async function App() {
                 </div>
               </div>
               <p className="text-moonlight-silver/90 mb-6 leading-relaxed">
-                &quot;The most intuitive prompt management platform I&apos;ve used. Clean, fast, and powerful.&quot;
+                &quot;Love the no-BS approach. It's exactly what I needed without all the extra fluff other tools have.&quot;
               </p>
               <div className="flex items-center">
                 <div className="w-10 h-10 bg-zinc-800 rounded-full mr-3" />
                 <div>
-                  <p className="font-semibold">Marcus Rodriguez</p>
-                  <p className="text-sm text-moonlight-silver/60">Creative Director, Agency</p>
+                  <p className="font-semibold">Jordan K.</p>
+                  <p className="text-sm text-moonlight-silver/60">Indie Developer</p>
                 </div>
               </div>
             </div>
@@ -210,26 +190,27 @@ export default async function App() {
                 </div>
               </div>
               <p className="text-moonlight-silver/90 mb-6 leading-relaxed">
-                &quot;Finally, a professional solution for prompt management. The security features give us peace of mind.&quot;
+                &quot;Been beta testing for weeks. This is going to change how teams work with AI prompts. Excited for the launch!&quot;
               </p>
               <div className="flex items-center">
                 <div className="w-10 h-10 bg-zinc-800 rounded-full mr-3" />
                 <div>
-                  <p className="font-semibold">Emily Watson</p>
-                  <p className="text-sm text-moonlight-silver/60">CTO, StartupXYZ</p>
+                  <p className="font-semibold">Sam R.</p>
+                  <p className="text-sm text-moonlight-silver/60">Design Lead</p>
                 </div>
               </div>
             </div>
           </div>
         </div>
       </section>
+      */}
 
-      {/* Simple Process */}
+      {/* How it works 
       <section className="py-32 px-4 sm:px-6 lg:px-8">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-20">
-            <h2 className="text-3xl sm:text-5xl font-bold mb-6">Get started in minutes</h2>
-            <p className="text-xl text-moonlight-silver/70">Simple setup, powerful results</p>
+            <h2 className="text-3xl sm:text-5xl font-bold mb-6">Dead simple to start</h2>
+            <p className="text-xl text-moonlight-silver/70">No complex setup. No lengthy tutorials. Just pure simplicity.</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
@@ -237,30 +218,31 @@ export default async function App() {
               <div className="w-16 h-16 bg-zinc-900 rounded-2xl flex items-center justify-center mx-auto mb-6">
                 <span className="text-2xl font-bold text-moonlight-silver-bright">1</span>
               </div>
-              <h3 className="text-xl font-semibold mb-4">Sign Up</h3>
-              <p className="text-moonlight-silver/70">Create your account in seconds. No credit card required.</p>
+              <h3 className="text-xl font-semibold mb-4">Jump right in</h3>
+              <p className="text-moonlight-silver/70">Create an account in 30 seconds. No credit card, no commitment, no hassle.</p>
             </div>
 
             <div className="text-center">
               <div className="w-16 h-16 bg-zinc-900 rounded-2xl flex items-center justify-center mx-auto mb-6">
                 <span className="text-2xl font-bold text-moonlight-silver-bright">2</span>
               </div>
-              <h3 className="text-xl font-semibold mb-4">Import & Organize</h3>
-              <p className="text-moonlight-silver/70">Upload your prompts or browse our curated marketplace.</p>
+              <h3 className="text-xl font-semibold mb-4">Drop in your prompts</h3>
+              <p className="text-moonlight-silver/70">Copy-paste your favorites or start fresh. Organize however makes sense to you.</p>
             </div>
 
             <div className="text-center">
               <div className="w-16 h-16 bg-zinc-900 rounded-2xl flex items-center justify-center mx-auto mb-6">
                 <span className="text-2xl font-bold text-moonlight-silver-bright">3</span>
               </div>
-              <h3 className="text-xl font-semibold mb-4">Collaborate</h3>
-              <p className="text-moonlight-silver/70">Share with your team and start building amazing AI workflows.</p>
+              <h3 className="text-xl font-semibold mb-4">Start creating</h3>
+              <p className="text-moonlight-silver/70">Search, share, and build on what works. Focus on the fun stuff.</p>
             </div>
           </div>
         </div>
       </section>
+      */}
 
-      {/* Stats Section */}
+      {/* Stats Section 
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-zinc-950/50">
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
@@ -283,30 +265,25 @@ export default async function App() {
           </div>
         </div>
       </section>
+      */}
 
       {/* Final CTA */}
       <section className="py-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-t from-zinc-950 to-black">
         <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-3xl sm:text-5xl font-bold mb-6">Ready to transform your AI workflow?</h2>
-          <p className="text-xl text-moonlight-silver/70 mb-12">Join thousands of professionals already using Wisp</p>
+          <h2 className="text-3xl sm:text-5xl font-bold mb-6">Ready to organize your AI chaos?</h2>
+          <p className="text-xl text-moonlight-silver/70 mb-12">
+            Join the early adopters who are already building something amazing
+          </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8">
-            <Link href="/signup">
-              <Button
-                size="lg"
-                className="bg-moonlight-silver-bright text-[var(--wisp-blue)] hover:bg-moonlight-silver text-lg px-8 py-6"
-              >
-                Start Free Trial
-                <ArrowRight className="ml-2 w-5 h-5" />
-              </Button>
-            </Link>
-            <Link href="/login">
+            <Link href="/prompt">
               <Button
                 variant="outline"
                 size="lg"
                 className="border-zinc-700 text-moonlight-silver hover:bg-zinc-900 text-lg px-8 py-6 bg-transparent"
               >
-                Sign In
+                Try it free
+                <ArrowRight className="ml-2 w-5 h-5" />
               </Button>
             </Link>
             <GuestLoginButton />
@@ -315,15 +292,15 @@ export default async function App() {
           <div className="flex items-center justify-center gap-6 text-sm text-moonlight-silver/60">
             <div className="flex items-center">
               <Check className="w-4 h-4 mr-2 text-green-400" />
-              14-day free trial
+              Free to start
             </div>
             <div className="flex items-center">
               <Check className="w-4 h-4 mr-2 text-green-400" />
-              No credit card required
+              No setup hassles
             </div>
             <div className="flex items-center">
               <Check className="w-4 h-4 mr-2 text-green-400" />
-              Cancel anytime
+              Made by creators
             </div>
           </div>
         </div>

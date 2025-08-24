@@ -250,3 +250,30 @@
 .form-field-glow:focus {
   box-shadow: 0 0 0 1px var(--wisp-blue), 0 0 12px var(--wisp-blue)/25;
 }
+
+/* 3D Tilt Effects for Product Preview */
+.perspective-1000 {
+  perspective: 1200px;
+  perspective-origin: center center;
+}
+
+.product-preview-tilt {
+  transform: rotateX(18deg) rotateY(-5deg) translateZ(40px);
+  transform-style: preserve-3d;
+  transition: all 0.8s cubic-bezier(0.165, 0.84, 0.44, 1);
+  will-change: transform;
+  backface-visibility: hidden;
+  position: relative;
+  box-shadow: 
+    0 50px 100px rgba(0, 0, 0, 0.7),
+    0 25px 50px rgba(0, 0, 0, 0.5),
+    0 0 120px rgba(0, 170, 255, 0.1);
+}
+
+.product-preview-tilt:hover {
+  transform: rotateX(12deg) rotateY(-3deg) translateZ(60px) scale(1.03);
+  box-shadow: 
+    0 70px 140px rgba(0, 0, 0, 0.8),
+    0 35px 70px rgba(0, 0, 0, 0.6),
+    0 0 180px rgba(0, 170, 255, 0.15);
+}

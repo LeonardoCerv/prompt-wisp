@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button'
 import {signout} from './actions'
 
 import { type User } from '@supabase/supabase-js'
-import GuestLoginButton from './guest-login-button';
 
 export default function Header( { user }: { user: User | null }) {
 
@@ -77,7 +76,7 @@ export default function Header( { user }: { user: User | null }) {
             </>
           ) : (
             <>
-             <GuestLoginButton />
+              {/*<GuestLoginButton />*/}
               <Link href="/login">
                 <Button variant="outline" size="default">
                   Login

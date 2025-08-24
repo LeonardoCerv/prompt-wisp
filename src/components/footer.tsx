@@ -41,7 +41,7 @@ export default function Footer() {
               */}
               </div>
             <p className="text-sm text-moonlight-silver mb-4 max-w-xs">
-              A management tool for your AI prompts with an elegant moonlight-themed interface.
+              A management tool for your AI prompts.
             </p>
           </div>
           

@@ -19,7 +19,7 @@ export default function GuestLoginButton() {
         type="submit"
         variant="default"
         size="lg"
-        className="border-[var(--wisp-blue)] text-gray-200 hover:bg-zinc-800 text-lg p-2 mr-4 bg-transparent border-2"
+        className="border-[var(--wisp-blue)] text-gray-200 hover:bg-zinc-800 text-lg p-6 mr-4 bg-transparent border-2"
       >
         Try as Guest
       </Button>
