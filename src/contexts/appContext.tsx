@@ -16,14 +16,14 @@ interface AppState {
   collections: CollectionData[]
   user: User | null
   tags: string[]
-  userPrompts: string[] // Prompt IDs the user has access to
-  userCollections: string[] // Collection IDs the user has access to
-  favoritePrompts: string[] // Favorite prompt IDs
-  favoriteCollections: string[] // Favorite collection IDs
-  promptCollectionMap: Record<string, string[]> // promptId -> collectionIds
+  userPrompts: string[]
+  userCollections: string[]
+  favoritePrompts: string[]
+  favoriteCollections: string[]
+  promptCollectionMap: Record<string, string[]> 
   userRoles: {
-    prompts: Record<string, "owner" | "buyer" | "collaborator"> // promptId -> role
-    collections: Record<string, "owner" | "buyer" | "collaborator"> // collectionId -> role
+    prompts: Record<string, "owner" | "buyer" | "collaborator"> 
+    collections: Record<string, "owner" | "buyer" | "collaborator"> 
   }
   loading: {
     prompts: boolean
@@ -291,7 +291,6 @@ const AppContext = createContext<AppContextType | null>(null)
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(appReducer, initialState)
 
-  // Data loading functions
   const loadPrompts = useCallback(async () => {
     dispatch({ type: "SET_LOADING", payload: { key: "prompts", value: true } })
     try {
@@ -299,11 +298,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (response.ok) {
         const data = await response.json()
 
-        // For each prompt in data, call await Prompt.findById(prompt)
-        // and return the array of objects
         const promptsRaw = data.prompts || data || []
         const prompts = await Prompt.findBatchByIds(promptsRaw)
-        // Sort: non-deleted first (by updated_at desc), then deleted (by updated_at desc)
+      
         const sortedPrompts = [
           ...prompts
             .filter((p) => !p.deleted)
@@ -328,8 +325,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (response.ok) {
         const data = await response.json()
 
-        // For each prompt in data, call await Prompt.findById(prompt)
-        // and return the array of objects
         const collectionsRaw = data.collection || data || []
         const collections = await Collection.findBatchByIds(collectionsRaw)
 
@@ -365,8 +360,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (response.ok) {
         const data = await response.json()
 
-        // For each prompt in data, call await Prompt.findById(prompt)
-        // and return the array of objects
         const tags = await Prompt.findAllTags(data)
 
         dispatch({ type: "SET_TAGS", payload: tags })
@@ -383,19 +376,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     dispatch({ type: "SET_LOADING", payload: { key: "relationships", value: true } })
     try {
-      // Use batch operations to get all user relationships at once
       const [promptRelationships, collectionRelationships] = await Promise.all([
         UsersPrompts.getUserRelationships(state.user.id),
         UsersCollections.getUserRelationships(state.user.id)
       ])
 
-      // Set all data in batch to minimize re-renders
       dispatch({ type: "SET_USER_PROMPTS", payload: promptRelationships.prompts })
       dispatch({ type: "SET_USER_COLLECTIONS", payload: collectionRelationships.collections })
       dispatch({ type: "SET_FAVORITE_PROMPTS", payload: promptRelationships.favorites })
       dispatch({ type: "SET_FAVORITE_COLLECTIONS", payload: collectionRelationships.favorites })
       
-      // Set user roles for both prompts and collections
       dispatch({ 
         type: "SET_USER_ROLES", 
         payload: { 
@@ -427,10 +417,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const newPrompt = await response.json()
       dispatch({ type: "ADD_PROMPT", payload: newPrompt })
 
-      // Reload user relationships to include the new prompt
       await loadUserRelationships()
 
-      // If tags were provided, refresh the global tags
       if (promptData.tags && promptData.tags.length > 0) {
         await loadTags()
       }
@@ -454,7 +442,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const updatedPrompt = await response.json()
     dispatch({ type: "UPDATE_PROMPT", payload: updatedPrompt })
     
-    // If tags were updated, refresh the global tags
     if (updates.tags) {
       await loadTags()
     }
@@ -471,10 +458,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
 
     dispatch({ type: "DELETE_PROMPT", payload: id })
-    
-    // Refresh tags since deleting a prompt may affect available tags
-    await loadTags()
-  }, [loadTags])
+  }, [])
 
   const restorePrompt = useCallback(
     async (id: string) => {
@@ -488,18 +472,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         throw new Error("Failed to restore prompt")
       }
 
-      // Get the updated prompt data
       const updatedPrompt = await response.json()
       
-      // Update the prompts array
       dispatch({ type: "UPDATE_PROMPT", payload: updatedPrompt })
       
-      // Update the selected prompt if it's the one being restored
       if (state.ui.selectedPrompt?.id === id) {
         dispatch({ type: "SET_UI", payload: { selectedPrompt: updatedPrompt } })
       }
       
-      // Refresh tags since we're restoring a prompt that may have tags
       await loadTags()
     },
     [state.ui.selectedPrompt, loadTags],
@@ -515,7 +495,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const isFav = state.favoritePrompts.includes(id)
         await UsersPrompts.updateFavorite(id, state.user.id, !isFav)
 
-        // Update local state
         const updatedFavorites = isFav
           ? state.favoritePrompts.filter((fId) => fId !== id)
           : [...state.favoritePrompts, id]
@@ -532,7 +511,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const savePrompt = useCallback(
     async (id: string, role?: string) => {
       if (state.userPrompts.includes(id)) {
-        // Already has this role, no need to save again
         return
       }
       const response = await fetch("/api/user/prompts", {
@@ -564,7 +542,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const updatedPrompt = await response.json()
     dispatch({ type: "UPDATE_PROMPT", payload: updatedPrompt })
     
-    // If tags were updated, refresh the global tags
     if (updates.tags) {
       await loadTags()
     }
@@ -573,12 +550,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const saveCollection = useCallback(
     async (id: string, role?: string) => {
       if (state.userCollections.includes(id)) {
-        // Already has this collection, no need to save again
         return
       }
       
       try {
-        // Save the collection
         const response = await fetch("/api/user/collections", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -589,10 +564,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           throw new Error("Failed to save collection")
         }
 
-        // Get all prompts in the collection and save them too
         const promptIds = await CollectionPrompts.getPrompts(id)
         
-        // Save each prompt to the user's library
         for (const promptId of promptIds) {
           if (!state.userPrompts.includes(promptId)) {
             try {
@@ -603,7 +576,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               })
             } catch (error) {
               console.error(`Error saving prompt ${promptId} to user library:`, error)
-              // Continue with other prompts even if one fails
             }
           }
         }
@@ -639,7 +611,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [loadUserRelationships],
   )
 
-  // Collection operations
   const createCollection = useCallback(
     async (collectionData: CollectionInsert): Promise<CollectionData> => {
       const response = await fetch("/api/collections", {
@@ -656,7 +627,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const newCollection = await response.json()
       dispatch({ type: "ADD_COLLECTION", payload: newCollection })
 
-      // Add to user's collections list to update UI immediately
       const updatedUserCollections = [...state.userCollections, newCollection.id]
       dispatch({ type: "SET_USER_COLLECTIONS", payload: updatedUserCollections })
 
@@ -690,7 +660,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     dispatch({ type: "DELETE_COLLECTION", payload: id })
     
-    // Remove from user's collections list to update UI immediately
     const updatedUserCollections = state.userCollections.filter(collectionId => collectionId !== id)
     dispatch({ type: "SET_USER_COLLECTIONS", payload: updatedUserCollections })
   }, [state.userCollections])
@@ -705,7 +674,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const isFav = state.favoriteCollections.includes(id)
         await UsersCollections.updateFavorite(id, state.user.id, !isFav)
 
-        // Update local state
         const updatedFavorites = isFav
           ? state.favoriteCollections.filter((fId) => fId !== id)
           : [...state.favoriteCollections, id]
@@ -722,7 +690,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const addPromptToCollection = useCallback(
     async (collectionId: string, promptIds: string[]) => {
       try {
-        // Add each prompt to the collection using the intermediary table
         for (const promptId of promptIds) {
           await CollectionPrompts.create({
             collection_id: collectionId,
@@ -730,7 +697,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           })
         }
 
-        // Reload relationships to update the maps
         await loadUserRelationships()
       } catch (error) {
         console.error("Error adding prompts to collection:", error)
@@ -842,11 +808,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const currentUserId = userId || state.user?.id
         if (!currentUserId) return false
 
-        // Check if user has access to this prompt
         const hasAccess = state.userPrompts.includes(promptId)
         if (!hasAccess) return false
 
-        // Check if user is not the owner (saved means has access but doesn't own)
         const role = state.userRoles.prompts[promptId]
         return role !== "owner" && role !== undefined
       },
@@ -902,7 +866,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return state.userRoles.collections[collectionId]
       },
 
-      // User relationship utilities - using state arrays
       getUserPrompts: (userId?: string): PromptData[] => {
         const currentUserId = userId || state.user?.id
         if (!currentUserId) return []
@@ -944,7 +907,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         })
       },
 
-      // Collection utilities
       getCollectionPrompts: async (collectionId: string): Promise<PromptData[]> => {
         try {
           const promptIds = await CollectionPrompts.getPrompts(collectionId)
@@ -958,7 +920,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       getSharedCollectionPrompts: async (collectionId: string): Promise<PromptData[]> => {
         try {
           const promptIds = await CollectionPrompts.getPrompts(collectionId)
-          // Use Prompt.findBatchByIds to fetch prompt data directly from database
           return await Prompt.findBatchByIds(promptIds)
         } catch (error) {
           console.error(`Error fetching shared collection prompts for collection ${collectionId}:`, error)
@@ -971,7 +932,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return state.collections.filter((collection) => collectionIds.includes(collection.id) && !collection.deleted)
       },
 
-      // Filtering utilities
       getFilteredPrompts: async (filter: string, collection?: string, tags?: string[]): Promise<PromptData[]> => {
         //const userId = state.user?.id
         //if (!userId) return []
@@ -1028,7 +988,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             break
         }
 
-        // Apply tag filters
         if (tags && tags.length > 0) {
           filtered = filtered.filter((prompt) => tags.some((tag) => prompt.tags?.includes(tag)))
         }
